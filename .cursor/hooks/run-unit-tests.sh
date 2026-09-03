@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# stop hook: run URBNFlicksTests. Fail-open (print {}) if aborted, missing simulator, or unexpected errors.
+
+set -u
+
+emit_empty() {
+  printf '%s\n' '{}'
+  exit 0
+}
+
+INPUT="$(cat || true)"
+
+STATUS="$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+raw = sys.stdin.read()
+try:
+    data = json.loads(raw) if raw.strip() else {}
+except Exception:
+    data = {}
+print(data.get("status", "") or "")
+' 2>/dev/null || true)"
+
+case "$STATUS" in
+  aborted|error) emit_empty ;;
+esac
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT" || emit_empty
+
+UDID="$(python3 -c '
+import json, subprocess, sys
+
+try:
+    raw = subprocess.check_output(
+        ["xcrun", "simctl", "list", "devices", "available", "-j"],
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    data = json.loads(raw)
+except Exception:
+    sys.exit(0)
+
+booted = []
+available = []
+for runtime, devices in (data.get("devices") or {}).items():
+    if "iOS" not in runtime:
+        continue
+    for device in devices or []:
+        if device.get("isAvailable") is False:
+            continue
+        name = device.get("name") or ""
+        udid = device.get("udid") or ""
+        if "iPhone" not in name or not udid:
+            continue
+        if device.get("state") == "Booted":
+            booted.append(udid)
+        else:
+            available.append(udid)
+
+chosen = (booted[0] if booted else (available[0] if available else ""))
+if chosen:
+    print(chosen)
+' 2>/dev/null || true)"
+
+if [[ -z "${UDID}" ]]; then
+  emit_empty
+fi
+
+LOG="$(mktemp -t urbnflicks-tests.XXXXXX)"
+trap 'rm -f "$LOG"' EXIT
+
+set +e
+xcodebuild test \
+  -project URBNFlicks.xcodeproj \
+  -scheme URBNFlicks \
+  -only-testing:URBNFlicksTests \
+  -destination "platform=iOS Simulator,id=${UDID}" \
+  >"$LOG" 2>&1
+EXIT_CODE=$?
+set -e
+
+if [[ "$EXIT_CODE" -eq 0 ]]; then
+  emit_empty
+fi
+
+python3 -c '
+import json, sys
+
+path = sys.argv[1]
+try:
+    with open(path, "r", errors="replace") as handle:
+        text = handle.read()
+except Exception:
+    text = "xcodebuild test failed; log unavailable."
+
+limit = 4000
+if len(text) > limit:
+    text = text[-limit:]
+    text = "(truncated)\n" + text
+
+print(json.dumps({
+    "followup_message": "URBNFlicksTests failed. Fix the failures, then continue.\n\n" + text
+}))
+' "$LOG"
+
+exit 0
