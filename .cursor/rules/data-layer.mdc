@@ -48,5 +48,24 @@ protocol HTTPClient: Sendable {
 }
 ```
 
-- Keep URL building, query parameters, and the TMDB API key in the data layer. A view model never assembles a request.
+- Keep URL building and query parameters in the data layer. A view model never assembles a request. Credentials follow [`secrets.mdc`](.cursor/rules/secrets.mdc).
 - Translate transport, decoding, and persistence failures into `AppError` at this boundary.
+
+## Request hardening
+
+A 200 is not the only thing TMDB returns, and "it didn't decode" is the wrong thing to tell a user when the truth is 401.
+
+- **Check the status code before decoding.** Map `401`/`403` and `5xx` to their own `AppError` cases. Skipping this is how an outage or a bad key gets reported as `.decoding` — an error message that sends the next engineer to the wrong layer.
+- **Set an explicit timeout** on the `URLSessionConfiguration` (`timeoutIntervalForRequest`). The 60s default is far longer than a user will wait. Turn on `waitsForConnectivity` so a request made in a dead zone waits rather than failing instantly.
+- **Retry only what is retryable**, and only with backoff: timeouts, `5xx`, and connection loss. Never retry `4xx` — the request will not become valid — and never retry a non-idempotent write. `AppError.isRetryable` is the single source of truth for whether the UI offers a retry button.
+- **Be resilient when decoding a list.** One malformed element must not discard the other nineteen: decode elements individually and skip failures, logging a count. TMDB really does return `"release_date": ""`, so mapping an empty or unparseable date yields `nil` rather than throwing.
+- Build the date formatter **once** (`en_US_POSIX`, UTC, `yyyy-MM-dd`). A `DateFormatter` per row is a measurable cost in a scrolling list.
+
+## Pagination
+
+The list endpoints are paged and the response already carries `page` and `total_pages`. Do not hardcode `page=1` and call the feature done — every list epic in the backlog inherits this.
+
+- The repository takes an explicit `page` and returns the results plus whether more exist. It does not hide paging behind an accumulating array.
+- The view model owns the accumulated items and the next page number, and reflects a page fetch as `.loaded(items, activity: .loadingMore)` so the current list stays on screen.
+- **Deduplicate by `id` when appending.** TMDB can return the same movie on two pages when the underlying ordering shifts between requests, and a duplicate `Identifiable` id will crash a diffable snapshot rather than merely look wrong.
+- Guard against concurrent page requests: ignore a "load more" while one is in flight.
