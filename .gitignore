@@ -24,6 +24,9 @@ xcuserdata/
 *.moved-aside
 *.xcuserstate
 
+## Test result bundles (CI uploads these as artifacts; never commit them)
+*.xcresult
+
 ## Obj-C/Swift specific
 *.hmap
 *.ipa
