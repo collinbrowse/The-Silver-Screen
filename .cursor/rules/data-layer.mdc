@@ -38,7 +38,15 @@ struct Movie: Sendable, Identifiable, Hashable {
 
 ## Repositories
 
-- One repository per domain area (`MovieRepository`, `FavoritesRepository`), exposing `async throws` methods that return domain models.
+- One repository per domain area (`MovieRepository`, `FavoritesRepository`), exposing `async throws` methods that return domain models. Repositories are concrete types, not protocols.
 - The repository owns its API service, mapping, caching, and persistence. Callers cannot tell where the data came from.
+- Repositories reach the network through an injected `HTTPClient`, never `URLSession.shared`. That protocol is the only network seam and the only thing tests fake.
+
+```swift
+protocol HTTPClient: Sendable {
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse)
+}
+```
+
 - Keep URL building, query parameters, and the TMDB API key in the data layer. A view model never assembles a request.
 - Translate transport, decoding, and persistence failures into `AppError` at this boundary.

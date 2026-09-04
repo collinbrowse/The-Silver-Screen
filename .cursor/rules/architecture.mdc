@@ -19,7 +19,11 @@ Each layer knows only the layer below it:
 enum LoadState<Value: Sendable>: Sendable {
     case idle, loading, loaded(Value), failed(AppError)
 }
+
+extension LoadState: Equatable where Value: Equatable {}
 ```
+
+`Equatable` is conditional so tests can assert `viewModel.state == .failed(.offline)` without forcing every payload to be `Equatable`.
 
 - Views render state and forward intent (`await viewModel.load()`). No networking, mapping, or persistence in a view.
 
@@ -57,6 +61,8 @@ final class MovieListViewModel {
 - Add a protocol only when a second real implementation exists or a test must substitute an external boundary (network, disk, clock).
 - No protocol per type, and no protocol wrapping a single concrete struct.
 - Prefer several small types with one reason to change over one type with mode flags.
+
+Concretely, this app has three protocols and no others: `HTTPClient` (network), the Favorites persistence store (disk), and `AppLogging`. **Repositories and view models are concrete types.** There is no `MovieRepositoryProtocol`, and tests do not fake a repository — see [`testing.mdc`](testing.mdc).
 
 ## Target toolchain
 

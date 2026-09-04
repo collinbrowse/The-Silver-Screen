@@ -7,20 +7,27 @@ alwaysApply: false
 # Tests
 
 - XCTest, matching the existing target. Name tests `test_subject_condition_expectation`.
-- No network, no disk, no sleeps. Inject a fake repository or service; never call TMDB from a test.
+- No network, no disk, no sleeps. Never call TMDB from a test.
 - Cover the layers where logic lives: DTO to domain mapping, repository error translation into `AppError`, view model state transitions, and sorting.
 - Assert the state enum rather than intermediate flags.
 
+## Fake at the boundary, not at the repository
+
+The seam is `HTTPClient` (and the persistence store for Favorites) — the external boundaries named in [`architecture.mdc`](architecture.mdc). Build the **real** repository over a fake client. Do not add a repository protocol to fake one; that would leave DTO mapping and `AppError` translation untested, which is where the bugs actually are.
+
 ```swift
 @MainActor
-func test_load_whenRepositoryFails_setsFailedState() async {
-    let viewModel = MovieListViewModel(movies: FakeMovieRepository(result: .failure(.offline)))
+func test_load_whenClientIsOffline_setsFailedState() async {
+    let client = FakeHTTPClient(result: .failure(URLError(.notConnectedToInternet)))
+    let viewModel = MovieListViewModel(movies: MovieRepository(client: client))
 
     await viewModel.load()
 
     XCTAssertEqual(viewModel.state, .failed(.offline))
 }
 ```
+
+`FakeHTTPClient` returns canned `Data` (a trimmed TMDB fixture) or throws. One fake covers mapping tests, error-translation tests, and view model state tests.
 
 - View models are `@MainActor`: mark tests `@MainActor` and `await` the work instead of using expectations with timeouts.
 - One behavior per test. Add a regression test with every bug fix.
