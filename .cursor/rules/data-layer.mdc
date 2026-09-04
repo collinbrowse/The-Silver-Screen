@@ -1,0 +1,44 @@
+---
+description: URBNFlicks data layer — API models separated from domain models, repositories, and mapping.
+globs: URBNFlicks/Networking/**/*.swift,URBNFlicks/Models/**/*.swift,URBNFlicks/**/*Repository.swift
+alwaysApply: false
+---
+
+# Data layer
+
+## API models are not domain models
+
+- API DTOs are `Decodable`, mirror the TMDB payload, stay internal to the data layer, and use `CodingKeys` instead of snake_case property names.
+- Domain models are `Sendable` structs with Swift naming and real types (`URL`, `Date`, enums) rather than raw strings.
+- Map DTO to domain in one place per resource. View models and views never see a DTO.
+
+```swift
+// API
+struct MovieSummaryDTO: Decodable {
+    let id: Int
+    let title: String
+    let posterPath: String?
+    let releaseDate: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, title
+        case posterPath = "poster_path"
+        case releaseDate = "release_date"
+    }
+}
+
+// Domain
+struct Movie: Sendable, Identifiable, Hashable {
+    let id: Int
+    let title: String
+    let posterURL: URL?
+    let releaseDate: Date?
+}
+```
+
+## Repositories
+
+- One repository per domain area (`MovieRepository`, `FavoritesRepository`), exposing `async throws` methods that return domain models.
+- The repository owns its API service, mapping, caching, and persistence. Callers cannot tell where the data came from.
+- Keep URL building, query parameters, and the TMDB API key in the data layer. A view model never assembles a request.
+- Translate transport, decoding, and persistence failures into `AppError` at this boundary.

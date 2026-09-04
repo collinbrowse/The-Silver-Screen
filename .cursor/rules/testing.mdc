@@ -1,0 +1,26 @@
+---
+description: Unit test conventions for URBNFlicks using XCTest and injected fakes.
+globs: URBNFlicksTests/**/*.swift
+alwaysApply: false
+---
+
+# Tests
+
+- XCTest, matching the existing target. Name tests `test_subject_condition_expectation`.
+- No network, no disk, no sleeps. Inject a fake repository or service; never call TMDB from a test.
+- Cover the layers where logic lives: DTO to domain mapping, repository error translation into `AppError`, view model state transitions, and sorting.
+- Assert the state enum rather than intermediate flags.
+
+```swift
+@MainActor
+func test_load_whenRepositoryFails_setsFailedState() async {
+    let viewModel = MovieListViewModel(movies: FakeMovieRepository(result: .failure(.offline)))
+
+    await viewModel.load()
+
+    XCTAssertEqual(viewModel.state, .failed(.offline))
+}
+```
+
+- View models are `@MainActor`: mark tests `@MainActor` and `await` the work instead of using expectations with timeouts.
+- One behavior per test. Add a regression test with every bug fix.

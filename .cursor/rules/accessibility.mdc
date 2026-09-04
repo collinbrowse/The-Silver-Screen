@@ -1,0 +1,18 @@
+---
+description: Accessibility requirements for URBNFlicks screens and cells.
+globs: URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift,URBNFlicks/**/*Cell.swift
+alwaysApply: false
+---
+
+# Accessibility
+
+Treat these as acceptance criteria, not polish. A story is not done if the screen is unusable with VoiceOver or at large text sizes.
+
+- Every image, icon button, and control has a meaningful label. Decorative artwork is `.accessibilityHidden(true)`.
+- Combine a cell's parts into one element so VoiceOver reads "Dune, rated 8.2, 2021" instead of three fragments: `.accessibilityElement(children: .combine)`.
+- Speak values, not glyphs: `.accessibilityLabel("Rated 8.2 out of 10")` rather than a star string.
+- Support Dynamic Type. No fixed font sizes and no fixed-height text containers; check the layout at `.accessibilityExtraExtraExtraLarge`.
+- Tap targets are at least 44x44 points.
+- Never convey state through color alone. Loading, failure, and selection are reflected in labels or traits.
+- Sort and filter controls expose their current selection to VoiceOver, not just a checkmark glyph.
+- Bookmark and favorite controls announce the action and the resulting state.
