@@ -28,6 +28,8 @@ final class MovieListViewController: UIViewController {
     private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
     private var moviesByID: [Movie.ID: Movie] = [:]
     private var stateTask: Task<Void, Never>?
+    private var sortButton: UIBarButtonItem!
+
     init(viewModel: MovieListViewModel, imageLoader: ImageLoader) {
         self.viewModel = viewModel
         self.imageLoader = imageLoader
@@ -64,12 +66,11 @@ final class MovieListViewController: UIViewController {
 
     private func setupNavigation() {
         title = "Top Ranked Movies"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        sortButton = UIBarButtonItem(
             title: "Sort",
-            style: .plain,
-            target: self,
-            action: #selector(sortTapped)
+            menu: makeSortMenu()
         )
+        navigationItem.rightBarButtonItem = sortButton
     }
 
     private func setupTableView() {
@@ -174,6 +175,8 @@ final class MovieListViewController: UIViewController {
     // MARK: - Render
 
     private func render(_ state: LoadState<[Movie]>) {
+        sortButton.menu = makeSortMenu()
+
         switch state {
         case .idle:
             tableView.isHidden = true
@@ -247,6 +250,17 @@ final class MovieListViewController: UIViewController {
         UIAccessibility.post(notification: .announcement, argument: bannerLabel.text)
     }
 
+    private func makeSortMenu() -> UIMenu {
+        let actions = SortOption.allCases.map { option in
+            UIAction(
+                title: option.title,
+                state: viewModel.sortOption == option ? .on : .off
+            ) { [weak self] _ in
+                self?.viewModel.setSortOption(option)
+            }
+        }
+        return UIMenu(title: "Sort Options", options: .singleSelection, children: actions)
+    }
 
     @objc private func pulledToRefresh() {
         Task { await viewModel.refresh() }
@@ -254,17 +268,6 @@ final class MovieListViewController: UIViewController {
 
     @objc private func retryTapped() {
         Task { await viewModel.retry() }
-    }
-
-    @objc private func sortTapped() {
-        let controller = UIAlertController(
-            title: "Sort Options",
-            message: "Choose your sorting preference",
-            preferredStyle: .actionSheet
-        )
-        controller.addAction(UIAlertAction(title: "Top Ranked ✅", style: .default, handler: nil))
-        controller.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        present(controller, animated: true)
     }
 }
 
