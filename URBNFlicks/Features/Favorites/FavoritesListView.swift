@@ -9,7 +9,6 @@ import UIKit
 struct FavoritesListView: View {
     @State var viewModel: FavoritesListViewModel
     let imageLoader: ImageLoader
-    let favorites: FavoritesRepository
 
     var body: some View {
         Group {
@@ -26,7 +25,7 @@ struct FavoritesListView: View {
             case .loaded(let favoritesList, let activity):
                 List {
                     ForEach(favoritesList) { favorite in
-                        NavigationLink(value: favorite.asMovie()) {
+                        NavigationLink(value: Route.movieDetail(id: favorite.id)) {
                             FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -60,9 +59,6 @@ struct FavoritesListView: View {
                     await viewModel.retry()
                 }
             }
-        }
-        .navigationDestination(for: Movie.self) { movie in
-            MovieDetailView(movie: movie, favorites: favorites)
         }
         .onAppear {
             Task { await viewModel.load() }

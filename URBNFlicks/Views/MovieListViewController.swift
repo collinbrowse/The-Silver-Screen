@@ -16,6 +16,7 @@ final class MovieListViewController: UIViewController {
     private let viewModel: MovieListViewModel
     private let imageLoader: ImageLoader
     private let favorites: FavoritesRepository
+    private let router: NavigationRouter
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let loadingView = UIActivityIndicatorView(style: .large)
@@ -32,10 +33,16 @@ final class MovieListViewController: UIViewController {
     private var stateTask: Task<Void, Never>?
     private var sortButton: UIBarButtonItem!
 
-    init(viewModel: MovieListViewModel, imageLoader: ImageLoader, favorites: FavoritesRepository) {
+    init(
+        viewModel: MovieListViewModel,
+        imageLoader: ImageLoader,
+        favorites: FavoritesRepository,
+        router: NavigationRouter
+    ) {
         self.viewModel = viewModel
         self.imageLoader = imageLoader
         self.favorites = favorites
+        self.router = router
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -344,12 +351,8 @@ final class MovieListViewController: UIViewController {
 extension MovieListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        guard let id = dataSource.itemIdentifier(for: indexPath),
-              let movie = moviesByID[id] else { return }
-        navigationController?.pushViewController(
-            MovieDetailViewController(movie: movie, favorites: favorites),
-            animated: true
-        )
+        guard let id = dataSource.itemIdentifier(for: indexPath) else { return }
+        router.push(.movieDetail(id: id))
     }
 
     func tableView(

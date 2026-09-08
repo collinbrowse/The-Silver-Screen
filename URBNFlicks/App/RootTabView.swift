@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct RootTabView: View {
     @Bindable var router: AppRouter
@@ -34,7 +35,9 @@ struct RootTabView: View {
             TopMoviesListRepresentable(
                 viewModel: topMoviesViewModel,
                 imageLoader: imageLoader,
-                favorites: favorites
+                favorites: favorites,
+                router: router.topMovies,
+                makeDestination: makeUIKitDestination
             )
             .ignoresSafeArea()
             .tabItem {
@@ -42,18 +45,56 @@ struct RootTabView: View {
             }
             .tag(AppTab.topMovies)
 
-            NavigationStack {
-                FavoritesListView(
-                    viewModel: favoritesListViewModel,
-                    imageLoader: imageLoader,
-                    favorites: favorites
-                )
-                .navigationTitle("Favorites")
-            }
+            FavoritesTabRoot(
+                router: router.favorites,
+                viewModel: favoritesListViewModel,
+                imageLoader: imageLoader,
+                favorites: favorites,
+                movies: movies
+            )
             .tabItem {
                 Label("Favorites", systemImage: "heart")
             }
             .tag(AppTab.favorites)
+        }
+    }
+
+    @MainActor
+    private func makeUIKitDestination(_ route: Route) -> UIViewController {
+        switch route {
+        case .movieDetail(let id):
+            return MovieDetailHostingController(
+                movieID: id,
+                movies: movies,
+                favorites: favorites,
+                imageLoader: imageLoader
+            )
+        }
+    }
+}
+
+private struct FavoritesTabRoot: View {
+    @Bindable var router: NavigationRouter
+    @State var viewModel: FavoritesListViewModel
+    let imageLoader: ImageLoader
+    let favorites: FavoritesRepository
+    let movies: MovieRepository
+
+    var body: some View {
+        NavigationStack(path: $router.path) {
+            FavoritesListView(
+                viewModel: viewModel,
+                imageLoader: imageLoader
+            )
+            .navigationTitle("Favorites")
+            .navigationDestination(for: Route.self) { route in
+                AppRouteDestination(
+                    route: route,
+                    movies: movies,
+                    favorites: favorites,
+                    imageLoader: imageLoader
+                )
+            }
         }
     }
 }
