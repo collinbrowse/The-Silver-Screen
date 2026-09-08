@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SwiftUI
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -19,16 +20,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
         let window = UIWindow(windowScene: windowScene)
-        let logger = OSAppLogger()
 
         do {
-            let apiKey = try TMDBAPIKey.fromBundle()
-            let httpClient = URLSessionHTTPClient()
-            let repository = MovieRepository(client: httpClient, apiKey: apiKey, logger: logger)
-            let viewModel = MovieListViewModel(movies: repository)
-            let imageLoader = ImageLoader(client: httpClient)
-            let list = MovieListViewController(viewModel: viewModel, imageLoader: imageLoader)
-            window.rootViewController = UINavigationController(rootViewController: list)
+            let dependencies = try AppDependencies.live()
+            let favoritesListViewModel = FavoritesListViewModel(favorites: dependencies.favorites)
+            let root = RootTabView(
+                router: dependencies.router,
+                movies: dependencies.movies,
+                favorites: dependencies.favorites,
+                imageLoader: dependencies.imageLoader,
+                favoritesListViewModel: favoritesListViewModel
+            )
+            window.rootViewController = UIHostingController(rootView: root)
         } catch {
             let message: String
             if let appError = error as? AppError {
