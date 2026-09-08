@@ -59,16 +59,17 @@
 
 		B10002002788B823003D8011 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002012788B823003D8011 /* MovieDetail.swift */; };
 		B10002022788B823003D8011 /* MovieDetailDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002032788B823003D8011 /* MovieDetailDTO.swift */; };
-		B10002042788B823003D8011 /* MovieDetailTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002052788B823003D8011 /* MovieDetailTokens.swift */; };
-		B10002062788B823003D8011 /* MovieDetailPosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002072788B823003D8011 /* MovieDetailPosterView.swift */; };
-		B10002082788B823003D8011 /* MovieDetailGenreChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002092788B823003D8011 /* MovieDetailGenreChip.swift */; };
-		B100020A2788B823003D8011 /* MovieDetailSurfaceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020B2788B823003D8011 /* MovieDetailSurfaceCard.swift */; };
+		B10002042788B823003D8011 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002052788B823003D8011 /* DesignTokens.swift */; };
+		B10002062788B823003D8011 /* MoviePosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002072788B823003D8011 /* MoviePosterView.swift */; };
+		B10002082788B823003D8011 /* TagChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002092788B823003D8011 /* TagChip.swift */; };
+		B100020A2788B823003D8011 /* SurfaceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020B2788B823003D8011 /* SurfaceCard.swift */; };
 		B100020C2788B823003D8011 /* MovieDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020D2788B823003D8011 /* MovieDetailViewModel.swift */; };
 		B100020E2788B823003D8011 /* MovieDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020F2788B823003D8011 /* MovieDetailView.swift */; };
 		B10002102788B823003D8011 /* AppRouteDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002112788B823003D8011 /* AppRouteDestination.swift */; };
 		B10002122788B823003D8011 /* MovieDetailViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002132788B823003D8011 /* MovieDetailViewModelTests.swift */; };
 		B10002142788B823003D8011 /* NavigationRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002152788B823003D8011 /* NavigationRouterTests.swift */; };
 		B10002182788B823003D8011 /* MovieDetailHostingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002192788B823003D8011 /* MovieDetailHostingController.swift */; };
+		B10002202788B823003D8011 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002212788B823003D8011 /* FlowLayout.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,16 +148,17 @@
 
 		B10002012788B823003D8011 /* MovieDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetail.swift; sourceTree = "<group>"; };
 		B10002032788B823003D8011 /* MovieDetailDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailDTO.swift; sourceTree = "<group>"; };
-		B10002052788B823003D8011 /* MovieDetailTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailTokens.swift; sourceTree = "<group>"; };
-		B10002072788B823003D8011 /* MovieDetailPosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailPosterView.swift; sourceTree = "<group>"; };
-		B10002092788B823003D8011 /* MovieDetailGenreChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailGenreChip.swift; sourceTree = "<group>"; };
-		B100020B2788B823003D8011 /* MovieDetailSurfaceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailSurfaceCard.swift; sourceTree = "<group>"; };
+		B10002052788B823003D8011 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		B10002072788B823003D8011 /* MoviePosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoviePosterView.swift; sourceTree = "<group>"; };
+		B10002092788B823003D8011 /* TagChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagChip.swift; sourceTree = "<group>"; };
+		B100020B2788B823003D8011 /* SurfaceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceCard.swift; sourceTree = "<group>"; };
 		B100020D2788B823003D8011 /* MovieDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailViewModel.swift; sourceTree = "<group>"; };
 		B100020F2788B823003D8011 /* MovieDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailView.swift; sourceTree = "<group>"; };
 		B10002112788B823003D8011 /* AppRouteDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouteDestination.swift; sourceTree = "<group>"; };
 		B10002132788B823003D8011 /* MovieDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailViewModelTests.swift; sourceTree = "<group>"; };
 		B10002152788B823003D8011 /* NavigationRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationRouterTests.swift; sourceTree = "<group>"; };
 		B10002192788B823003D8011 /* MovieDetailHostingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailHostingController.swift; sourceTree = "<group>"; };
+		B10002212788B823003D8011 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -341,6 +343,7 @@
 		B10001152788B823003D8011 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				B10002172788B823003D8011 /* DesignSystem */,
 				B10001112788B823003D8011 /* FavoritePillButton.swift */,
 				B10001132788B823003D8011 /* FavoritePillHostingView.swift */,
 				B10001512788B823003D8011 /* FavoriteStarButton.swift */,
@@ -423,7 +426,6 @@
 		B10002162788B823003D8011 /* MovieDetail */ = {
 			isa = PBXGroup;
 			children = (
-				B10002172788B823003D8011 /* DesignSystem */,
 				B100020D2788B823003D8011 /* MovieDetailViewModel.swift */,
 				B100020F2788B823003D8011 /* MovieDetailView.swift */,
 				B10002192788B823003D8011 /* MovieDetailHostingController.swift */,
@@ -434,10 +436,11 @@
 		B10002172788B823003D8011 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
-				B10002052788B823003D8011 /* MovieDetailTokens.swift */,
-				B10002072788B823003D8011 /* MovieDetailPosterView.swift */,
-				B10002092788B823003D8011 /* MovieDetailGenreChip.swift */,
-				B100020B2788B823003D8011 /* MovieDetailSurfaceCard.swift */,
+				B10002052788B823003D8011 /* DesignTokens.swift */,
+				B10002072788B823003D8011 /* MoviePosterView.swift */,
+				B10002092788B823003D8011 /* TagChip.swift */,
+				B100020B2788B823003D8011 /* SurfaceCard.swift */,
+				B10002212788B823003D8011 /* FlowLayout.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -601,10 +604,11 @@
 				B10001202788B823003D8011 /* Route.swift in Sources */,
 				B10002002788B823003D8011 /* MovieDetail.swift in Sources */,
 				B10002022788B823003D8011 /* MovieDetailDTO.swift in Sources */,
-				B10002042788B823003D8011 /* MovieDetailTokens.swift in Sources */,
-				B10002062788B823003D8011 /* MovieDetailPosterView.swift in Sources */,
-				B10002082788B823003D8011 /* MovieDetailGenreChip.swift in Sources */,
-				B100020A2788B823003D8011 /* MovieDetailSurfaceCard.swift in Sources */,
+				B10002042788B823003D8011 /* DesignTokens.swift in Sources */,
+				B10002062788B823003D8011 /* MoviePosterView.swift in Sources */,
+				B10002082788B823003D8011 /* TagChip.swift in Sources */,
+				B100020A2788B823003D8011 /* SurfaceCard.swift in Sources */,
+				B10002202788B823003D8011 /* FlowLayout.swift in Sources */,
 				B100020C2788B823003D8011 /* MovieDetailViewModel.swift in Sources */,
 				B100020E2788B823003D8011 /* MovieDetailView.swift in Sources */,
 				B10002102788B823003D8011 /* AppRouteDestination.swift in Sources */,

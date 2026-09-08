@@ -1,12 +1,13 @@
 //
-//  MovieDetailPosterView.swift
+//  MoviePosterView.swift
 //  URBNFlicks
 //
 
 import SwiftUI
 import UIKit
 
-struct MovieDetailPosterView: View {
+/// Shared 2:3 poster for new SwiftUI screens. Inject `ImageLoader`; do not fetch in the view.
+struct MoviePosterView: View {
     let posterPath: String?
     let imageLoader: ImageLoader
     let width: CGFloat
@@ -24,15 +25,15 @@ struct MovieDetailPosterView: View {
                     .scaledToFill()
             } else {
                 ZStack {
-                    MovieDetailTheme.surface
+                    DesignTheme.surface
                     Image(systemName: "film")
                         .font(.title2)
-                        .foregroundStyle(MovieDetailTheme.textMuted)
+                        .foregroundStyle(DesignTheme.textMuted)
                 }
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: MovieDetailRadius.poster, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
         .accessibilityHidden(true)
         .task(id: posterPath) {
             await loadPoster()

@@ -1,13 +1,14 @@
 //
-//  MovieDetailTokens.swift
+//  DesignTokens.swift
 //  URBNFlicks
 //
-//  Screen-scoped visual language for Movie Detail. Top Movies stays on redline.
+//  Shared visual language for new SwiftUI screens. The legacy Top Movies UIKit
+//  list stays on Comps/redline.png and should not adopt these tokens.
 //
 
 import SwiftUI
 
-enum MovieDetailSpacing {
+enum DesignSpacing {
     static let xs: CGFloat = 4
     static let sm: CGFloat = 8
     static let md: CGFloat = 12
@@ -16,13 +17,13 @@ enum MovieDetailSpacing {
     static let xxl: CGFloat = 32
 }
 
-enum MovieDetailRadius {
+enum DesignRadius {
     static let poster: CGFloat = 10
     static let card: CGFloat = 14
     static let chip: CGFloat = 100
 }
 
-enum MovieDetailTheme {
+enum DesignTheme {
     /// Near-black in dark mode; system background in light.
     static var canvas: Color { Color(.systemBackground) }
 
@@ -34,13 +35,14 @@ enum MovieDetailTheme {
     static var textMuted: Color { Color(.tertiaryLabel) }
     static var separator: Color { Color(.separator) }
 
-    /// Detail-local amber/orange — does not overwrite app AccentColor.
-    static var accent: Color { Color("MovieDetailAccent") }
+    /// Brand amber/orange for new screens — does not overwrite app AccentColor
+    /// (Top Movies keeps system blue).
+    static var accent: Color { Color("DesignAccent") }
 
     static var accentOnFill: Color { Color.black }
 }
 
-enum MovieDetailTypography {
+enum DesignTypography {
     static var title: Font { .title2.bold() }
     static var section: Font { .headline }
     static var body: Font { .body }

@@ -33,7 +33,7 @@ struct MovieDetailView: View {
                 }
             }
         }
-        .background(MovieDetailTheme.canvas)
+        .background(DesignTheme.canvas)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsToolbarFavorite, case .loaded(let content, _) = viewModel.state {
@@ -54,7 +54,7 @@ struct MovieDetailView: View {
     @ViewBuilder
     private func loadedBody(content: MovieDetailContent, activity: LoadActivity) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: MovieDetailSpacing.xl) {
+            VStack(alignment: .leading, spacing: DesignSpacing.xl) {
                 header(content)
                 if !content.detail.genres.isEmpty {
                     genres(content.detail.genres)
@@ -63,8 +63,8 @@ struct MovieDetailView: View {
                 overviewSection(content.detail.overview)
                 factsCard(content)
             }
-            .padding(.horizontal, MovieDetailSpacing.lg)
-            .padding(.vertical, MovieDetailSpacing.lg)
+            .padding(.horizontal, DesignSpacing.lg)
+            .padding(.vertical, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
         }
@@ -73,7 +73,7 @@ struct MovieDetailView: View {
                 Text("\(error.title): \(error.message)")
                     .font(.footnote)
                     .foregroundStyle(.white)
-                    .padding(MovieDetailSpacing.sm)
+                    .padding(DesignSpacing.sm)
                     .frame(maxWidth: .infinity)
                     .background(Color.red)
                     .accessibilityLabel("\(error.title). \(error.message)")
@@ -91,27 +91,27 @@ struct MovieDetailView: View {
 
         Group {
             if stackVertically {
-                VStack(alignment: .leading, spacing: MovieDetailSpacing.md) {
-                    MovieDetailPosterView(
+                VStack(alignment: .leading, spacing: DesignSpacing.md) {
+                    MoviePosterView(
                         posterPath: content.detail.posterPath,
                         imageLoader: imageLoader,
                         width: posterWidth
                     )
                     Text(content.detail.title)
-                        .font(MovieDetailTypography.title)
-                        .foregroundStyle(MovieDetailTheme.textPrimary)
+                        .font(DesignTypography.title)
+                        .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
-                HStack(alignment: .top, spacing: MovieDetailSpacing.md) {
-                    MovieDetailPosterView(
+                HStack(alignment: .top, spacing: DesignSpacing.md) {
+                    MoviePosterView(
                         posterPath: content.detail.posterPath,
                         imageLoader: imageLoader,
                         width: posterWidth
                     )
                     Text(content.detail.title)
-                        .font(MovieDetailTypography.title)
-                        .foregroundStyle(MovieDetailTheme.textPrimary)
+                        .font(DesignTypography.title)
+                        .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -122,9 +122,9 @@ struct MovieDetailView: View {
     }
 
     private func genres(_ genres: [MovieGenre]) -> some View {
-        FlowLayout(spacing: MovieDetailSpacing.sm) {
+        FlowLayout(spacing: DesignSpacing.sm) {
             ForEach(genres) { genre in
-                MovieDetailGenreChip(title: genre.name)
+                TagChip(title: genre.name)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -132,19 +132,19 @@ struct MovieDetailView: View {
     }
 
     private func ratingCard(_ content: MovieDetailContent) -> some View {
-        MovieDetailSurfaceCard {
-            HStack(spacing: MovieDetailSpacing.md) {
+        SurfaceCard {
+            HStack(spacing: DesignSpacing.md) {
                 Image(systemName: "star.fill")
-                    .foregroundStyle(MovieDetailTheme.accent)
+                    .foregroundStyle(DesignTheme.accent)
                     .accessibilityHidden(true)
                     .accessibilityLabel("")
-                VStack(alignment: .leading, spacing: MovieDetailSpacing.xs) {
+                VStack(alignment: .leading, spacing: DesignSpacing.xs) {
                     Text(content.formattedRating)
-                        .font(MovieDetailTypography.ratingValue)
-                        .foregroundStyle(MovieDetailTheme.textPrimary)
+                        .font(DesignTypography.ratingValue)
+                        .foregroundStyle(DesignTheme.textPrimary)
                     Text("TMDB RATING")
-                        .font(MovieDetailTypography.factLabel)
-                        .foregroundStyle(MovieDetailTheme.textMuted)
+                        .font(DesignTypography.factLabel)
+                        .foregroundStyle(DesignTheme.textMuted)
                         .tracking(0.6)
                 }
                 Spacer(minLength: 0)
@@ -155,24 +155,24 @@ struct MovieDetailView: View {
     }
 
     private func overviewSection(_ overview: String) -> some View {
-        VStack(alignment: .leading, spacing: MovieDetailSpacing.sm) {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             Text("Storyline")
-                .font(MovieDetailTypography.section)
-                .foregroundStyle(MovieDetailTheme.textPrimary)
+                .font(DesignTypography.section)
+                .foregroundStyle(DesignTheme.textPrimary)
             Text(overview.isEmpty ? "No description available." : overview)
-                .font(MovieDetailTypography.body)
-                .foregroundStyle(MovieDetailTheme.textSecondary)
+                .font(DesignTypography.body)
+                .foregroundStyle(DesignTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
     }
 
     private func factsCard(_ content: MovieDetailContent) -> some View {
-        MovieDetailSurfaceCard {
+        SurfaceCard {
             let stack = dynamicTypeSize.isAccessibilitySize
             Group {
                 if stack {
-                    VStack(alignment: .leading, spacing: MovieDetailSpacing.lg) {
+                    VStack(alignment: .leading, spacing: DesignSpacing.lg) {
                         factCell(label: "Budget", value: content.formattedBudget, accessibility: content.budgetAccessibilityLabel)
                         Divider()
                         factCell(label: "Revenue", value: content.formattedRevenue, accessibility: content.revenueAccessibilityLabel)
@@ -185,15 +185,15 @@ struct MovieDetailView: View {
                             factCell(label: "Budget", value: content.formattedBudget, accessibility: content.budgetAccessibilityLabel)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Rectangle()
-                                .fill(MovieDetailTheme.separator.opacity(0.35))
+                                .fill(DesignTheme.separator.opacity(0.35))
                                 .frame(width: 0.5)
-                                .padding(.vertical, MovieDetailSpacing.xs)
+                                .padding(.vertical, DesignSpacing.xs)
                             factCell(label: "Revenue", value: content.formattedRevenue, accessibility: content.revenueAccessibilityLabel)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.leading, MovieDetailSpacing.lg)
+                                .padding(.leading, DesignSpacing.lg)
                         }
                         Divider()
-                            .padding(.vertical, MovieDetailSpacing.md)
+                            .padding(.vertical, DesignSpacing.md)
                         factCell(label: "Release Date", value: content.formattedReleaseDate, accessibility: content.formattedReleaseDate)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -203,61 +203,17 @@ struct MovieDetailView: View {
     }
 
     private func factCell(label: String, value: String, accessibility: String) -> some View {
-        VStack(alignment: .leading, spacing: MovieDetailSpacing.xs) {
+        VStack(alignment: .leading, spacing: DesignSpacing.xs) {
             Text(label.uppercased())
-                .font(MovieDetailTypography.factLabel)
-                .foregroundStyle(MovieDetailTheme.textMuted)
+                .font(DesignTypography.factLabel)
+                .foregroundStyle(DesignTheme.textMuted)
                 .tracking(0.6)
             Text(value)
-                .font(MovieDetailTypography.factValue)
-                .foregroundStyle(MovieDetailTheme.textPrimary)
+                .font(DesignTypography.factValue)
+                .foregroundStyle(DesignTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label), \(accessibility)")
-    }
-}
-
-/// Simple wrapping layout for genre chips.
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, origin) in result.origins.enumerated() {
-            subviews[index].place(
-                at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y),
-                proposal: .unspecified
-            )
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, origins: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var origins: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var width: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            origins.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-            width = max(width, x - spacing)
-        }
-
-        return (CGSize(width: width, height: y + rowHeight), origins)
     }
 }
