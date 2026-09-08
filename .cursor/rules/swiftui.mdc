@@ -1,0 +1,24 @@
+---
+description: SwiftUI and Observation conventions for URBNFlicks screens.
+globs: URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift
+alwaysApply: false
+---
+
+# SwiftUI views
+
+- All new screens are SwiftUI with Observation. Do not add new `UIViewController` subclasses.
+- The existing Top Movies list stays UIKit. Bridge it with `UIViewControllerRepresentable` when it has to live inside SwiftUI navigation.
+- Observe with `@State private var viewModel` (injected at construction) or `@Environment`. Do not use `ObservableObject`, `@Published`, `@StateObject`, or `@ObservedObject`.
+- A view is a function of state: `switch viewModel.state` and handle every case, including empty and failed.
+
+```swift
+switch viewModel.state {
+case .idle, .loading: ProgressView()
+case .loaded(let movies) where movies.isEmpty: EmptyStateView()
+case .loaded(let movies): MovieList(movies: movies)
+case .failed(let error): ErrorStateView(error: error) { await viewModel.load() }
+}
+```
+
+- No networking, persistence, or business rules in `body`. Put derived display values on the view model.
+- Extract subviews once `body` outgrows roughly one screen. Do not grow `@ViewBuilder` chains driven by booleans.

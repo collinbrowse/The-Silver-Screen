@@ -1,0 +1,54 @@
+---
+description: URBNFlicks user-facing error system and logging conventions.
+globs: URBNFlicks/**/*.swift
+alwaysApply: false
+---
+
+# Errors and logging
+
+## User-facing errors
+
+- One `AppError` enum crosses layer boundaries. Repositories translate transport, decoding, and persistence failures into it.
+- Cases stay payload-free (apart from data the UI shows, like an HTTP status). What the UI needs — title, message, whether retry is offered — hangs off the enum as computed properties, so the copy lives in one place instead of at every throw site.
+- Never surface a raw `Error`, a `URLError.localizedDescription`, or a decoding error to a user.
+- Failure is a state, not a side effect: deliver it through the view model's state enum, not a stray alert flag.
+
+```swift
+enum AppError: Error, Equatable, Sendable {
+    case offline
+    case timedOut
+    case server(status: Int)
+    case decoding
+    case persistence
+    case unknown
+
+    var title: String { ... }
+    var message: String { ... }
+    var isRetryable: Bool { ... }
+}
+```
+
+**`AppError` never carries the underlying `Error`.** A `case underlying(any Error)` would break the synthesized `Equatable` that state assertions depend on. Log the root cause at the translation site in the repository, then erase it:
+
+```swift
+catch let error as DecodingError {
+    logger.error("Top movies decode failed: \(error)", category: .networking)
+    throw AppError.decoding
+}
+```
+
+That keeps the user-facing error comparable and the real cause in the log.
+
+## Logging
+
+- Log through an injected abstraction. Never `print`.
+
+```swift
+protocol AppLogging: Sendable {
+    func debug(_ message: String, category: LogCategory)
+    func error(_ message: String, category: LogCategory)
+}
+```
+
+- The production implementation wraps `os.Logger` with subsystem `com.urbn.URBNFlicks` and a fixed `LogCategory` set: `networking`, `persistence`, `ui`, `navigation`.
+- Log failures and lifecycle transitions. Never log API keys, tokens, or full response bodies.

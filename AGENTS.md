@@ -1,6 +1,6 @@
 # URBNFlicks — agent contract
 
-This file is the source of truth for agents working in this repo. Follow these constraints. Do not add architecture prescriptions or optional epic recommendations beyond what Nuuly already wrote.
+This file is the source of truth for the assessment constraints. Follow them. Architecture conventions live in [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) and the scoped rules beside it. Do not add optional epic recommendations beyond what Nuuly already wrote.
 
 ## Required work (in order)
 
@@ -26,6 +26,7 @@ Do **not** try to finish the backlog. Judgment and craft matter more than comple
 
 ## Pointers (do not duplicate architecture here)
 
+- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the data layer, errors and logging, accessibility, and tests
 - Skills: [`.cursor/skills/implement-story/`](.cursor/skills/implement-story/SKILL.md), [`.cursor/skills/visual-qa/`](.cursor/skills/visual-qa/SKILL.md)
 - Hooks: [`.cursor/hooks.json`](.cursor/hooks.json)
 - PR template: [`.github/pull_request_template.md`](.github/pull_request_template.md)
