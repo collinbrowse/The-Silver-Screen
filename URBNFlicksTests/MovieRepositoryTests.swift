@@ -20,6 +20,7 @@ final class MovieRepositoryTests: XCTestCase {
         XCTAssertEqual(page.movies[0].posterPath, "/poster.jpg")
         XCTAssertEqual(page.movies[0].releaseDate, TestMovies.date("1994-09-23"))
         XCTAssertEqual(page.movies[0].voteAverage, 8.7, accuracy: 0.01)
+        XCTAssertEqual(page.movies[0].genreIDs, [18, 80])
         XCTAssertTrue(page.hasMore)
         XCTAssertEqual(page.page, 1)
     }

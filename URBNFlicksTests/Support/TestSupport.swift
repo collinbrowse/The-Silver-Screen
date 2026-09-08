@@ -17,14 +17,16 @@ enum TestMovies {
         title: String = "Short Movie Title",
         posterPath: String? = nil,
         releaseDate: Date? = nil,
-        voteAverage: Double = 8.0
+        voteAverage: Double = 8.0,
+        genreIDs: [Int] = []
     ) -> Movie {
         Movie(
             id: id,
             title: title,
             posterPath: posterPath,
             releaseDate: releaseDate,
-            voteAverage: voteAverage
+            voteAverage: voteAverage,
+            genreIDs: genreIDs
         )
     }
 

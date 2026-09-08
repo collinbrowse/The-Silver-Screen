@@ -15,6 +15,7 @@ final class MovieListViewController: UIViewController {
 
     private let viewModel: MovieListViewModel
     private let imageLoader: ImageLoader
+    private let favorites: FavoritesRepository
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let loadingView = UIActivityIndicatorView(style: .large)
@@ -27,12 +28,14 @@ final class MovieListViewController: UIViewController {
 
     private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
     private var moviesByID: [Movie.ID: Movie] = [:]
+    private var favoriteIDs: Set<Movie.ID> = []
     private var stateTask: Task<Void, Never>?
     private var sortButton: UIBarButtonItem!
 
-    init(viewModel: MovieListViewModel, imageLoader: ImageLoader) {
+    init(viewModel: MovieListViewModel, imageLoader: ImageLoader, favorites: FavoritesRepository) {
         self.viewModel = viewModel
         self.imageLoader = imageLoader
+        self.favorites = favorites
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -60,6 +63,12 @@ final class MovieListViewController: UIViewController {
         }
 
         Task { await viewModel.load() }
+        Task { await refreshFavoriteIDs() }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        Task { await refreshFavoriteIDs(reconfigureVisible: true) }
     }
 
     // MARK: - Setup
@@ -167,8 +176,67 @@ final class MovieListViewController: UIViewController {
                   let movie = self.moviesByID[movieID] else {
                 return UITableViewCell()
             }
-            cell.configure(with: movie, loader: self.imageLoader)
+            cell.configure(
+                with: movie,
+                loader: self.imageLoader,
+                isFavorite: self.favoriteIDs.contains(movie.id)
+            ) { [weak self] in
+                self?.toggleFavorite(movie)
+            }
             return cell
+        }
+    }
+
+    // MARK: - Favorites
+
+    private func refreshFavoriteIDs(reconfigureVisible: Bool = false) async {
+        do {
+            let records = try await favorites.favorites()
+            favoriteIDs = Set(records.filter { $0.kind == .movie }.map(\.id))
+            if reconfigureVisible {
+                reconfigureVisibleCells()
+            }
+        } catch {
+            // Keep last known favorite state; persistence errors surface on toggle.
+        }
+    }
+
+    private func toggleFavorite(_ movie: Movie) {
+        Task { @MainActor in
+            do {
+                let isFavorite = try await favorites.toggle(movie: movie)
+                if isFavorite {
+                    favoriteIDs.insert(movie.id)
+                } else {
+                    favoriteIDs.remove(movie.id)
+                }
+                reconfigureVisibleCells(for: movie.id)
+                let message = isFavorite ? "Added to Favorites" : "Removed from Favorites"
+                UIAccessibility.post(notification: .announcement, argument: message)
+            } catch let error as AppError {
+                showBanner(error)
+            } catch {
+                showBanner(.unknown)
+            }
+        }
+    }
+
+    private func reconfigureVisibleCells(for movieID: Movie.ID? = nil) {
+        guard let visible = tableView.indexPathsForVisibleRows else { return }
+        for indexPath in visible {
+            guard let id = dataSource.itemIdentifier(for: indexPath),
+                  movieID == nil || movieID == id,
+                  let movie = moviesByID[id],
+                  let cell = tableView.cellForRow(at: indexPath) as? MovieTableViewCell else {
+                continue
+            }
+            cell.configure(
+                with: movie,
+                loader: imageLoader,
+                isFavorite: favoriteIDs.contains(id)
+            ) { [weak self] in
+                self?.toggleFavorite(movie)
+            }
         }
     }
 
@@ -278,7 +346,10 @@ extension MovieListViewController: UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         guard let id = dataSource.itemIdentifier(for: indexPath),
               let movie = moviesByID[id] else { return }
-        navigationController?.pushViewController(MovieDetailViewController(movie: movie), animated: true)
+        navigationController?.pushViewController(
+            MovieDetailViewController(movie: movie, favorites: favorites),
+            animated: true
+        )
     }
 
     func tableView(
