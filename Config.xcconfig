@@ -1,0 +1,5 @@
+// Shared build settings. Secrets.xcconfig is optional so a fresh clone
+// without a key still opens the project; the app fails clearly at launch.
+#include? "Secrets.xcconfig"
+
+TMDBAPIKey = $(TMDB_API_KEY)

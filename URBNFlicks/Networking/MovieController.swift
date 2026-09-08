@@ -17,7 +17,11 @@ struct MovieController {
     let apiKey: String
     
     init() {
-        apiKey = APIKeys.tmdb
+        do {
+            apiKey = try TMDBAPIKey.fromBundle()
+        } catch {
+            fatalError("TMDBAPIKey missing from Info.plist. Copy Secrets.example.xcconfig to Secrets.xcconfig and set TMDB_API_KEY.")
+        }
     }
     
     func getTopMovies(completion: @escaping (Result<[MovieSummary], Error>) -> Void) {

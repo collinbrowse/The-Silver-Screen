@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B100001C2788B823003D8011 /* TMDBAPIKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001D2788B823003D8011 /* TMDBAPIKey.swift */; };
 		A10000022788B823003D8011 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000012788B823003D8011 /* HTTPClient.swift */; };
 		A10000042788B823003D8011 /* FakeHTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000032788B823003D8011 /* FakeHTTPClient.swift */; };
 		A10000062788B823003D8011 /* TMDBFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000052788B823003D8011 /* TMDBFixtures.swift */; };
@@ -21,7 +22,6 @@
 		C77D45532788B823003D8011 /* URBNFlicksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45522788B823003D8011 /* URBNFlicksUITests.swift */; };
 		C77D45552788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45542788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift */; };
 		C77D45652788CAB2003D8011 /* MovieSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45642788CAB2003D8011 /* MovieSummary.swift */; };
-		C77D45672788CBE8003D8011 /* Globals.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45662788CBE8003D8011 /* Globals.swift */; };
 		C77D45692788CC53003D8011 /* MovieController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45682788CC53003D8011 /* MovieController.swift */; };
 		C77D456B2788E2DE003D8011 /* MovieListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D456A2788E2DE003D8011 /* MovieListViewModel.swift */; };
 /* End PBXBuildFile section */
@@ -44,6 +44,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B10000012788B823003D8011 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		B10000022788B823003D8011 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
+		B100001D2788B823003D8011 /* TMDBAPIKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBAPIKey.swift; sourceTree = "<group>"; };
 		A10000012788B823003D8011 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		A10000032788B823003D8011 /* FakeHTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHTTPClient.swift; sourceTree = "<group>"; };
 		A10000052788B823003D8011 /* TMDBFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBFixtures.swift; sourceTree = "<group>"; };
@@ -62,7 +65,6 @@
 		C77D45522788B823003D8011 /* URBNFlicksUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URBNFlicksUITests.swift; sourceTree = "<group>"; };
 		C77D45542788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URBNFlicksUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		C77D45642788CAB2003D8011 /* MovieSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieSummary.swift; sourceTree = "<group>"; };
-		C77D45662788CBE8003D8011 /* Globals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Globals.swift; sourceTree = "<group>"; };
 		C77D45682788CC53003D8011 /* MovieController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieController.swift; sourceTree = "<group>"; };
 		C77D456A2788E2DE003D8011 /* MovieListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieListViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -105,6 +107,8 @@
 		C77D45252788B821003D8011 = {
 			isa = PBXGroup;
 			children = (
+				B10000012788B823003D8011 /* Config.xcconfig */,
+				B10000022788B823003D8011 /* Secrets.example.xcconfig */,
 				C77D45302788B821003D8011 /* URBNFlicks */,
 				C77D45472788B823003D8011 /* URBNFlicksTests */,
 				C77D45512788B823003D8011 /* URBNFlicksUITests */,
@@ -167,8 +171,8 @@
 		C77D45622788C95A003D8011 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
-				C77D45662788CBE8003D8011 /* Globals.swift */,
 				A10000012788B823003D8011 /* HTTPClient.swift */,
+				B100001D2788B823003D8011 /* TMDBAPIKey.swift */,
 				C77D45682788CC53003D8011 /* MovieController.swift */,
 			);
 			path = Networking;
@@ -323,11 +327,11 @@
 			files = (
 				C77D45692788CC53003D8011 /* MovieController.swift in Sources */,
 				A10000022788B823003D8011 /* HTTPClient.swift in Sources */,
+				B100001C2788B823003D8011 /* TMDBAPIKey.swift in Sources */,
 				C77D45362788B821003D8011 /* MovieListViewController.swift in Sources */,
 				C77D45322788B821003D8011 /* AppDelegate.swift in Sources */,
 				C77D456B2788E2DE003D8011 /* MovieListViewModel.swift in Sources */,
 				C77D45342788B821003D8011 /* SceneDelegate.swift in Sources */,
-				C77D45672788CBE8003D8011 /* Globals.swift in Sources */,
 				C73510D7278BCE95006AEEF9 /* MovieTableViewCell.swift in Sources */,
 				C73510D9278BD904006AEEF9 /* MovieDetailViewController.swift in Sources */,
 				C77D45652788CAB2003D8011 /* MovieSummary.swift in Sources */,
@@ -431,7 +435,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -486,7 +490,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -498,6 +502,7 @@
 		};
 		C77D45592788B823003D8011 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B10000012788B823003D8011 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -518,13 +523,14 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicks;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
 		C77D455A2788B823003D8011 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B10000012788B823003D8011 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -545,7 +551,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicks;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -558,12 +564,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicksTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/URBNFlicks.app/URBNFlicks";
 			};
@@ -577,12 +583,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicksTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/URBNFlicks.app/URBNFlicks";
 			};
@@ -599,7 +605,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicksUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = URBNFlicks;
 			};
@@ -616,7 +622,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.urbn.com.URBNFlicksUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = URBNFlicks;
 			};
