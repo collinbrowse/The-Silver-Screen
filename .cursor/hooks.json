@@ -6,7 +6,7 @@
         "command": ".cursor/hooks/run-unit-tests.sh",
         "timeout": 300,
         "failClosed": false,
-        "loop_limit": 1
+        "loop_limit": 3
       }
     ],
     "beforeShellExecution": [

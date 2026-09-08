@@ -94,6 +94,9 @@ def check_secrets(problems: list[str]) -> None:
     ).stdout.splitlines()
 
     for path in tracked:
+        if not os.path.isfile(path):
+            # Deleted locally but not yet staged — skip; HEAD still has the real scan.
+            continue
         for lineno, line in enumerate(open(path, encoding="utf-8"), start=1):
             if not SECRET_PATTERN.search(line):
                 continue
