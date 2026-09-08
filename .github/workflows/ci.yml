@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch makes the previous run irrelevant. Cancel it rather
+# than paying for macOS minutes on a stale commit.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap and fast, on Linux: catches a malformed rule or a dead cross-reference
+  # before spending a macOS runner on it.
+  harness:
+    name: Validate rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/validate-rules.py
+
+  unit-tests:
+    name: Unit tests
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      # Unbuffered output, otherwise xcodebuild logs arrive in useless chunks.
+      NSUnbufferedIO: YES
+    steps:
+      - uses: actions/checkout@v4
+
+      # Recorded in the log so a failure that only reproduces on CI can be traced to
+      # a toolchain difference. `macos-latest` is deliberate while the project targets
+      # Swift 5 / iOS 15.2 and builds on anything; pin the runner and select an
+      # explicit Xcode once the Swift 6 / iOS 26 bump makes the SDK a hard requirement.
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | grep iOS || true
+
+      # Simulator names and OS versions change with every runner image, so a
+      # hardcoded `name=iPhone 17` destination is a time bomb. Resolve one at runtime,
+      # the same way .cursor/hooks/run-unit-tests.sh does locally.
+      - name: Select a simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          candidates = [
+              device
+              for runtime, devices in (data.get("devices") or {}).items()
+              if "iOS" in runtime
+              for device in devices or []
+              if device.get("isAvailable") is not False and "iPhone" in (device.get("name") or "")
+          ]
+          print(candidates[0]["udid"] if candidates else "")
+          ')
+          if [ -z "$UDID" ]; then
+            echo "::error::No iOS iPhone simulator available on this runner"
+            exit 1
+          fi
+          echo "Using simulator $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      # URBNFlicksUITests is empty boilerplate; running it would add minutes and a
+      # flake surface for no signal. Add it here when it has real tests.
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project URBNFlicks.xcodeproj \
+            -scheme URBNFlicks \
+            -only-testing:URBNFlicksTests \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath TestResults.xcresult
+
+      # The .xcresult holds the failure messages, logs, and any attachments, which is
+      # far more useful than scrolling a truncated xcodebuild log.
+      - name: Upload results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults.xcresult
+          retention-days: 7
