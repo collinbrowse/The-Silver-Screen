@@ -1,0 +1,30 @@
+---
+description: PRs must use .github/pull_request_template.md — every section, no shortcuts.
+alwaysApply: true
+---
+
+# Pull requests
+
+When creating or editing a GitHub pull request for this repo, the body **must** follow [`.github/pull_request_template.md`](.github/pull_request_template.md). Do not invent a shorter Summary/Test-plan-only body.
+
+## Required workflow
+
+1. **Read** [`.github/pull_request_template.md`](.github/pull_request_template.md) before drafting.
+2. **Fill every section** with real content (or an explicit `None` where the template allows it):
+   - `## Summary`
+   - `## Decision Tree and Rationale`
+   - `## Test Plan` — keep the template’s validation checkboxes; add UI steps and the screenshot path when UI changed
+   - `## Stories completed` — fill the table (epic, story #, test method names, screenshot); use `None` / `—` only when harness-only
+   - `## AI Harness notes` — describe harness changes, or `None` if app-only
+3. **Validate** before claiming the PR is ready:
+   ```bash
+   gh pr view --json body -q .body | python3 scripts/validate-pr-body.py
+   ```
+   Or: `python3 scripts/validate-pr-body.py --pr <number>`
+4. CI runs the same script on pull requests and **fails** if sections are missing.
+
+## Do not
+
+- Skip Decision Tree, Stories completed, or AI Harness notes.
+- Replace the template Test Plan checkboxes with an ad-hoc list only.
+- Open a PR with a placeholder or truncated body “to fill in later.”
