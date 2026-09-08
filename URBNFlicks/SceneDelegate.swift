@@ -26,7 +26,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let httpClient = URLSessionHTTPClient()
             let repository = MovieRepository(client: httpClient, apiKey: apiKey, logger: logger)
             let viewModel = MovieListViewModel(movies: repository)
-            let list = MovieListViewController(viewModel: viewModel)
+            let imageLoader = ImageLoader(client: httpClient)
+            let list = MovieListViewController(viewModel: viewModel, imageLoader: imageLoader)
             window.rootViewController = UINavigationController(rootViewController: list)
         } catch {
             let message: String

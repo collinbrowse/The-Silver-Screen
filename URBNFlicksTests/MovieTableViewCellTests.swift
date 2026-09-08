@@ -9,9 +9,16 @@ import XCTest
 @MainActor
 final class MovieTableViewCellTests: XCTestCase {
 
+    private let loader = ImageLoader(
+        client: FakeHTTPClient(stub: .failure(URLError(.notConnectedToInternet)))
+    )
+
     func test_configure_formatsRatingToOneDecimal_withoutOutOfTen() {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        cell.configure(with: TestMovies.make(releaseDate: TestMovies.date("1994-09-23"), voteAverage: 8.74))
+        cell.configure(
+            with: TestMovies.make(releaseDate: TestMovies.date("1994-09-23"), voteAverage: 8.74),
+            loader: loader
+        )
 
         XCTAssertEqual(cell.ratingLabel.text, "Rating: 8.7")
         XCTAssertFalse(cell.ratingLabel.text?.contains("/ 10") ?? true)
@@ -19,14 +26,17 @@ final class MovieTableViewCellTests: XCTestCase {
 
     func test_configure_usesReleaseYearOnly() {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        cell.configure(with: TestMovies.make(releaseDate: TestMovies.date("1981-06-12"), voteAverage: 9.2))
+        cell.configure(
+            with: TestMovies.make(releaseDate: TestMovies.date("1981-06-12"), voteAverage: 9.2),
+            loader: loader
+        )
 
         XCTAssertEqual(cell.releaseYearLabel.text, "Released: 1981")
     }
 
     func test_configure_nilReleaseDate_doesNotUseRawDateString() {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        cell.configure(with: TestMovies.make(releaseDate: nil, voteAverage: 5.0))
+        cell.configure(with: TestMovies.make(releaseDate: nil, voteAverage: 5.0), loader: loader)
 
         XCTAssertEqual(cell.releaseYearLabel.text, "Released: ")
         XCTAssertFalse(cell.releaseYearLabel.text?.contains("-") ?? true)
@@ -63,10 +73,13 @@ final class MovieTableViewCellTests: XCTestCase {
         XCTAssertEqual(cell.posterView.frame.minY, padding, accuracy: 0.5)
     }
 
+    // MARK: - Helpers
+
     private func laidOutCell(title: String) -> MovieTableViewCell {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
         cell.configure(
-            with: TestMovies.make(title: title, releaseDate: TestMovies.date("1981-01-01"), voteAverage: 9.2)
+            with: TestMovies.make(title: title, releaseDate: TestMovies.date("1981-01-01"), voteAverage: 9.2),
+            loader: loader
         )
 
         let width: CGFloat = 390

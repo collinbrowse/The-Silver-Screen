@@ -22,6 +22,18 @@ final class MovieTableViewCell: UITableViewCell {
     private let titleToRatingSpacing: CGFloat = 6
     private let minRatingToYearSpacing: CGFloat = 6
 
+    private var imageTask: Task<Void, Never>?
+    private var movieID: Movie.ID?
+
+    private static let placeholderImage: UIImage = {
+        let size = posterSize
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.secondarySystemFill.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+    }()
+
     private static let yearFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -40,18 +52,34 @@ final class MovieTableViewCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with movie: Movie) {
-        if let posterPath = movie.posterPath,
-           let imgUrl = URL(string: "https://image.tmdb.org/t/p/w500" + (posterPath.hasPrefix("/") ? posterPath : "/" + posterPath)),
-           let data = try? Data(contentsOf: imgUrl) {
-            posterView.image = UIImage(data: data)
-        } else {
-            posterView.image = nil
-        }
-
+    func configure(with movie: Movie, loader: ImageLoader) {
+        movieID = movie.id
         titleLabel.text = movie.title
         ratingLabel.text = Self.ratingText(for: movie.voteAverage)
         releaseYearLabel.text = Self.releaseYearText(for: movie.releaseDate)
+        posterView.image = Self.placeholderImage
+
+        imageTask?.cancel()
+        imageTask = nil
+
+        guard let path = movie.posterPath,
+              let url = ImageLoader.posterURL(
+                path: path,
+                targetWidthPoints: Self.posterSize.width,
+                scale: traitCollection.displayScale
+              ) else {
+            return
+        }
+
+        let expectedID = movie.id
+        let targetSize = Self.posterSize
+        let scale = traitCollection.displayScale
+
+        imageTask = Task { [weak self] in
+            let image = try? await loader.image(for: url, targetSize: targetSize, scale: scale)
+            guard let self, self.movieID == expectedID, !Task.isCancelled else { return }
+            self.posterView.image = image ?? Self.placeholderImage
+        }
     }
 
     static func ratingText(for voteAverage: Double) -> String {
@@ -63,12 +91,24 @@ final class MovieTableViewCell: UITableViewCell {
         return "Released: " + yearFormatter.string(from: releaseDate)
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageTask?.cancel()
+        imageTask = nil
+        movieID = nil
+        posterView.image = Self.placeholderImage
+        titleLabel.text = nil
+        ratingLabel.text = nil
+        releaseYearLabel.text = nil
+    }
+
     private func setupContentView() {
         selectionStyle = .default
 
         posterView.translatesAutoresizingMaskIntoConstraints = false
         posterView.contentMode = .scaleAspectFill
         posterView.clipsToBounds = true
+        posterView.image = Self.placeholderImage
         posterView.setContentHuggingPriority(.required, for: .horizontal)
         posterView.setContentCompressionResistancePriority(.required, for: .horizontal)
 

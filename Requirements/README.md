@@ -44,7 +44,7 @@ Update the `Completed / Total` column as you go.
 
 | Epic                                              | Completed / Total |
 | ------------------------------------------------- | ----------------- |
-| [Top Movies](top-movies.md)                       | 1 / 4             |
+| [Top Movies](top-movies.md)                       | 2 / 4             |
 | [Favorites & Bookmarking](favorites.md)           | 0 / 9             |
 | [Movie Detail View](movie-detail-view.md)         | 0 / 7             |
 | [Tab Bar](tab-bar.md)                             | 0 / 2             |

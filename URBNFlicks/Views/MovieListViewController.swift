@@ -9,17 +9,25 @@ import UIKit
 
 final class MovieListViewController: UIViewController {
 
+    private enum Section: Hashable {
+        case main
+    }
+
     private let viewModel: MovieListViewModel
-    private let tableView = UITableView()
+    private let imageLoader: ImageLoader
+
+    private let tableView = UITableView(frame: .zero, style: .plain)
     private let loadingView = UIActivityIndicatorView(style: .large)
-    private var movies = [Movie]()
+    private let emptyLabel = UILabel()
+
+    private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
+    private var moviesByID: [Movie.ID: Movie] = [:]
     private var stateTask: Task<Void, Never>?
 
-    init(viewModel: MovieListViewModel) {
+    init(viewModel: MovieListViewModel, imageLoader: ImageLoader) {
         self.viewModel = viewModel
+        self.imageLoader = imageLoader
         super.init(nibName: nil, bundle: nil)
-        setupNavigation()
-        setupTableView()
     }
 
     required init?(coder: NSCoder) {
@@ -33,7 +41,10 @@ final class MovieListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        setupLoadingView()
+        setupNavigation()
+        setupTableView()
+        setupOverlayViews()
+        configureDataSource()
 
         stateTask = Task { [weak self] in
             guard let self else { return }
@@ -68,44 +79,100 @@ final class MovieListViewController: UIViewController {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 192
         tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        tableView.dataSource = self
         tableView.delegate = self
+        tableView.prefetchDataSource = self
+        tableView.refreshControl = UIRefreshControl()
+        tableView.refreshControl?.addTarget(self, action: #selector(pulledToRefresh), for: .valueChanged)
     }
 
-    private func setupLoadingView() {
+    private func setupOverlayViews() {
         loadingView.translatesAutoresizingMaskIntoConstraints = false
         loadingView.hidesWhenStopped = true
         view.addSubview(loadingView)
+
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyLabel.text = "No movies found."
+        emptyLabel.textAlignment = .center
+        emptyLabel.textColor = .secondaryLabel
+        emptyLabel.font = .preferredFont(forTextStyle: .body)
+        emptyLabel.isHidden = true
+        view.addSubview(emptyLabel)
+
         NSLayoutConstraint.activate([
             loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            emptyLabel.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            emptyLabel.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
+    }
+
+    private func configureDataSource() {
+        dataSource = UITableViewDiffableDataSource<Section, Movie.ID>(
+            tableView: tableView
+        ) { [weak self] tableView, indexPath, movieID in
+            guard let self,
+                  let cell = tableView.dequeueReusableCell(
+                    withIdentifier: MovieTableViewCell.reuseIdentifier,
+                    for: indexPath
+                  ) as? MovieTableViewCell,
+                  let movie = self.moviesByID[movieID] else {
+                return UITableViewCell()
+            }
+            cell.configure(with: movie, loader: self.imageLoader)
+            return cell
+        }
     }
 
     private func render(_ state: LoadState<[Movie]>) {
         switch state {
         case .idle:
+            tableView.isHidden = true
+            emptyLabel.isHidden = true
             loadingView.stopAnimating()
-            tableView.isHidden = true
+
         case .loading:
-            loadingView.startAnimating()
             tableView.isHidden = true
+            emptyLabel.isHidden = true
+            loadingView.startAnimating()
+
         case .empty:
             loadingView.stopAnimating()
-            movies = []
-            tableView.isHidden = false
-            tableView.reloadData()
-        case .loaded(let value, _):
+            tableView.isHidden = true
+            emptyLabel.isHidden = false
+            apply(movies: [])
+
+        case .loaded(let movies, let activity):
             loadingView.stopAnimating()
-            movies = value
             tableView.isHidden = false
-            tableView.reloadData()
+            emptyLabel.isHidden = true
+            apply(movies: movies)
+            switch activity {
+            case .none, .failed:
+                tableView.refreshControl?.endRefreshing()
+            case .refreshing, .loadingMore:
+                break
+            }
+
         case .failed:
             loadingView.stopAnimating()
-            movies = []
-            tableView.isHidden = false
-            tableView.reloadData()
+            tableView.isHidden = true
+            emptyLabel.isHidden = false
+            emptyLabel.text = "Couldn't load movies."
+            apply(movies: [])
         }
+    }
+
+    private func apply(movies: [Movie]) {
+        moviesByID = Dictionary(uniqueKeysWithValues: movies.map { ($0.id, $0) })
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Movie.ID>()
+        snapshot.appendSections([.main])
+        snapshot.appendItems(movies.map(\.id), toSection: .main)
+        dataSource.apply(snapshot, animatingDifferences: true)
+    }
+
+    @objc private func pulledToRefresh() {
+        Task { await viewModel.refresh() }
     }
 
     @objc private func sortTapped() {
@@ -120,27 +187,57 @@ final class MovieListViewController: UIViewController {
     }
 }
 
-extension MovieListViewController: UITableViewDataSource {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        movies.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: MovieTableViewCell.reuseIdentifier,
-            for: indexPath
-        ) as? MovieTableViewCell else {
-            return UITableViewCell()
-        }
-        cell.configure(with: movies[indexPath.row])
-        return cell
-    }
-}
-
 extension MovieListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let movie = movies[indexPath.row]
+        guard let id = dataSource.itemIdentifier(for: indexPath),
+              let movie = moviesByID[id] else { return }
         navigationController?.pushViewController(MovieDetailViewController(movie: movie), animated: true)
+    }
+
+    func tableView(
+        _ tableView: UITableView,
+        willDisplay cell: UITableViewCell,
+        forRowAt indexPath: IndexPath
+    ) {
+        let count = dataSource.snapshot().numberOfItems
+        guard count > 0, indexPath.row >= count - 5 else { return }
+        Task { await viewModel.loadMore() }
+    }
+}
+
+extension MovieListViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.compactMap { indexPath -> URL? in
+            guard let id = dataSource.itemIdentifier(for: indexPath),
+                  let movie = moviesByID[id],
+                  let path = movie.posterPath else { return nil }
+            return ImageLoader.posterURL(
+                path: path,
+                targetWidthPoints: MovieTableViewCell.posterSize.width,
+                scale: traitCollection.displayScale
+            )
+        }
+        Task {
+            await imageLoader.prefetch(
+                urls: urls,
+                targetSize: MovieTableViewCell.posterSize,
+                scale: traitCollection.displayScale
+            )
+        }
+    }
+
+    func tableView(_ tableView: UITableView, cancelPrefetchingForRowsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.compactMap { indexPath -> URL? in
+            guard let id = dataSource.itemIdentifier(for: indexPath),
+                  let movie = moviesByID[id],
+                  let path = movie.posterPath else { return nil }
+            return ImageLoader.posterURL(
+                path: path,
+                targetWidthPoints: MovieTableViewCell.posterSize.width,
+                scale: traitCollection.displayScale
+            )
+        }
+        Task { await imageLoader.cancelPrefetch(urls: urls) }
     }
 }
