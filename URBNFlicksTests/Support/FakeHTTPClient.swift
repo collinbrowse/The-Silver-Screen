@@ -46,3 +46,26 @@ struct FakeHTTPClient: HTTPClient, Sendable {
         }
     }
 }
+
+/// Records requests while returning a fixed stub — use for endpoint assertions.
+actor RecordingHTTPClient: HTTPClient {
+    private let stub: FakeHTTPClient.Stub
+    private(set) var requests: [URLRequest] = []
+
+    init(stub: FakeHTTPClient.Stub) {
+        self.stub = stub
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requests.append(request)
+        return try await FakeHTTPClient(stub: stub).data(for: request)
+    }
+
+    var lastURL: URL? {
+        requests.last?.url
+    }
+
+    var lastPath: String? {
+        lastURL?.path
+    }
+}
