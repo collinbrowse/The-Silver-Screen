@@ -66,6 +66,18 @@ if [[ -z "${UDID}" ]]; then
   emit_empty
 fi
 
+# Cheap gate before spending a simulator boot: empty / placeholder tests.
+if ! python3 "$ROOT/scripts/validate-tests.py" >/dev/null 2>&1; then
+  DETAIL="$(python3 "$ROOT/scripts/validate-tests.py" 2>&1 || true)"
+  python3 -c '
+import json, sys
+print(json.dumps({
+    "followup_message": "Test suite gates failed (empty/placeholder tests or Done without tests). Fix these before continuing.\n\n" + sys.argv[1]
+}))
+' "$DETAIL"
+  exit 0
+fi
+
 LOG="$(mktemp -t urbnflicks-tests.XXXXXX)"
 trap 'rm -f "$LOG"' EXIT
 
@@ -99,7 +111,7 @@ if len(text) > limit:
     text = "(truncated)\n" + text
 
 print(json.dumps({
-    "followup_message": "URBNFlicksTests failed. Fix the failures, then continue.\n\n" + text
+    "followup_message": "URBNFlicksTests failed. Fix the failures, then continue. Do not tick Done until tests pass.\n\n" + text
 }))
 ' "$LOG"
 

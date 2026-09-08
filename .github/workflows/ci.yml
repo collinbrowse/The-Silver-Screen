@@ -23,7 +23,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/validate-rules.py
+        with:
+          # Need the base commit to detect newly checked Done boxes.
+          fetch-depth: 0
+      - name: Validate rules
+        run: python3 scripts/validate-rules.py
+      - name: Validate test suite gates
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+        run: python3 scripts/validate-tests.py
 
   unit-tests:
     name: Unit tests

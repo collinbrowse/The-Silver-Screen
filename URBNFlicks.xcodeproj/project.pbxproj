@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A10000022788B823003D8011 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000012788B823003D8011 /* HTTPClient.swift */; };
+		A10000042788B823003D8011 /* FakeHTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000032788B823003D8011 /* FakeHTTPClient.swift */; };
+		A10000062788B823003D8011 /* TMDBFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000052788B823003D8011 /* TMDBFixtures.swift */; };
+		A10000082788B823003D8011 /* FakeHTTPClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000072788B823003D8011 /* FakeHTTPClientTests.swift */; };
 		C73510D7278BCE95006AEEF9 /* MovieTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73510D6278BCE95006AEEF9 /* MovieTableViewCell.swift */; };
 		C73510D9278BD904006AEEF9 /* MovieDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73510D8278BD904006AEEF9 /* MovieDetailViewController.swift */; };
 		C77D45322788B821003D8011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45312788B821003D8011 /* AppDelegate.swift */; };
@@ -14,7 +18,6 @@
 		C77D45362788B821003D8011 /* MovieListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45352788B821003D8011 /* MovieListViewController.swift */; };
 		C77D453B2788B822003D8011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C77D453A2788B822003D8011 /* Assets.xcassets */; };
 		C77D453E2788B822003D8011 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C77D453C2788B822003D8011 /* LaunchScreen.storyboard */; };
-		C77D45492788B823003D8011 /* URBNFlicksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45482788B823003D8011 /* URBNFlicksTests.swift */; };
 		C77D45532788B823003D8011 /* URBNFlicksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45522788B823003D8011 /* URBNFlicksUITests.swift */; };
 		C77D45552788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45542788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift */; };
 		C77D45652788CAB2003D8011 /* MovieSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45642788CAB2003D8011 /* MovieSummary.swift */; };
@@ -41,6 +44,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A10000012788B823003D8011 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
+		A10000032788B823003D8011 /* FakeHTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHTTPClient.swift; sourceTree = "<group>"; };
+		A10000052788B823003D8011 /* TMDBFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBFixtures.swift; sourceTree = "<group>"; };
+		A10000072788B823003D8011 /* FakeHTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHTTPClientTests.swift; sourceTree = "<group>"; };
 		C73510D6278BCE95006AEEF9 /* MovieTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieTableViewCell.swift; sourceTree = "<group>"; };
 		C73510D8278BD904006AEEF9 /* MovieDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailViewController.swift; sourceTree = "<group>"; };
 		C77D452E2788B821003D8011 /* URBNFlicks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URBNFlicks.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -51,7 +58,6 @@
 		C77D453D2788B822003D8011 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C77D453F2788B822003D8011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C77D45442788B823003D8011 /* URBNFlicksTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = URBNFlicksTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C77D45482788B823003D8011 /* URBNFlicksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URBNFlicksTests.swift; sourceTree = "<group>"; };
 		C77D454E2788B823003D8011 /* URBNFlicksUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = URBNFlicksUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C77D45522788B823003D8011 /* URBNFlicksUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URBNFlicksUITests.swift; sourceTree = "<group>"; };
 		C77D45542788B823003D8011 /* URBNFlicksUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URBNFlicksUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -135,7 +141,8 @@
 		C77D45472788B823003D8011 /* URBNFlicksTests */ = {
 			isa = PBXGroup;
 			children = (
-				C77D45482788B823003D8011 /* URBNFlicksTests.swift */,
+				A10000092788B823003D8011 /* Support */,
+				A10000072788B823003D8011 /* FakeHTTPClientTests.swift */,
 			);
 			path = URBNFlicksTests;
 			sourceTree = "<group>";
@@ -161,6 +168,7 @@
 			isa = PBXGroup;
 			children = (
 				C77D45662788CBE8003D8011 /* Globals.swift */,
+				A10000012788B823003D8011 /* HTTPClient.swift */,
 				C77D45682788CC53003D8011 /* MovieController.swift */,
 			);
 			path = Networking;
@@ -172,6 +180,15 @@
 				C77D45642788CAB2003D8011 /* MovieSummary.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		A10000092788B823003D8011 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				A10000032788B823003D8011 /* FakeHTTPClient.swift */,
+				A10000052788B823003D8011 /* TMDBFixtures.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -305,6 +322,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C77D45692788CC53003D8011 /* MovieController.swift in Sources */,
+				A10000022788B823003D8011 /* HTTPClient.swift in Sources */,
 				C77D45362788B821003D8011 /* MovieListViewController.swift in Sources */,
 				C77D45322788B821003D8011 /* AppDelegate.swift in Sources */,
 				C77D456B2788E2DE003D8011 /* MovieListViewModel.swift in Sources */,
@@ -320,7 +338,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C77D45492788B823003D8011 /* URBNFlicksTests.swift in Sources */,
+				A10000042788B823003D8011 /* FakeHTTPClient.swift in Sources */,
+				A10000062788B823003D8011 /* TMDBFixtures.swift in Sources */,
+				A10000082788B823003D8011 /* FakeHTTPClientTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
