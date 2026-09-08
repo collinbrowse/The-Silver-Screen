@@ -45,7 +45,7 @@ final class MovieListViewModelTests: XCTestCase {
     func test_refresh_whenOffline_keepsContentWithFailedActivity() async {
         let switchable = SwitchableHTTPClient(initial: .success(TMDBFixtures.topMoviesPage1))
         let vm = MovieListViewModel(
-            movies: MovieRepository(client: switchable, apiKey: "test", logger: SilentLogger())
+            movies: MovieRepository.test(client: switchable)
         )
         await vm.load()
         await switchable.setStub(.failure(URLError(.notConnectedToInternet)))
@@ -62,7 +62,7 @@ final class MovieListViewModelTests: XCTestCase {
     func test_retry_afterFailure_loadsMovies() async {
         let switchable = SwitchableHTTPClient(initial: .failure(URLError(.notConnectedToInternet)))
         let viewModel = MovieListViewModel(
-            movies: MovieRepository(client: switchable, apiKey: "test", logger: SilentLogger())
+            movies: MovieRepository.test(client: switchable)
         )
 
         await viewModel.load()
@@ -80,7 +80,7 @@ final class MovieListViewModelTests: XCTestCase {
     func test_setSortOption_alphabetical_reordersWithoutRefetch() async {
         let client = CountingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
         let viewModel = MovieListViewModel(
-            movies: MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+            movies: MovieRepository.test(client: client)
         )
         await viewModel.load()
         let countAfterLoad = await client.requestCount
@@ -139,21 +139,13 @@ final class MovieListViewModelTests: XCTestCase {
 
     private func makeViewModel(stub: FakeHTTPClient.Stub) -> MovieListViewModel {
         MovieListViewModel(
-            movies: MovieRepository(
-                client: FakeHTTPClient(stub: stub),
-                apiKey: "test",
-                logger: SilentLogger()
-            )
+            movies: MovieRepository.test(client: FakeHTTPClient(stub: stub))
         )
     }
 
     private func makeViewModel(result: Result<Data, Error>) -> MovieListViewModel {
         MovieListViewModel(
-            movies: MovieRepository(
-                client: FakeHTTPClient(result: result),
-                apiKey: "test",
-                logger: SilentLogger()
-            )
+            movies: MovieRepository.test(client: FakeHTTPClient(result: result))
         )
     }
 }

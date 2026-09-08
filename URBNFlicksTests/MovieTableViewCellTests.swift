@@ -9,7 +9,7 @@ import XCTest
 @MainActor
 final class MovieTableViewCellTests: XCTestCase {
 
-    private let loader = ImageLoader(
+    private let loader = ImageLoader.test(
         client: FakeHTTPClient(stub: .failure(URLError(.notConnectedToInternet)))
     )
 

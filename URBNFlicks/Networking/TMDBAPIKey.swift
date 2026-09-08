@@ -2,6 +2,8 @@
 //  TMDBAPIKey.swift
 //  URBNFlicks
 //
+//  Reads the TMDB API key from Info.plist for the data layer.
+//
 
 import Foundation
 

@@ -68,4 +68,31 @@ actor RecordingHTTPClient: HTTPClient {
     var lastPath: String? {
         lastURL?.path
     }
+
+    var lastAuthorizationHeader: String? {
+        requests.last?.value(forHTTPHeaderField: "Authorization")
+    }
+
+    var requestCount: Int {
+        requests.count
+    }
+}
+
+/// Returns stubs in order — use to assert retry / eventual success.
+actor SequencingHTTPClient: HTTPClient {
+    private var stubs: [FakeHTTPClient.Stub]
+    private(set) var requestCount = 0
+
+    init(stubs: [FakeHTTPClient.Stub]) {
+        self.stubs = stubs
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requestCount += 1
+        guard !stubs.isEmpty else {
+            throw URLError(.badServerResponse)
+        }
+        let stub = stubs.removeFirst()
+        return try await FakeHTTPClient(stub: stub).data(for: request)
+    }
 }
