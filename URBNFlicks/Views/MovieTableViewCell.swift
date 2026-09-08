@@ -17,13 +17,16 @@ final class MovieTableViewCell: UITableViewCell {
     let titleLabel = UILabel()
     let releaseYearLabel = UILabel()
     let ratingLabel = UILabel()
+    let favoritePill = FavoritePillHostingView()
 
     private let padding: CGFloat = 8
     private let titleToRatingSpacing: CGFloat = 6
-    private let minRatingToYearSpacing: CGFloat = 6
+    private let ratingToPillSpacing: CGFloat = 6
+    private let minPillToYearSpacing: CGFloat = 6
 
     private var imageTask: Task<Void, Never>?
     private var movieID: Movie.ID?
+    private var onFavoriteToggle: (() -> Void)?
 
     private static let placeholderImage: UIImage = {
         let size = posterSize
@@ -52,11 +55,18 @@ final class MovieTableViewCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with movie: Movie, loader: ImageLoader) {
+    func configure(
+        with movie: Movie,
+        loader: ImageLoader,
+        isFavorite: Bool,
+        onFavoriteToggle: @escaping () -> Void
+    ) {
         movieID = movie.id
+        self.onFavoriteToggle = onFavoriteToggle
         titleLabel.text = movie.title
         ratingLabel.text = Self.ratingText(for: movie.voteAverage)
         releaseYearLabel.text = Self.releaseYearText(for: movie.releaseDate)
+        favoritePill.configure(isFavorite: isFavorite, onToggle: onFavoriteToggle)
         posterView.image = Self.placeholderImage
 
         imageTask?.cancel()
@@ -96,6 +106,7 @@ final class MovieTableViewCell: UITableViewCell {
         imageTask?.cancel()
         imageTask = nil
         movieID = nil
+        onFavoriteToggle = nil
         posterView.image = Self.placeholderImage
         titleLabel.text = nil
         ratingLabel.text = nil
@@ -104,6 +115,8 @@ final class MovieTableViewCell: UITableViewCell {
 
     private func setupContentView() {
         selectionStyle = .default
+        clipsToBounds = false
+        contentView.clipsToBounds = false
 
         posterView.translatesAutoresizingMaskIntoConstraints = false
         posterView.contentMode = .scaleAspectFill
@@ -111,6 +124,7 @@ final class MovieTableViewCell: UITableViewCell {
         posterView.image = Self.placeholderImage
         posterView.setContentHuggingPriority(.required, for: .horizontal)
         posterView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        posterView.isAccessibilityElement = false
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = UIFontMetrics(forTextStyle: .body).scaledFont(
@@ -130,6 +144,13 @@ final class MovieTableViewCell: UITableViewCell {
         ratingLabel.setContentHuggingPriority(.required, for: .vertical)
         ratingLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
+        favoritePill.translatesAutoresizingMaskIntoConstraints = false
+        favoritePill.clipsToBounds = false
+        favoritePill.setContentHuggingPriority(.required, for: .vertical)
+        favoritePill.setContentHuggingPriority(.required, for: .horizontal)
+        favoritePill.setContentCompressionResistancePriority(.required, for: .vertical)
+        favoritePill.setContentCompressionResistancePriority(.required, for: .horizontal)
+
         releaseYearLabel.translatesAutoresizingMaskIntoConstraints = false
         releaseYearLabel.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(
             for: .systemFont(ofSize: 12)
@@ -142,6 +163,7 @@ final class MovieTableViewCell: UITableViewCell {
         contentView.addSubview(posterView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(ratingLabel)
+        contentView.addSubview(favoritePill)
         contentView.addSubview(releaseYearLabel)
 
         let bottomConstraint = posterView.bottomAnchor.constraint(
@@ -162,20 +184,25 @@ final class MovieTableViewCell: UITableViewCell {
             titleLabel.topAnchor.constraint(equalTo: posterView.topAnchor),
 
             ratingLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            ratingLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            ratingLabel.trailingAnchor.constraint(lessThanOrEqualTo: titleLabel.trailingAnchor),
             ratingLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: titleToRatingSpacing),
+
+            favoritePill.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            favoritePill.trailingAnchor.constraint(lessThanOrEqualTo: titleLabel.trailingAnchor),
+            favoritePill.topAnchor.constraint(equalTo: ratingLabel.bottomAnchor, constant: ratingToPillSpacing),
+            favoritePill.heightAnchor.constraint(greaterThanOrEqualToConstant: 36),
 
             releaseYearLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             releaseYearLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             releaseYearLabel.bottomAnchor.constraint(equalTo: posterView.bottomAnchor),
             releaseYearLabel.topAnchor.constraint(
-                greaterThanOrEqualTo: ratingLabel.bottomAnchor,
-                constant: minRatingToYearSpacing
+                greaterThanOrEqualTo: favoritePill.bottomAnchor,
+                constant: minPillToYearSpacing
             ),
         ])
 
-        isAccessibilityElement = true
-        accessibilityTraits = .button
+        // Movie content is one element; the pill is a separate control.
+        accessibilityElements = [titleLabel, ratingLabel, releaseYearLabel, favoritePill]
     }
 
     override var accessibilityLabel: String? {

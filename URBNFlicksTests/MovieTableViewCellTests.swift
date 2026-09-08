@@ -17,7 +17,9 @@ final class MovieTableViewCellTests: XCTestCase {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
         cell.configure(
             with: TestMovies.make(releaseDate: TestMovies.date("1994-09-23"), voteAverage: 8.74),
-            loader: loader
+            loader: loader,
+            isFavorite: false,
+            onFavoriteToggle: {}
         )
 
         XCTAssertEqual(cell.ratingLabel.text, "Rating: 8.7")
@@ -28,7 +30,9 @@ final class MovieTableViewCellTests: XCTestCase {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
         cell.configure(
             with: TestMovies.make(releaseDate: TestMovies.date("1981-06-12"), voteAverage: 9.2),
-            loader: loader
+            loader: loader,
+            isFavorite: false,
+            onFavoriteToggle: {}
         )
 
         XCTAssertEqual(cell.releaseYearLabel.text, "Released: 1981")
@@ -36,7 +40,12 @@ final class MovieTableViewCellTests: XCTestCase {
 
     func test_configure_nilReleaseDate_doesNotUseRawDateString() {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        cell.configure(with: TestMovies.make(releaseDate: nil, voteAverage: 5.0), loader: loader)
+        cell.configure(
+            with: TestMovies.make(releaseDate: nil, voteAverage: 5.0),
+            loader: loader,
+            isFavorite: false,
+            onFavoriteToggle: {}
+        )
 
         XCTAssertEqual(cell.releaseYearLabel.text, "Released: ")
         XCTAssertFalse(cell.releaseYearLabel.text?.contains("-") ?? true)
@@ -51,7 +60,7 @@ final class MovieTableViewCellTests: XCTestCase {
         XCTAssertTrue(cell.posterView.clipsToBounds)
     }
 
-    func test_layout_titleAndRatingPinNearTop_yearPinsToBottom() {
+    func test_layout_titleAndRatingPinNearTop_pillUnderRating_yearPinsToBottom() {
         let cell = laidOutCell(
             title: "This is a very long movie title that should wrap across multiple lines In 3D"
         )
@@ -63,23 +72,41 @@ final class MovieTableViewCellTests: XCTestCase {
             cell.titleLabel.frame.maxY + 6,
             accuracy: 0.5
         )
+        XCTAssertEqual(
+            cell.favoritePill.frame.minY,
+            cell.ratingLabel.frame.maxY + 6,
+            accuracy: 1.0
+        )
         XCTAssertEqual(cell.releaseYearLabel.frame.maxY, cell.posterView.frame.maxY, accuracy: 0.5)
         XCTAssertGreaterThanOrEqual(
-            cell.releaseYearLabel.frame.minY - cell.ratingLabel.frame.maxY,
-            6 - 0.5
+            cell.releaseYearLabel.frame.minY - cell.favoritePill.frame.maxY,
+            6 - 1.0
         )
         XCTAssertGreaterThan(cell.titleLabel.frame.height, 20)
         XCTAssertEqual(cell.posterView.frame.minX, padding, accuracy: 0.5)
         XCTAssertEqual(cell.posterView.frame.minY, padding, accuracy: 0.5)
     }
 
+    func test_layout_favoritePillSitsUnderRating() {
+        let cell = laidOutCell(title: "Short Movie Title", isFavorite: true)
+        XCTAssertGreaterThan(cell.favoritePill.bounds.height, 0)
+        XCTAssertEqual(
+            cell.favoritePill.frame.minY,
+            cell.ratingLabel.frame.maxY + 6,
+            accuracy: 1.5
+        )
+        XCTAssertEqual(cell.favoritePill.frame.minX, cell.ratingLabel.frame.minX, accuracy: 1.0)
+    }
+
     // MARK: - Helpers
 
-    private func laidOutCell(title: String) -> MovieTableViewCell {
+    private func laidOutCell(title: String, isFavorite: Bool = false) -> MovieTableViewCell {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
         cell.configure(
             with: TestMovies.make(title: title, releaseDate: TestMovies.date("1981-01-01"), voteAverage: 9.2),
-            loader: loader
+            loader: loader,
+            isFavorite: isFavorite,
+            onFavoriteToggle: {}
         )
 
         let width: CGFloat = 390
