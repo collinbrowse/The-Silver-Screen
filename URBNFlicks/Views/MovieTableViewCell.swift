@@ -11,13 +11,16 @@ import UIKit
 final class MovieTableViewCell: UITableViewCell {
 
     static let reuseIdentifier = "MovieTableViewCell"
+    static let posterSize = CGSize(width: 128, height: 176)
 
     let posterView = UIImageView()
     let titleLabel = UILabel()
     let releaseYearLabel = UILabel()
     let ratingLabel = UILabel()
 
-    let padding = 14.0
+    private let padding: CGFloat = 8
+    private let titleToRatingSpacing: CGFloat = 6
+    private let minRatingToYearSpacing: CGFloat = 6
 
     private static let yearFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -47,26 +50,101 @@ final class MovieTableViewCell: UITableViewCell {
         }
 
         titleLabel.text = movie.title
-        ratingLabel.text = "Rating: " + String(movie.voteAverage) + " / 10"
-        if let releaseDate = movie.releaseDate {
-            releaseYearLabel.text = "Released: " + Self.yearFormatter.string(from: releaseDate)
-        } else {
-            releaseYearLabel.text = "Released: "
-        }
+        ratingLabel.text = Self.ratingText(for: movie.voteAverage)
+        releaseYearLabel.text = Self.releaseYearText(for: movie.releaseDate)
+    }
+
+    static func ratingText(for voteAverage: Double) -> String {
+        String(format: "Rating: %.1f", voteAverage)
+    }
+
+    static func releaseYearText(for releaseDate: Date?) -> String {
+        guard let releaseDate else { return "Released: " }
+        return "Released: " + yearFormatter.string(from: releaseDate)
     }
 
     private func setupContentView() {
-        let labelStack = UIStackView(arrangedSubviews: [titleLabel, ratingLabel, releaseYearLabel])
-        labelStack.axis = .vertical
+        selectionStyle = .default
 
-        let fullStack = UIStackView(arrangedSubviews: [posterView, labelStack])
-        fullStack.axis = .horizontal
-        fullStack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(fullStack)
+        posterView.translatesAutoresizingMaskIntoConstraints = false
+        posterView.contentMode = .scaleAspectFill
+        posterView.clipsToBounds = true
+        posterView.setContentHuggingPriority(.required, for: .horizontal)
+        posterView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        fullStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding).isActive = true
-        fullStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding).isActive = true
-        fullStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: padding).isActive = true
-        fullStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -padding).isActive = true
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = UIFontMetrics(forTextStyle: .body).scaledFont(
+            for: .systemFont(ofSize: 14, weight: .bold)
+        )
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.numberOfLines = 0
+        titleLabel.setContentHuggingPriority(.required, for: .vertical)
+        titleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        ratingLabel.translatesAutoresizingMaskIntoConstraints = false
+        ratingLabel.font = UIFontMetrics(forTextStyle: .caption2).scaledFont(
+            for: .italicSystemFont(ofSize: 10)
+        )
+        ratingLabel.adjustsFontForContentSizeCategory = true
+        ratingLabel.numberOfLines = 1
+        ratingLabel.setContentHuggingPriority(.required, for: .vertical)
+        ratingLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        releaseYearLabel.translatesAutoresizingMaskIntoConstraints = false
+        releaseYearLabel.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(
+            for: .systemFont(ofSize: 12)
+        )
+        releaseYearLabel.adjustsFontForContentSizeCategory = true
+        releaseYearLabel.numberOfLines = 1
+        releaseYearLabel.setContentHuggingPriority(.required, for: .vertical)
+        releaseYearLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        contentView.addSubview(posterView)
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(ratingLabel)
+        contentView.addSubview(releaseYearLabel)
+
+        let bottomConstraint = posterView.bottomAnchor.constraint(
+            equalTo: contentView.bottomAnchor,
+            constant: -padding
+        )
+        bottomConstraint.priority = UILayoutPriority(999)
+
+        NSLayoutConstraint.activate([
+            posterView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
+            posterView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: padding),
+            bottomConstraint,
+            posterView.widthAnchor.constraint(equalToConstant: Self.posterSize.width),
+            posterView.heightAnchor.constraint(equalToConstant: Self.posterSize.height),
+
+            titleLabel.leadingAnchor.constraint(equalTo: posterView.trailingAnchor, constant: padding),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
+            titleLabel.topAnchor.constraint(equalTo: posterView.topAnchor),
+
+            ratingLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            ratingLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            ratingLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: titleToRatingSpacing),
+
+            releaseYearLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            releaseYearLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            releaseYearLabel.bottomAnchor.constraint(equalTo: posterView.bottomAnchor),
+            releaseYearLabel.topAnchor.constraint(
+                greaterThanOrEqualTo: ratingLabel.bottomAnchor,
+                constant: minRatingToYearSpacing
+            ),
+        ])
+
+        isAccessibilityElement = true
+        accessibilityTraits = .button
+    }
+
+    override var accessibilityLabel: String? {
+        get {
+            [titleLabel.text, ratingLabel.text, releaseYearLabel.text]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: ", ")
+        }
+        set { }
     }
 }

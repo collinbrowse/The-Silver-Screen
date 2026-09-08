@@ -65,6 +65,8 @@ final class MovieListViewController: UIViewController {
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 192
         tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: MovieTableViewCell.reuseIdentifier)
         tableView.dataSource = self
         tableView.delegate = self

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A100000A2788B823003D8011 /* MovieTableViewCellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000B2788B823003D8011 /* MovieTableViewCellTests.swift */; };
 		B10000242788B823003D8011 /* MovieListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000252788B823003D8011 /* MovieListViewModelTests.swift */; };
 		B10000102788B823003D8011 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000112788B823003D8011 /* AppError.swift */; };
 		B10000122788B823003D8011 /* AppLogging.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000132788B823003D8011 /* AppLogging.swift */; };
@@ -52,6 +53,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A100000B2788B823003D8011 /* MovieTableViewCellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieTableViewCellTests.swift; sourceTree = "<group>"; };
 		B10000252788B823003D8011 /* MovieListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieListViewModelTests.swift; sourceTree = "<group>"; };
 		B10000112788B823003D8011 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
 		B10000132788B823003D8011 /* AppLogging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogging.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 			children = (
 				A10000092788B823003D8011 /* Support */,
 				A10000072788B823003D8011 /* FakeHTTPClientTests.swift */,
+				A100000B2788B823003D8011 /* MovieTableViewCellTests.swift */,
 				B10000232788B823003D8011 /* MovieRepositoryTests.swift */,
 				B10000252788B823003D8011 /* MovieListViewModelTests.swift */,
 			);
@@ -396,6 +399,7 @@
 				A10000042788B823003D8011 /* FakeHTTPClient.swift in Sources */,
 				A10000062788B823003D8011 /* TMDBFixtures.swift in Sources */,
 				A10000082788B823003D8011 /* FakeHTTPClientTests.swift in Sources */,
+				A100000A2788B823003D8011 /* MovieTableViewCellTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
