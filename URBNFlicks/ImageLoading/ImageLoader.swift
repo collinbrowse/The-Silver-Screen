@@ -9,11 +9,19 @@ import ImageIO
 
 actor ImageLoader {
     private let client: any HTTPClient
+    private let logger: any AppLogging
+    private let sleeper: any Sleeper
     private let memoryCache = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Task<UIImage, Error>] = [:]
 
-    init(client: any HTTPClient) {
+    init(
+        client: any HTTPClient,
+        logger: any AppLogging,
+        sleeper: any Sleeper = TaskSleeper()
+    ) {
         self.client = client
+        self.logger = logger
+        self.sleeper = sleeper
         memoryCache.countLimit = 200
     }
 
@@ -29,20 +37,26 @@ actor ImageLoader {
 
         let task = Task<UIImage, Error> {
             let request = URLRequest(url: url)
-            let (data, response) = try await client.data(for: request)
-            guard (200..<300).contains(response.statusCode) else {
-                throw AppError.server(status: response.statusCode)
-            }
-            let image = try Self.downsample(data: data, targetSize: targetSize, scale: scale)
-            return image
+            let data = try await HTTPTransport.data(
+                for: request,
+                client: client,
+                logger: logger,
+                context: "Image",
+                sleeper: sleeper
+            )
+            return try Self.downsample(data: data, targetSize: targetSize, scale: scale)
         }
 
         inFlight[url] = task
         defer { inFlight[url] = nil }
 
-        let image = try await task.value
-        memoryCache.setObject(image, forKey: cacheKey)
-        return image
+        do {
+            let image = try await task.value
+            memoryCache.setObject(image, forKey: cacheKey)
+            return image
+        } catch is CancellationError {
+            throw CancellationError()
+        }
     }
 
     func prefetch(urls: [URL], targetSize: CGSize, scale: CGFloat) {

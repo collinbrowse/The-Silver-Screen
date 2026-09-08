@@ -10,7 +10,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_topMovies_mapsFixtureToDomainMovies() async throws {
         let client = FakeHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1, status: 200))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         let page = try await repository.topMovies(page: 1)
 
@@ -27,7 +27,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_topMovies_emptyReleaseDate_mapsToNilAndKeepsMovie() async throws {
         let client = FakeHTTPClient(stub: .success(TMDBFixtures.topMoviesWithEmptyReleaseDate))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         let page = try await repository.topMovies(page: 1)
 
@@ -39,7 +39,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_topMovies_whenOffline_throwsOffline() async {
         let client = FakeHTTPClient(result: .failure(URLError(.notConnectedToInternet)))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.topMovies(page: 1)
@@ -53,7 +53,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_topMovies_whenUnauthorized_throwsUnauthorized() async {
         let client = FakeHTTPClient(stub: .success(Data(), status: 401))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.topMovies(page: 1)
@@ -65,9 +65,29 @@ final class MovieRepositoryTests: XCTestCase {
         }
     }
 
+    func test_topMovies_whenUnauthorized_doesNotRetry() async {
+        let client = SequencingHTTPClient(stubs: [
+            .success(Data(), status: 401),
+            .success(TMDBFixtures.topMoviesPage1),
+        ])
+        let repository = MovieRepository.test(client: client)
+
+        do {
+            _ = try await repository.topMovies(page: 1)
+            XCTFail("Expected unauthorized")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .unauthorized)
+        } catch {
+            XCTFail("Expected AppError, got \(error)")
+        }
+
+        let count = await client.requestCount
+        XCTAssertEqual(count, 1)
+    }
+
     func test_topMovies_whenServerError_throwsServerStatus() async {
         let client = FakeHTTPClient(stub: .success(Data(), status: 500))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.topMovies(page: 1)
@@ -79,9 +99,38 @@ final class MovieRepositoryTests: XCTestCase {
         }
     }
 
+    func test_topMovies_whenServerErrorThenSuccess_retriesAndReturns() async throws {
+        let client = SequencingHTTPClient(stubs: [
+            .success(Data(), status: 500),
+            .success(Data(), status: 503),
+            .success(TMDBFixtures.topMoviesPage1),
+        ])
+        let repository = MovieRepository.test(client: client)
+
+        let page = try await repository.topMovies(page: 1)
+
+        XCTAssertEqual(page.movies.count, 2)
+        let count = await client.requestCount
+        XCTAssertEqual(count, 3)
+    }
+
+    func test_topMovies_whenOfflineThenSuccess_retriesAndReturns() async throws {
+        let client = SequencingHTTPClient(stubs: [
+            .failure(URLError(.notConnectedToInternet)),
+            .success(TMDBFixtures.topMoviesPage1),
+        ])
+        let repository = MovieRepository.test(client: client)
+
+        let page = try await repository.topMovies(page: 1)
+
+        XCTAssertEqual(page.movies.count, 2)
+        let count = await client.requestCount
+        XCTAssertEqual(count, 2)
+    }
+
     func test_topMovies_whenGarbageJSON_throwsDecoding() async {
         let client = FakeHTTPClient(stub: .success(Data("not-json".utf8)))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.topMovies(page: 1)
@@ -117,7 +166,7 @@ final class MovieRepositoryTests: XCTestCase {
             """.utf8
         )
         let client = FakeHTTPClient(stub: .success(json))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         let page = try await repository.topMovies(page: 1)
 
@@ -125,9 +174,9 @@ final class MovieRepositoryTests: XCTestCase {
         XCTAssertEqual(page.movies[0].title, "Good")
     }
 
-    func test_movieDetail_requestsMoviePathAndMapsFields() async throws {
+    func test_movieDetail_requestsApiKeyAndMapsFields() async throws {
         let client = RecordingHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
-        let repository = MovieRepository(client: client, apiKey: "test-key", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client, apiKey: "test-key")
 
         let detail = try await repository.movieDetail(id: 278)
 
@@ -147,11 +196,13 @@ final class MovieRepositoryTests: XCTestCase {
         let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
         XCTAssertTrue(items.contains(URLQueryItem(name: "api_key", value: "test-key")))
         XCTAssertTrue(items.contains(URLQueryItem(name: "language", value: "en-US")))
+        let authorization = await client.lastAuthorizationHeader
+        XCTAssertNil(authorization)
     }
 
     func test_movieDetail_emptyReleaseDateAndZeroMoney_mapsCleanly() async throws {
         let client = FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailSparse))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         let detail = try await repository.movieDetail(id: 999)
 
@@ -165,7 +216,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_movieDetail_whenOffline_throwsOffline() async {
         let client = FakeHTTPClient(result: .failure(URLError(.notConnectedToInternet)))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.movieDetail(id: 278)
@@ -179,7 +230,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_movieDetail_whenUnauthorized_throwsUnauthorized() async {
         let client = FakeHTTPClient(stub: .success(Data(), status: 401))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.movieDetail(id: 278)
@@ -193,7 +244,7 @@ final class MovieRepositoryTests: XCTestCase {
 
     func test_movieDetail_whenGarbageJSON_throwsDecoding() async {
         let client = FakeHTTPClient(stub: .success(Data("not-json".utf8)))
-        let repository = MovieRepository(client: client, apiKey: "test", logger: SilentLogger())
+        let repository = MovieRepository.test(client: client)
 
         do {
             _ = try await repository.movieDetail(id: 278)

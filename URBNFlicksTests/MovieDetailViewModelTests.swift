@@ -55,7 +55,7 @@ final class MovieDetailViewModelTests: XCTestCase {
         let switchable = SwitchableDetailHTTPClient(initial: .failure(URLError(.notConnectedToInternet)))
         let viewModel = MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository(client: switchable, apiKey: "test", logger: SilentLogger()),
+            movies: MovieRepository.test(client: switchable),
             favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
         )
 
@@ -76,10 +76,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let favorites = FavoritesRepository(store: store, logger: SilentLogger())
         let viewModel = MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository(
-                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank)),
-                apiKey: "test",
-                logger: SilentLogger()
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
             favorites: favorites
         )
@@ -100,10 +98,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         await store.setSaveError(CocoaError(.fileWriteUnknown))
         let viewModel = MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository(
-                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank)),
-                apiKey: "test",
-                logger: SilentLogger()
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
             favorites: FavoritesRepository(store: store, logger: SilentLogger())
         )
@@ -129,11 +125,7 @@ final class MovieDetailViewModelTests: XCTestCase {
     private func makeViewModel(stub: FakeHTTPClient.Stub) -> MovieDetailViewModel {
         MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository(
-                client: FakeHTTPClient(stub: stub),
-                apiKey: "test",
-                logger: SilentLogger()
-            ),
+            movies: MovieRepository.test(client: FakeHTTPClient(stub: stub)),
             favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
         )
     }
@@ -141,11 +133,7 @@ final class MovieDetailViewModelTests: XCTestCase {
     private func makeViewModel(result: Result<Data, Error>) -> MovieDetailViewModel {
         MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository(
-                client: FakeHTTPClient(result: result),
-                apiKey: "test",
-                logger: SilentLogger()
-            ),
+            movies: MovieRepository.test(client: FakeHTTPClient(result: result)),
             favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
         )
     }

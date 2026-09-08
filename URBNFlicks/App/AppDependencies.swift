@@ -17,11 +17,15 @@ struct AppDependencies {
         let logger = OSAppLogger()
         let apiKey = try TMDBAPIKey.fromBundle()
         let httpClient = URLSessionHTTPClient()
-        let movies = MovieRepository(client: httpClient, apiKey: apiKey, logger: logger)
+        let movies = MovieRepository(
+            client: httpClient,
+            apiKey: apiKey,
+            logger: logger
+        )
         let favoritesStoreURL = try FileFavoritesStore.applicationSupportURL()
         let favoritesStore = FileFavoritesStore(fileURL: favoritesStoreURL)
         let favorites = FavoritesRepository(store: favoritesStore, logger: logger)
-        let imageLoader = ImageLoader(client: httpClient)
+        let imageLoader = ImageLoader(client: httpClient, logger: logger)
         let router = AppRouter()
         return AppDependencies(
             movies: movies,

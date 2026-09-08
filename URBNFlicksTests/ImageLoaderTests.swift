@@ -29,7 +29,9 @@ final class ImageLoaderTests: XCTestCase {
     @MainActor
     func test_cell_prepareForReuse_clearsPosterAndAllowsReconfigure() {
         let cell = MovieTableViewCell(style: .default, reuseIdentifier: MovieTableViewCell.reuseIdentifier)
-        let loader = ImageLoader(client: FakeHTTPClient(stub: .failure(URLError(.notConnectedToInternet))))
+        let loader = ImageLoader.test(
+            client: FakeHTTPClient(stub: .failure(URLError(.notConnectedToInternet)))
+        )
         let movie = TestMovies.make(id: 10, title: "One", posterPath: "/a.jpg", releaseDate: TestMovies.date("2001-01-01"))
 
         cell.configure(with: movie, loader: loader, isFavorite: false, onFavoriteToggle: {})
@@ -41,5 +43,37 @@ final class ImageLoaderTests: XCTestCase {
         let next = TestMovies.make(id: 11, title: "Two", releaseDate: TestMovies.date("2002-02-02"))
         cell.configure(with: next, loader: loader, isFavorite: true, onFavoriteToggle: {})
         XCTAssertEqual(cell.titleLabel.text, "Two")
+    }
+
+    func test_image_whenOffline_throwsOffline() async {
+        let loader = ImageLoader.test(
+            client: FakeHTTPClient(result: .failure(URLError(.notConnectedToInternet)))
+        )
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        do {
+            _ = try await loader.image(for: url, targetSize: CGSize(width: 40, height: 60), scale: 2)
+            XCTFail("Expected offline error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .offline)
+        } catch {
+            XCTFail("Expected AppError, got \(error)")
+        }
+    }
+
+    func test_image_whenTimedOut_throwsTimedOut() async {
+        let loader = ImageLoader.test(
+            client: FakeHTTPClient(result: .failure(URLError(.timedOut)))
+        )
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        do {
+            _ = try await loader.image(for: url, targetSize: CGSize(width: 40, height: 60), scale: 2)
+            XCTFail("Expected timedOut error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .timedOut)
+        } catch {
+            XCTFail("Expected AppError, got \(error)")
+        }
     }
 }
