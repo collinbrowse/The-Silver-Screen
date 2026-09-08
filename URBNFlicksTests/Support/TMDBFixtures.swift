@@ -81,4 +81,41 @@ enum TMDBFixtures {
         }
         """.utf8
     )
+
+    /// Trimmed `/movie/{id}` payload for Story 1 fields.
+    static let movieDetailShawshank = Data(
+        """
+        {
+          "id": 278,
+          "title": "The Shawshank Redemption",
+          "overview": "Framed in the 1940s for a double murder.",
+          "poster_path": "/poster.jpg",
+          "release_date": "1994-09-23",
+          "vote_average": 8.7,
+          "budget": 25000000,
+          "revenue": 28341469,
+          "genres": [
+            {"id": 18, "name": "Drama"},
+            {"id": 80, "name": "Crime"}
+          ]
+        }
+        """.utf8
+    )
+
+    /// Detail with missing optional financials and empty release date.
+    static let movieDetailSparse = Data(
+        """
+        {
+          "id": 999,
+          "title": "Untitled",
+          "overview": "",
+          "poster_path": null,
+          "release_date": "",
+          "vote_average": 5.0,
+          "budget": 0,
+          "revenue": 0,
+          "genres": []
+        }
+        """.utf8
+    )
 }

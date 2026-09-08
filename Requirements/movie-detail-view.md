@@ -5,7 +5,7 @@ The detail screen for a single movie. Pushed from a movie cell in any list. All 
 
 | #   | Story                                                                                                                                                                                                                       | Done |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| 1   | Tapping a movie cell from a list pushes you to this view. Add UI to show: movie poster, the name, description, the ratings, budget, genres (their name), release date, and revenue.                                         | [ ]  |
+| 1   | Tapping a movie cell from a list pushes you to this view. Add UI to show: movie poster, the name, description, the ratings, budget, genres (their name), release date, and revenue.                                         | [x]  |
 | 2   | Underneath that, a carousel of images for the movie. Clicking on an image makes it full screen (and can be dismissed).                                                                                                      | [ ]  |
 | 3   | Create a carousel of top actors in the movie. UI should include a picture, the character name, and the actor's real name.                                                                                                   | [ ]  |
 | 4   | Add another carousel to show the main director(s) and the writers of the film.                                                                                                                                              | [ ]  |

@@ -32,6 +32,11 @@ jobs:
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
         run: python3 scripts/validate-tests.py
+      - name: Validate PR body template
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 scripts/validate-pr-body.py
 
   unit-tests:
     name: Unit tests

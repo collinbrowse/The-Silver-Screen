@@ -44,19 +44,7 @@ final class MovieRepository: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
 
-        let data: Data
-        let response: HTTPURLResponse
-        do {
-            (data, response) = try await client.data(for: request)
-        } catch let error as URLError {
-            logger.error("Top movies request failed: \(error.code.rawValue)", category: .networking)
-            throw Self.mapURLError(error)
-        } catch {
-            logger.error("Top movies request failed with unknown transport error", category: .networking)
-            throw AppError.unknown
-        }
-
-        try Self.throwIfUnsuccessful(status: response.statusCode, logger: logger)
+        let data = try await perform(request, context: "Top movies")
 
         do {
             let movies = try Self.decodeMovies(from: data, logger: logger)
@@ -72,6 +60,56 @@ final class MovieRepository: Sendable {
             logger.error("Top movies page metadata decode failed", category: .networking)
             throw AppError.decoding
         }
+    }
+
+    func movieDetail(id: Int) async throws -> MovieDetail {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("movie/\(id)"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "language", value: "en-US"),
+            URLQueryItem(name: "api_key", value: apiKey),
+        ]
+
+        guard let url = components.url else {
+            throw AppError.unknown
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        let data = try await perform(request, context: "Movie detail")
+
+        do {
+            let dto = try JSONDecoder().decode(MovieDetailDTO.self, from: data)
+            return Self.map(dto)
+        } catch let error as DecodingError {
+            logger.error("Movie detail decode failed: \(error)", category: .networking)
+            throw AppError.decoding
+        } catch let error as AppError {
+            throw error
+        } catch {
+            logger.error("Movie detail decode failed", category: .networking)
+            throw AppError.decoding
+        }
+    }
+
+    private func perform(_ request: URLRequest, context: String) async throws -> Data {
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await client.data(for: request)
+        } catch let error as URLError {
+            logger.error("\(context) request failed: \(error.code.rawValue)", category: .networking)
+            throw Self.mapURLError(error)
+        } catch {
+            logger.error("\(context) request failed with unknown transport error", category: .networking)
+            throw AppError.unknown
+        }
+
+        try Self.throwIfUnsuccessful(status: response.statusCode, logger: logger, context: context)
+        return data
     }
 
     // MARK: - Mapping
@@ -93,6 +131,20 @@ final class MovieRepository: Sendable {
             releaseDate: parseReleaseDate(dto.releaseDate),
             voteAverage: dto.voteAverage,
             genreIDs: dto.genreIDs
+        )
+    }
+
+    static func map(_ dto: MovieDetailDTO) -> MovieDetail {
+        MovieDetail(
+            id: dto.id,
+            title: dto.title,
+            overview: dto.overview?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            posterPath: dto.posterPath,
+            releaseDate: parseReleaseDate(dto.releaseDate ?? ""),
+            voteAverage: dto.voteAverage,
+            genres: (dto.genres ?? []).map { MovieGenre(id: $0.id, name: $0.name) },
+            budget: dto.budget ?? 0,
+            revenue: dto.revenue ?? 0
         )
     }
 
@@ -133,18 +185,22 @@ final class MovieRepository: Sendable {
         return movies
     }
 
-    private static func throwIfUnsuccessful(status: Int, logger: any AppLogging) throws {
+    private static func throwIfUnsuccessful(
+        status: Int,
+        logger: any AppLogging,
+        context: String = "Request"
+    ) throws {
         switch status {
         case 200..<300:
             return
         case 401, 403:
-            logger.error("Top movies unauthorized status \(status)", category: .networking)
+            logger.error("\(context) unauthorized status \(status)", category: .networking)
             throw AppError.unauthorized
         case 500..<600:
-            logger.error("Top movies server status \(status)", category: .networking)
+            logger.error("\(context) server status \(status)", category: .networking)
             throw AppError.server(status: status)
         default:
-            logger.error("Top movies unexpected status \(status)", category: .networking)
+            logger.error("\(context) unexpected status \(status)", category: .networking)
             throw AppError.server(status: status)
         }
     }
