@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MovieListViewController.swift
 //  URBNFlicks
 //
 //  Created by URBN
@@ -7,92 +7,138 @@
 
 import UIKit
 
-class MovieListViewController: UIViewController {
-    
-    let viewModel: MovieListViewModel
-    
-    let tableView = UITableView()
-    
-    var movies = [MovieSummary]()
-    
-    required init(viewModel: MovieListViewModel) {
+final class MovieListViewController: UIViewController {
+
+    private let viewModel: MovieListViewModel
+    private let tableView = UITableView()
+    private let loadingView = UIActivityIndicatorView(style: .large)
+    private var movies = [Movie]()
+    private var stateTask: Task<Void, Never>?
+
+    init(viewModel: MovieListViewModel) {
         self.viewModel = viewModel
-        
         super.init(nibName: nil, bundle: nil)
-        
         setupNavigation()
         setupTableView()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    deinit {
+        stateTask?.cancel()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        viewModel.moviesUpdatedHandler = { (movies) in
-            self.movies = movies
-            self.tableView.reloadData()
+        view.backgroundColor = .systemBackground
+        setupLoadingView()
+
+        stateTask = Task { [weak self] in
+            guard let self else { return }
+            for await state in Observations({ self.viewModel.state }) {
+                self.render(state)
+            }
         }
-        
-        viewModel.getTopMovies()
+
+        Task { await viewModel.load() }
     }
-    
-    func setupNavigation() {
+
+    private func setupNavigation() {
         title = "Top Ranked Movies"
-        
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Sort", style: .plain, target: self, action: #selector(sortTapped))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Sort",
+            style: .plain,
+            target: self,
+            action: #selector(sortTapped)
+        )
     }
-    
-    func setupTableView() {
+
+    private func setupTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
-        tableView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
-        tableView.heightAnchor.constraint(equalTo: view.heightAnchor).isActive = true
-        
-        tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: "top movie cell")
-        
+        NSLayoutConstraint.activate([
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: MovieTableViewCell.reuseIdentifier)
         tableView.dataSource = self
         tableView.delegate = self
     }
-}
 
-// MARK: - Sort Actions
-extension MovieListViewController {
-    
-    @objc func sortTapped() {
-        let controller = UIAlertController(title: "Sort Options", message: "Choose your sorting preference", preferredStyle: .actionSheet)
+    private func setupLoadingView() {
+        loadingView.translatesAutoresizingMaskIntoConstraints = false
+        loadingView.hidesWhenStopped = true
+        view.addSubview(loadingView)
+        NSLayoutConstraint.activate([
+            loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        ])
+    }
+
+    private func render(_ state: LoadState<[Movie]>) {
+        switch state {
+        case .idle:
+            loadingView.stopAnimating()
+            tableView.isHidden = true
+        case .loading:
+            loadingView.startAnimating()
+            tableView.isHidden = true
+        case .empty:
+            loadingView.stopAnimating()
+            movies = []
+            tableView.isHidden = false
+            tableView.reloadData()
+        case .loaded(let value, _):
+            loadingView.stopAnimating()
+            movies = value
+            tableView.isHidden = false
+            tableView.reloadData()
+        case .failed:
+            loadingView.stopAnimating()
+            movies = []
+            tableView.isHidden = false
+            tableView.reloadData()
+        }
+    }
+
+    @objc private func sortTapped() {
+        let controller = UIAlertController(
+            title: "Sort Options",
+            message: "Choose your sorting preference",
+            preferredStyle: .actionSheet
+        )
         controller.addAction(UIAlertAction(title: "Top Ranked ✅", style: .default, handler: nil))
         controller.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
-        present(controller, animated: true, completion: nil)
+        present(controller, animated: true)
     }
 }
 
-
-// MARK: - Table View DataSource
 extension MovieListViewController: UITableViewDataSource {
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movies.count
+        movies.count
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "top movie cell", for: indexPath) as? MovieTableViewCell else {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: MovieTableViewCell.reuseIdentifier,
+            for: indexPath
+        ) as? MovieTableViewCell else {
             return UITableViewCell()
         }
-        
-        let currentMovie = movies[indexPath.row]
-        cell.configure(with: currentMovie)
-        
+        cell.configure(with: movies[indexPath.row])
         return cell
     }
 }
 
-// MARK: - Table View Delegate
 extension MovieListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //todo implement this one
+        tableView.deselectRow(at: indexPath, animated: true)
+        let movie = movies[indexPath.row]
+        navigationController?.pushViewController(MovieDetailViewController(movie: movie), animated: true)
     }
 }
