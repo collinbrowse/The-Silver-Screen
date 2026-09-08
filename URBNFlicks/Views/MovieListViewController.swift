@@ -19,11 +19,15 @@ final class MovieListViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let loadingView = UIActivityIndicatorView(style: .large)
     private let emptyLabel = UILabel()
+    private let errorView = UIStackView()
+    private let errorTitleLabel = UILabel()
+    private let errorMessageLabel = UILabel()
+    private let retryButton = UIButton(type: .system)
+    private let bannerLabel = UILabel()
 
     private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
     private var moviesByID: [Movie.ID: Movie] = [:]
     private var stateTask: Task<Void, Never>?
-
     init(viewModel: MovieListViewModel, imageLoader: ImageLoader) {
         self.viewModel = viewModel
         self.imageLoader = imageLoader
@@ -55,6 +59,8 @@ final class MovieListViewController: UIViewController {
 
         Task { await viewModel.load() }
     }
+
+    // MARK: - Setup
 
     private func setupNavigation() {
         title = "Top Ranked Movies"
@@ -98,12 +104,53 @@ final class MovieListViewController: UIViewController {
         emptyLabel.isHidden = true
         view.addSubview(emptyLabel)
 
+        errorTitleLabel.font = .preferredFont(forTextStyle: .title2)
+        errorTitleLabel.textAlignment = .center
+        errorTitleLabel.numberOfLines = 0
+
+        errorMessageLabel.font = .preferredFont(forTextStyle: .body)
+        errorMessageLabel.textAlignment = .center
+        errorMessageLabel.textColor = .secondaryLabel
+        errorMessageLabel.numberOfLines = 0
+
+        retryButton.setTitle("Retry", for: .normal)
+        retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
+
+        errorView.axis = .vertical
+        errorView.spacing = 12
+        errorView.alignment = .center
+        errorView.translatesAutoresizingMaskIntoConstraints = false
+        errorView.isHidden = true
+        errorView.addArrangedSubview(errorTitleLabel)
+        errorView.addArrangedSubview(errorMessageLabel)
+        errorView.addArrangedSubview(retryButton)
+        view.addSubview(errorView)
+
+        bannerLabel.translatesAutoresizingMaskIntoConstraints = false
+        bannerLabel.backgroundColor = .systemRed
+        bannerLabel.textColor = .white
+        bannerLabel.textAlignment = .center
+        bannerLabel.font = .preferredFont(forTextStyle: .footnote)
+        bannerLabel.numberOfLines = 0
+        bannerLabel.isHidden = true
+        bannerLabel.accessibilityTraits = .staticText
+        view.addSubview(bannerLabel)
+
         NSLayoutConstraint.activate([
             loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+
             emptyLabel.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
             emptyLabel.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+
+            errorView.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            errorView.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            errorView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+
+            bannerLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bannerLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bannerLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
         ])
     }
 
@@ -124,21 +171,29 @@ final class MovieListViewController: UIViewController {
         }
     }
 
+    // MARK: - Render
+
     private func render(_ state: LoadState<[Movie]>) {
         switch state {
         case .idle:
             tableView.isHidden = true
             emptyLabel.isHidden = true
+            errorView.isHidden = true
+            bannerLabel.isHidden = true
             loadingView.stopAnimating()
 
         case .loading:
             tableView.isHidden = true
             emptyLabel.isHidden = true
+            errorView.isHidden = true
+            bannerLabel.isHidden = true
             loadingView.startAnimating()
 
         case .empty:
             loadingView.stopAnimating()
             tableView.isHidden = true
+            errorView.isHidden = true
+            bannerLabel.isHidden = true
             emptyLabel.isHidden = false
             apply(movies: [])
 
@@ -146,19 +201,33 @@ final class MovieListViewController: UIViewController {
             loadingView.stopAnimating()
             tableView.isHidden = false
             emptyLabel.isHidden = true
+            errorView.isHidden = true
             apply(movies: movies)
+
             switch activity {
-            case .none, .failed:
+            case .none:
+                bannerLabel.isHidden = true
                 tableView.refreshControl?.endRefreshing()
-            case .refreshing, .loadingMore:
-                break
+            case .refreshing:
+                bannerLabel.isHidden = true
+            case .loadingMore:
+                bannerLabel.isHidden = true
+            case .failed(let error):
+                tableView.refreshControl?.endRefreshing()
+                showBanner(error)
             }
 
-        case .failed:
+        case .failed(let error):
             loadingView.stopAnimating()
             tableView.isHidden = true
-            emptyLabel.isHidden = false
-            emptyLabel.text = "Couldn't load movies."
+            emptyLabel.isHidden = true
+            bannerLabel.isHidden = true
+            errorView.isHidden = false
+            errorTitleLabel.text = error.title
+            errorMessageLabel.text = error.message
+            retryButton.isHidden = !error.isRetryable
+            errorView.accessibilityLabel = "\(error.title). \(error.message)"
+            UIAccessibility.post(notification: .announcement, argument: errorView.accessibilityLabel)
             apply(movies: [])
         }
     }
@@ -171,8 +240,20 @@ final class MovieListViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: true)
     }
 
+    private func showBanner(_ error: AppError) {
+        bannerLabel.text = "\(error.title): \(error.message)"
+        bannerLabel.isHidden = false
+        bannerLabel.accessibilityLabel = bannerLabel.text
+        UIAccessibility.post(notification: .announcement, argument: bannerLabel.text)
+    }
+
+
     @objc private func pulledToRefresh() {
         Task { await viewModel.refresh() }
+    }
+
+    @objc private func retryTapped() {
+        Task { await viewModel.retry() }
     }
 
     @objc private func sortTapped() {
@@ -186,6 +267,8 @@ final class MovieListViewController: UIViewController {
         present(controller, animated: true)
     }
 }
+
+// MARK: - Delegate
 
 extension MovieListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -205,6 +288,8 @@ extension MovieListViewController: UITableViewDelegate {
         Task { await viewModel.loadMore() }
     }
 }
+
+// MARK: - Prefetch
 
 extension MovieListViewController: UITableViewDataSourcePrefetching {
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
