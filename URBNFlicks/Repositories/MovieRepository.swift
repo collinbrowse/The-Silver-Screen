@@ -91,7 +91,8 @@ final class MovieRepository: Sendable {
             title: dto.title,
             posterPath: dto.posterPath,
             releaseDate: parseReleaseDate(dto.releaseDate),
-            voteAverage: dto.voteAverage
+            voteAverage: dto.voteAverage,
+            genreIDs: dto.genreIDs
         )
     }
 

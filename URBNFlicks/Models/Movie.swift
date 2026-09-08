@@ -11,4 +11,5 @@ struct Movie: Sendable, Identifiable, Hashable {
     let posterPath: String?
     let releaseDate: Date?
     let voteAverage: Double
+    let genreIDs: [Int]
 }
