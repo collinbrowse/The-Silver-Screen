@@ -13,3 +13,4 @@ alwaysApply: true
 - Unit tests for completed work.
 - Tick `Done` and the progress table only after tests and a visual check.
 - Ship work through PRs; reviewers look at `main`.
+- Commits stay reviewable (one story or logical unit) — see [`commits.mdc`](.cursor/rules/commits.mdc).
