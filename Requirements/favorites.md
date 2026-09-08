@@ -6,9 +6,9 @@ Let users bookmark movies (and eventually TV series and people) and browse them 
 
 | # | Story | Required | Done |
 | --- | --- | --- | --- |
-| 1 | Add bookmarking UI to any (or all) movie list cell, carousel cell, and/or detail view. | **Yes** | [ ] |
-| 2 | Add a new Favorites tab showcasing a list of favorite movies. Each cell contains: movie title, poster image, genres, and release date. Sort by favorite date — most recent at the top/first. | **Yes** | [ ] |
-| 3 | Clicking on a cell takes you to that movie. | No | [ ] |
+| 1 | Add bookmarking UI to any (or all) movie list cell, carousel cell, and/or detail view. | **Yes** | [x] |
+| 2 | Add a new Favorites tab showcasing a list of favorite movies. Each cell contains: movie title, poster image, genres, and release date. Sort by favorite date — most recent at the top/first. | **Yes** | [x] |
+| 3 | Clicking on a cell takes you to that movie. | No | [x] |
 | 4 | Add bookmarking UI to any (or all) TV series list cell, carousel cell, and/or detail views. | No | [ ] |
 | 5 | Show TV series in the same list as movies, with the same UI. TV cell shows main image, TV name, genres, and first air date. | No | [ ] |
 | 6 | Add bookmarking UI to any (or all) People cells or detail view. | No | [ ] |
