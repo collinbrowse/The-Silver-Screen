@@ -16,14 +16,30 @@ Each layer knows only the layer below it:
 - Expose one explicit state enum. No parallel `isLoading` / `errorMessage` / `movies` flags that can disagree.
 
 ```swift
+enum LoadActivity: Sendable, Equatable {
+    case none, refreshing, loadingMore
+    case failed(AppError)      // a refresh failed, but the content on screen is still good
+}
+
 enum LoadState<Value: Sendable>: Sendable {
-    case idle, loading, loaded(Value), failed(AppError)
+    case idle                                   // nothing requested yet
+    case loading                                // first load, nothing to show
+    case empty                                  // succeeded, no results
+    case loaded(Value, activity: LoadActivity)  // content on screen
+    case failed(AppError)                       // first load failed, nothing to show
+
+    static func loaded(_ value: Value) -> Self { .loaded(value, activity: .none) }
 }
 
 extension LoadState: Equatable where Value: Equatable {}
 ```
 
-`Equatable` is conditional so tests can assert `viewModel.state == .failed(.offline)` without forcing every payload to be `Equatable`.
+Two things this shape buys, both of which a four-case `idle / loading / loaded / failed` enum gets wrong:
+
+- **Refresh, paging, and refresh-failure keep the content on screen.** Pull-to-refresh is `.loaded(movies, activity: .refreshing)`, not `.loading` — going back to `.loading` throws the list away and flashes a spinner. A failed refresh is `.loaded(movies, activity: .failed(.offline))`, so the user keeps twenty good movies and gets a toast, instead of a full-screen error replacing content that was fine. Only a **cold** failure with nothing to show is `.failed`.
+- **`empty` is its own case.** Do not write `case .loaded(let movies) where movies.isEmpty` at each call site; one screen will forget the `where` clause and ship a blank list.
+
+`LoadActivity` is nested inside `.loaded` rather than sitting beside it, so "loading" and "has content" cannot disagree — which is the same reason we banned parallel `isLoading` flags. `Equatable` is conditional so tests can assert `viewModel.state == .failed(.offline)` without forcing every payload to be `Equatable`.
 
 - Views render state and forward intent (`await viewModel.load()`). No networking, mapping, or persistence in a view.
 
@@ -62,7 +78,7 @@ final class MovieListViewModel {
 - No protocol per type, and no protocol wrapping a single concrete struct.
 - Prefer several small types with one reason to change over one type with mode flags.
 
-Concretely, this app has three protocols and no others: `HTTPClient` (network), the Favorites persistence store (disk), and `AppLogging`. **Repositories and view models are concrete types.** There is no `MovieRepositoryProtocol`, and tests do not fake a repository — see [`testing.mdc`](testing.mdc).
+Concretely, this app has three protocols and no others: `HTTPClient` (network), the Favorites persistence store (disk), and `AppLogging`. **Repositories and view models are concrete types.** There is no `MovieRepositoryProtocol`, and tests do not fake a repository — see [`testing.mdc`](.cursor/rules/testing.mdc).
 
 ## Target toolchain
 

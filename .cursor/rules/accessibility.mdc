@@ -1,6 +1,6 @@
 ---
 description: Accessibility requirements for URBNFlicks screens and cells.
-globs: URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift,URBNFlicks/**/*Cell.swift
+globs: URBNFlicks/Features/**/*.swift,URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift,URBNFlicks/**/*Cell.swift
 alwaysApply: false
 ---
 

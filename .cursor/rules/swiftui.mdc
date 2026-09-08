@@ -1,24 +1,32 @@
 ---
 description: SwiftUI and Observation conventions for URBNFlicks screens.
-globs: URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift
+globs: URBNFlicks/Features/**/*.swift,URBNFlicks/**/*View.swift
 alwaysApply: false
 ---
 
 # SwiftUI views
 
 - All new screens are SwiftUI with Observation. Do not add new `UIViewController` subclasses.
+- New screens live in `URBNFlicks/Features/<Feature>/` — the view, its subviews, and its view model together. `URBNFlicks/Views/` is the legacy UIKit surface and is governed by [`uikit.mdc`](.cursor/rules/uikit.mdc) instead.
 - The existing Top Movies list stays UIKit. Bridge it with `UIViewControllerRepresentable` when it has to live inside SwiftUI navigation.
 - Observe with `@State private var viewModel` (injected at construction) or `@Environment`. Do not use `ObservableObject`, `@Published`, `@StateObject`, or `@ObservedObject`.
 - A view is a function of state: `switch viewModel.state` and handle every case, including empty and failed.
 
 ```swift
 switch viewModel.state {
-case .idle, .loading: ProgressView()
-case .loaded(let movies) where movies.isEmpty: EmptyStateView()
-case .loaded(let movies): MovieList(movies: movies)
-case .failed(let error): ErrorStateView(error: error) { await viewModel.load() }
+case .idle, .loading:
+    ProgressView()
+case .empty:
+    EmptyStateView()
+case .loaded(let movies, let activity):
+    MovieList(movies: movies, activity: activity)
+case .failed(let error):
+    ErrorStateView(error: error) { await viewModel.load() }
 }
 ```
+
+- `activity` renders **inside** the loaded branch — a refresh indicator or an inline error banner over the list. A refresh failure never replaces content the user can still use.
+- `EmptyStateView` and `ErrorStateView` are built once in `URBNFlicks/Features/Shared/` and reused. Every screen switches on state, so hand-rolling these per screen guarantees five slightly different error screens.
 
 - No networking, persistence, or business rules in `body`. Put derived display values on the view model.
 - Extract subviews once `body` outgrows roughly one screen. Do not grow `@ViewBuilder` chains driven by booleans.

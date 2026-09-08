@@ -51,4 +51,16 @@ protocol AppLogging: Sendable {
 ```
 
 - The production implementation wraps `os.Logger` with subsystem `com.urbn.URBNFlicks` and a fixed `LogCategory` set: `networking`, `persistence`, `ui`, `navigation`.
-- Log failures and lifecycle transitions. Never log API keys, tokens, or full response bodies.
+- Log failures and lifecycle transitions. Never log API keys, tokens, or full response bodies. Never log a URL that carries credentials in its query — see [`secrets.mdc`](.cursor/rules/secrets.mdc).
+
+### Annotate privacy, or every line reads `<private>`
+
+The unified logging system redacts interpolated dynamic strings by default. Because `AppLogging` takes an already-composed `String`, the wrapper is always on that dynamic path — so without an annotation, **every** log line comes back as `<private>` in Console or a sysdiagnose. It still renders in full while Xcode is attached, which is what makes this bite only once the app is on a real device.
+
+```swift
+func error(_ message: String, category: LogCategory) {
+    logger(for: category).error("\(message, privacy: .public)")
+}
+```
+
+The consequence of marking messages public is a rule about what goes in them: **log messages are developer-authored, never user data.** No search terms, no favorites, no account details. Log a movie id, not a title a user typed.

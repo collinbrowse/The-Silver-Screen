@@ -26,7 +26,7 @@ Do **not** try to finish the backlog. Judgment and craft matter more than comple
 
 ## Pointers (do not duplicate architecture here)
 
-- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the data layer, errors and logging, accessibility, and tests
+- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the legacy UIKit screen, the data layer, image loading, secrets, errors and logging, accessibility, and tests
 - Skills: [`.cursor/skills/implement-story/`](.cursor/skills/implement-story/SKILL.md), [`.cursor/skills/visual-qa/`](.cursor/skills/visual-qa/SKILL.md)
 - Hooks: [`.cursor/hooks.json`](.cursor/hooks.json)
 - PR template: [`.github/pull_request_template.md`](.github/pull_request_template.md)

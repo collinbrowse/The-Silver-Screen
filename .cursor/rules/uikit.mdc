@@ -1,0 +1,61 @@
+---
+description: Rules for the existing UIKit Top Movies screen — observing an @Observable view model, diffable data sources, and cell layout.
+globs: URBNFlicks/Views/**/*.swift
+alwaysApply: false
+---
+
+# The existing UIKit screen
+
+`URBNFlicks/Views/` is the **legacy UIKit surface**: the Top Movies list, its cell, and the movie detail controller. The Top Movies epic is fixed here rather than rewritten, so this rule — not [`swiftui.mdc`](.cursor/rules/swiftui.mdc) — governs these files. New SwiftUI screens go in `URBNFlicks/Features/<Feature>/` and never here.
+
+The layers beneath these files still migrate: an `@Observable @MainActor` view model, a concrete repository, `async`/`await`.
+
+## Observing an @Observable view model from a view controller
+
+This is the one place UIKit and Observation have to meet, and there is exactly one approved way to do it. Consume the view model's state as an async sequence with `Observations` (iOS 26) and drive it from a `Task` tied to the controller's lifetime:
+
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+
+    stateTask = Task { [weak self] in
+        guard let self else { return }
+        for await state in Observations({ self.viewModel.state }) {
+            self.render(state)
+        }
+    }
+
+    Task { await viewModel.load() }
+}
+
+deinit { stateTask?.cancel() }
+```
+
+- `render(_:)` switches over **every** case of `LoadState` and is the only place that touches the table view.
+- Do **not** reintroduce a `moviesUpdatedHandler` closure, a delegate, or any `(([Movie]) -> Void)?` property. A callback out of a view model is the pattern [`concurrency.mdc`](.cursor/rules/concurrency.mdc) bans, and it is what this screen does today.
+- Do not use `withObservationTracking` here. It fires *before* the value is applied and is one-shot, so it has to re-register itself on every change — correct but easy to get wrong, and unnecessary on iOS 26.
+
+## Table view
+
+- `UITableViewDiffableDataSource`, not `reloadData()`. A blanket `reloadData()` on every update kills scroll position, cancels nothing, and re-lays out rows that did not change — it is part of why this screen feels slow.
+- Sorting and filtering apply a new snapshot; the diff animates and rows that did not move are not re-configured.
+- Cells get the `ImageLoader` injected in `configure(with:loader:)` — a cell never builds a URL or reaches the network. See [`images.mdc`](.cursor/rules/images.mdc) for the reuse contract.
+- Register cells with a `static let reuseIdentifier`, never a bare string literal.
+
+## Cell layout
+
+- Pin the content stack to `contentView` on all four edges, and give the **bottom** constraint priority `999`. A required bottom constraint fights the estimated row height during self-sizing, which is where the console constraint warnings come from.
+- Give the poster an explicit aspect ratio constraint rather than relying on the intrinsic size of whatever image arrives: TMDB posters are 2:3.
+
+```swift
+posterView.heightAnchor.constraint(equalTo: posterView.widthAnchor, multiplier: 3.0 / 2.0).isActive = true
+posterView.contentMode = .scaleAspectFill
+posterView.clipsToBounds = true
+```
+
+- Set `setContentHuggingPriority` / `setContentCompressionResistancePriority` deliberately when a stack has to pin some labels to the top and others to the bottom. Do not add magic spacer views.
+- No fixed `heightAnchor` on a label or on the cell. Rows self-size so Dynamic Type works ([`accessibility.mdc`](.cursor/rules/accessibility.mdc)).
+
+## Menus
+
+Use `UIMenu` on the bar button item for sorting, not `UIAlertController`. Setting `UIAction.state = .on` renders the current selection natively and keeps it exposed to VoiceOver — a hardcoded `"Top Ranked ✅"` title does neither.
