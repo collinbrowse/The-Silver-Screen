@@ -23,3 +23,4 @@ No architecture spike. Implement the one requested story (or the next required s
    BASE_SHA=origin/main python3 scripts/validate-tests.py
    ```
 7. **Tick Done.** Only after tests pass **and** the visual check is done: tick the story `Done` box and update the progress table in `Requirements/README.md`. CI fails if you check Done without changing `URBNFlicksTests/`.
+8. **Commit size.** When the user asks to commit or open a PR, keep this story (and any required foundation slice) as its own reviewable commit(s) — not one dump for the whole epic. See [`.cursor/rules/commits.mdc`](.cursor/rules/commits.mdc).

@@ -23,10 +23,11 @@ Do **not** try to finish the backlog. Judgment and craft matter more than comple
 
 - This harness lives in the repo and is part of the workflow.
 - PRs are encouraged. Reviewers look at `main`, so completed work must land there.
+- Commits stay reviewable: one story or logical unit each — see [`.cursor/rules/commits.mdc`](.cursor/rules/commits.mdc).
 
 ## Pointers (do not duplicate architecture here)
 
-- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the legacy UIKit screen, the data layer, image loading, secrets, errors and logging, accessibility, and tests
+- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the legacy UIKit screen, the data layer, image loading, secrets, errors and logging, accessibility, tests, and commits
 - Skills: [`.cursor/skills/implement-story/`](.cursor/skills/implement-story/SKILL.md), [`.cursor/skills/visual-qa/`](.cursor/skills/visual-qa/SKILL.md)
 - Hooks: [`.cursor/hooks.json`](.cursor/hooks.json)
 - Harness gates: [`scripts/validate-rules.py`](scripts/validate-rules.py), [`scripts/validate-tests.py`](scripts/validate-tests.py) (empty tests banned; Done requires test changes)

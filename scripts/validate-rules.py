@@ -25,9 +25,9 @@ import sys
 
 RULES_DIR = ".cursor/rules"
 
-# Files still holding the burned key that secrets.mdc says to rotate. Delete these
-# entries when that lands in the Top Movies epic, and the guard becomes strict.
-SECRET_DEBT_ALLOWLIST = {"URBNFlicks/Networking/Globals.swift"}
+# Files still holding a burned key that secrets.mdc says to rotate. Keep empty
+# once Globals.swift (or equivalent) is gone; the guard then fails any new leak.
+SECRET_DEBT_ALLOWLIST: set[str] = set()
 
 # 32 hex characters: the shape of a TMDB v3 key.
 SECRET_PATTERN = re.compile(r"""["'][0-9a-f]{32}["']""")

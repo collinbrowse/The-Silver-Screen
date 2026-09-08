@@ -1,6 +1,9 @@
 # OS X
 .DS_Store
 
+# Local secrets (copy from Secrets.example.xcconfig)
+Secrets.xcconfig
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
