@@ -37,10 +37,10 @@ final class FakeHTTPClientTests: XCTestCase {
     }
 
     func test_fixture_topMoviesPage1_decodesAsMovieList() throws {
-        let list = try JSONDecoder().decode(MovieList.self, from: TMDBFixtures.topMoviesPage1)
+        let list = try JSONDecoder().decode(MovieListDTO.self, from: TMDBFixtures.topMoviesPage1)
 
         XCTAssertEqual(list.page, 1)
-        XCTAssertEqual(list.total_pages, 2)
+        XCTAssertEqual(list.totalPages, 2)
         XCTAssertEqual(list.results.count, 2)
         XCTAssertEqual(list.results[0].id, 278)
         XCTAssertEqual(list.results[0].title, "The Shawshank Redemption")
@@ -49,11 +49,11 @@ final class FakeHTTPClientTests: XCTestCase {
 
     func test_fixture_emptyReleaseDate_stillDecodes() throws {
         let list = try JSONDecoder().decode(
-            MovieList.self,
+            MovieListDTO.self,
             from: TMDBFixtures.topMoviesWithEmptyReleaseDate
         )
 
         XCTAssertEqual(list.results.count, 1)
-        XCTAssertEqual(list.results[0].release_date, "")
+        XCTAssertEqual(list.results[0].releaseDate, "")
     }
 }
