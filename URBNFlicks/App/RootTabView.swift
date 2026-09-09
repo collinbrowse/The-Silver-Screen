@@ -88,6 +88,7 @@ private struct FavoritesTabRoot: View {
                 imageLoader: imageLoader
             )
             .navigationTitle("Favorites")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
                 AppRouteDestination(
                     route: route,
