@@ -5,9 +5,9 @@
 
 import SwiftUI
 
-/// Star overlaid on the top-trailing corner of a cast/crew profile card.
-struct PersonFavoriteStar: View {
-    let personName: String
+/// Star overlaid on the top-trailing corner of a carousel poster or profile card.
+struct CellFavoriteStar: View {
+    let name: String
     let isFavorite: Bool
     let action: () -> Void
 
@@ -30,10 +30,13 @@ struct PersonFavoriteStar: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             isFavorite
-                ? "Remove \(personName) from Favorites"
-                : "Add \(personName) to Favorites"
+                ? "Remove \(name) from Favorites"
+                : "Add \(name) to Favorites"
         )
         .accessibilityValue(isFavorite ? "Favorited" : "Not favorited")
         .accessibilityAddTraits(.isButton)
     }
 }
+
+/// Cast/crew alias for the shared carousel star overlay.
+typealias PersonFavoriteStar = CellFavoriteStar

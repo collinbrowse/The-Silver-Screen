@@ -97,10 +97,10 @@ struct MovieDetailView: View {
                     crewCarousel(crew, favoritePersonIDs: content.favoritePersonIDs)
                 }
                 if let similar = content.similar {
-                    similarCarousel(similar)
+                    similarCarousel(similar, favoriteMovieIDs: content.favoriteMovieIDs)
                 }
                 if let collection = content.collection {
-                    collectionCarousel(collection)
+                    collectionCarousel(collection, favoriteMovieIDs: content.favoriteMovieIDs)
                 }
                 if let reviews = content.reviews {
                     reviewsSection(reviews)
@@ -190,7 +190,7 @@ struct MovieDetailView: View {
                     .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
                     .overlay(alignment: .topTrailing) {
                         PersonFavoriteStar(
-                            personName: member.name,
+                            name: member.name,
                             isFavorite: favoritePersonIDs.contains(member.personID)
                         ) {
                             Task {
@@ -246,7 +246,7 @@ struct MovieDetailView: View {
                     .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
                     .overlay(alignment: .topTrailing) {
                         PersonFavoriteStar(
-                            personName: person.name,
+                            name: person.name,
                             isFavorite: favoritePersonIDs.contains(person.id)
                         ) {
                             Task {
@@ -284,45 +284,36 @@ struct MovieDetailView: View {
         }
     }
 
-    private func similarCarousel(_ section: MovieDetailContent.SimilarSection) -> some View {
+    private func similarCarousel(
+        _ section: MovieDetailContent.SimilarSection,
+        favoriteMovieIDs: Set<Int>
+    ) -> some View {
         DetailCarousel(title: "More Like This") {
             ForEach(section.items) { item in
-                Button {
-                    router?.push(.movieDetail(id: item.id))
-                } label: {
-                    similarMovieCell(item)
-                }
-                .buttonStyle(.plain)
-                .disabled(router == nil)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(similarAccessibilityLabel(item))
-                .accessibilityAddTraits(router == nil ? [] : .isButton)
+                similarMovieCell(item, favoriteMovieIDs: favoriteMovieIDs)
             }
         }
     }
 
-    private func collectionCarousel(_ section: MovieDetailContent.CollectionSection) -> some View {
+    private func collectionCarousel(
+        _ section: MovieDetailContent.CollectionSection,
+        favoriteMovieIDs: Set<Int>
+    ) -> some View {
         DetailCarousel(title: section.title) {
             ForEach(section.movies) { movie in
-                Button {
-                    router?.push(.movieDetail(id: movie.id))
-                } label: {
-                    moviePosterCell(
-                        posterPath: movie.posterPath,
-                        title: movie.title,
-                        subtitle: nil
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(router == nil)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(movie.title)
-                .accessibilityAddTraits(router == nil ? [] : .isButton)
+                moviePosterCell(
+                    movie: movie,
+                    subtitle: nil,
+                    favoriteMovieIDs: favoriteMovieIDs
+                )
             }
         }
     }
 
-    private func similarMovieCell(_ item: MovieDetailContent.SimilarSection.Item) -> some View {
+    private func similarMovieCell(
+        _ item: MovieDetailContent.SimilarSection.Item,
+        favoriteMovieIDs: Set<Int>
+    ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             RemoteImageView(
                 path: item.movie.posterPath,
@@ -333,37 +324,56 @@ struct MovieDetailView: View {
                 placeholderSystemImage: "film"
             )
             .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
-
-            Text(item.movie.title)
-                .font(DesignTypography.metadata.weight(.semibold))
-                .foregroundStyle(DesignTheme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if !item.genreNames.isEmpty {
-                Text(item.genreNames.joined(separator: ", "))
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            .overlay(alignment: .topTrailing) {
+                CellFavoriteStar(
+                    name: item.movie.title,
+                    isFavorite: favoriteMovieIDs.contains(item.movie.id)
+                ) {
+                    Task { await viewModel.toggleFavorite(movie: item.movie) }
+                }
+                .padding(DesignSpacing.xs)
             }
 
-            if item.formattedReleaseDate != "Not available" {
-                Text(item.formattedReleaseDate)
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textSecondary)
+            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                Text(item.movie.title)
+                    .font(DesignTypography.metadata.weight(.semibold))
+                    .foregroundStyle(DesignTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if !item.genreNames.isEmpty {
+                    Text(item.genreNames.joined(separator: ", "))
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if item.formattedReleaseDate != "Not available" {
+                    Text(item.formattedReleaseDate)
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(similarAccessibilityLabel(item))
+            .accessibilityAddTraits(router == nil ? [] : .isButton)
         }
         .frame(width: portraitCardWidth, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            router?.push(.movieDetail(id: item.id))
+        }
+        .accessibilityElement(children: .contain)
     }
 
     private func moviePosterCell(
-        posterPath: String?,
-        title: String,
-        subtitle: String?
+        movie: Movie,
+        subtitle: String?,
+        favoriteMovieIDs: Set<Int>
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             RemoteImageView(
-                path: posterPath,
+                path: movie.posterPath,
                 kind: .poster,
                 width: portraitCardWidth,
                 aspectRatio: 2 / 3,
@@ -371,19 +381,38 @@ struct MovieDetailView: View {
                 placeholderSystemImage: "film"
             )
             .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
-
-            Text(title)
-                .font(DesignTypography.metadata.weight(.semibold))
-                .foregroundStyle(DesignTheme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            .overlay(alignment: .topTrailing) {
+                CellFavoriteStar(
+                    name: movie.title,
+                    isFavorite: favoriteMovieIDs.contains(movie.id)
+                ) {
+                    Task { await viewModel.toggleFavorite(movie: movie) }
+                }
+                .padding(DesignSpacing.xs)
             }
+
+            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                Text(movie.title)
+                    .font(DesignTypography.metadata.weight(.semibold))
+                    .foregroundStyle(DesignTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(movie.title)
+            .accessibilityAddTraits(router == nil ? [] : .isButton)
         }
         .frame(width: portraitCardWidth, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            router?.push(.movieDetail(id: movie.id))
+        }
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Reviews

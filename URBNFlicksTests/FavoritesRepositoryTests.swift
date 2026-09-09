@@ -206,4 +206,20 @@ final class FavoritesRepositoryTests: XCTestCase {
         let personIDs = try await repository.favoritePersonIDs()
         XCTAssertEqual(personIDs, [10, 20])
     }
+
+    func test_favoriteMovieIDs_returnsOnlyMovieRecords() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 10, name: "A", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-01-02")
+        )
+
+        let movieIDs = try await repository.favoriteMovieIDs()
+        XCTAssertEqual(movieIDs, [1])
+    }
 }

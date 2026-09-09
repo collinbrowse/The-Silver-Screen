@@ -39,6 +39,12 @@ actor FavoritesRepository {
         return Set(records.filter { $0.kind == .person }.map(\.id))
     }
 
+    /// Movie ids currently saved as favorites; used to paint similar/collection stars.
+    func favoriteMovieIDs() async throws -> Set<Int> {
+        let records = try await loadCache()
+        return Set(records.filter { $0.kind == .movie }.map(\.id))
+    }
+
     /// Returns whether the movie is favorited after the toggle.
     @discardableResult
     func toggle(movie: Movie, favoritedAt: Date = Date()) async throws -> Bool {
