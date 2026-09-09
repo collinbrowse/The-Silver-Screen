@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// Star overlaid on the top-trailing corner of a carousel poster or profile card.
+/// Star control for carousel overlays, list posters, and the movie-detail navigation bar.
 struct CellFavoriteStar: View {
     let name: String
     let isFavorite: Bool

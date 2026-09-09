@@ -18,7 +18,7 @@ final class MovieDetailHostingController: UIViewController {
     private let router: NavigationRouter
     private var hostingController: UIHostingController<MovieDetailView>!
     private var observationTask: Task<Void, Never>?
-    private var starHost: UIHostingController<FavoriteStarButton>?
+    private var starHost: UIHostingController<CellFavoriteStar>?
     private var lightboxHost: UIHostingController<FullscreenImageViewer>?
     private var presentedLightboxID: String?
 
@@ -87,7 +87,10 @@ final class MovieDetailHostingController: UIViewController {
             return
         }
 
-        let root = FavoriteStarButton(isFavorite: content.isFavorite) { [weak self] in
+        let root = CellFavoriteStar(
+            name: content.detail.title,
+            isFavorite: content.isFavorite
+        ) { [weak self] in
             Task { await self?.viewModel.toggleFavorite() }
         }
 

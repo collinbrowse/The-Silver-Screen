@@ -58,7 +58,10 @@ struct MovieDetailView: View {
         .toolbar {
             if showsToolbarFavorite, case .loaded(let content, _) = viewModel.state {
                 ToolbarItem(placement: .topBarTrailing) {
-                    FavoriteStarButton(isFavorite: content.isFavorite) {
+                    CellFavoriteStar(
+                        name: content.detail.title,
+                        isFavorite: content.isFavorite
+                    ) {
                         Task { await viewModel.toggleFavorite() }
                     }
                 }

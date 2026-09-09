@@ -123,6 +123,8 @@ final class MovieListViewController: UIViewController {
 
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = Self.estimatedRowHeight
+        // System separators are full-bleed; cells draw Favorites-style hairlines instead.
+        tableView.separatorStyle = .none
         tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: MovieTableViewCell.reuseIdentifier)
         tableView.delegate = self
         tableView.prefetchDataSource = self
