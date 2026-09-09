@@ -5,16 +5,53 @@
 
 import Foundation
 
+/// Which favorite kinds the list shows. No TV case: TV favorites cannot be created (stories 4-5 are open).
+enum FavoritesFilter: String, CaseIterable, Sendable, Equatable {
+    case all
+    case movies
+    case people
+
+    var title: String {
+        switch self {
+        case .all: return "All"
+        case .movies: return "Movies"
+        case .people: return "People"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class FavoritesListViewModel {
     private(set) var state: LoadState<[FavoriteRecord]> = .idle
     private(set) var toggleError: AppError?
 
+    /// Active kind filter; preserved across reloads because this VM is long-lived.
+    var filter: FavoritesFilter = .all
+    /// In-memory title/name query; applied after `filter`.
+    var searchText: String = ""
+
     private let favorites: FavoritesRepository
 
     init(favorites: FavoritesRepository) {
         self.favorites = favorites
+    }
+
+    /// Records visible under the current filter and search. Derived from `state`.
+    var displayedFavorites: [FavoriteRecord] {
+        guard case .loaded(let records, _) = state else { return [] }
+        let filtered: [FavoriteRecord]
+        switch filter {
+        case .all:
+            filtered = records
+        case .movies:
+            filtered = records.filter { $0.kind == .movie }
+        case .people:
+            filtered = records.filter { $0.kind == .person }
+        }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return filtered }
+        return filtered.filter { $0.title.localizedStandardContains(query) }
     }
 
     func load() async {
@@ -56,11 +93,12 @@ final class FavoritesListViewModel {
         }
     }
 
+    /// Deletes rows by index into `displayedFavorites` (not the unfiltered `state` array).
     func removeFavorites(at offsets: IndexSet) async {
-        guard case .loaded(let current, _) = state else { return }
+        let displayed = displayedFavorites
         let toRemove = offsets.compactMap { index -> FavoriteRecord? in
-            guard current.indices.contains(index) else { return nil }
-            return current[index]
+            guard displayed.indices.contains(index) else { return nil }
+            return displayed[index]
         }
         for record in toRemove {
             await toggleFavorite(record)

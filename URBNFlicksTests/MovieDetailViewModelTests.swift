@@ -225,8 +225,116 @@ final class MovieDetailViewModelTests: XCTestCase {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
         XCTAssertTrue(content.isFavorite)
-        let isFavorite = try await favorites.isFavorite(id: 278)
+        let isFavorite = try await favorites.isFavorite(id: 278, kind: .movie)
         XCTAssertTrue(isFavorite)
+        XCTAssertTrue(content.favoritePersonIDs.isEmpty)
+        XCTAssertEqual(content.favoriteMovieIDs, [278])
+    }
+
+    func test_toggleFavorite_carouselMovie_updatesMovieIDsWithoutChangingDetailFavorite() async throws {
+        let store = InMemoryFavoritesStore()
+        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
+            ),
+            favorites: favorites
+        )
+        await viewModel.load()
+
+        let similar = TestMovies.make(id: 311, title: "Similar", genreIDs: [18])
+        await viewModel.toggleFavorite(movie: similar)
+
+        guard case .loaded(let content, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertFalse(content.isFavorite)
+        XCTAssertEqual(content.favoriteMovieIDs, [311])
+        let similarFavorite = try await favorites.isFavorite(id: 311, kind: .movie)
+        XCTAssertTrue(similarFavorite)
+        let detailFavorite = try await favorites.isFavorite(id: 278, kind: .movie)
+        XCTAssertFalse(detailFavorite)
+    }
+
+    func test_toggleFavoritePerson_updatesPersonIDsWithoutChangingMovieFavorite() async throws {
+        let store = InMemoryFavoritesStore()
+        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
+            ),
+            favorites: favorites
+        )
+        await viewModel.load()
+
+        await viewModel.toggleFavorite(
+            person: FavoritePerson(
+                id: 504,
+                name: "Tim Robbins",
+                profilePath: "/tim.jpg",
+                knownForDepartment: "Acting"
+            )
+        )
+
+        guard case .loaded(let content, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertFalse(content.isFavorite)
+        XCTAssertEqual(content.favoritePersonIDs, [504])
+        let isPersonFavorite = try await favorites.isFavorite(id: 504, kind: .person)
+        XCTAssertTrue(isPersonFavorite)
+
+        await viewModel.toggleFavorite(
+            person: FavoritePerson(
+                id: 504,
+                name: "Tim Robbins",
+                profilePath: "/tim.jpg",
+                knownForDepartment: "Acting"
+            )
+        )
+
+        guard case .loaded(let after, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded after unfavorite, got \(viewModel.state)")
+        }
+        XCTAssertFalse(after.isFavorite)
+        XCTAssertTrue(after.favoritePersonIDs.isEmpty)
+    }
+
+    func test_toggleFavorite_movie_leavesFavoritePersonIDsUntouched() async throws {
+        let store = InMemoryFavoritesStore()
+        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await favorites.toggle(
+            person: FavoritePerson(
+                id: 504,
+                name: "Tim Robbins",
+                profilePath: "/tim.jpg",
+                knownForDepartment: "Acting"
+            ),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
+            ),
+            favorites: favorites
+        )
+        await viewModel.load()
+
+        guard case .loaded(let before, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(before.favoritePersonIDs, [504])
+
+        await viewModel.toggleFavorite()
+
+        guard case .loaded(let after, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertTrue(after.isFavorite)
+        XCTAssertEqual(after.favoritePersonIDs, [504])
     }
 
     func test_toggleFavorite_whenPersistenceFails_keepsContentWithFailedActivity() async {

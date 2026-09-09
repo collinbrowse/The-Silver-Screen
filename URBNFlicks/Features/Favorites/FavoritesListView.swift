@@ -7,7 +7,7 @@ import SwiftUI
 import UIKit
 
 struct FavoritesListView: View {
-    @State var viewModel: FavoritesListViewModel
+    @Bindable var viewModel: FavoritesListViewModel
     let imageLoader: ImageLoader
 
     var body: some View {
@@ -19,49 +19,121 @@ struct FavoritesListView: View {
             case .empty:
                 EmptyStateView(
                     title: "No Favorites Yet",
-                    message: "Tap Favorite on a movie to save it here.",
+                    message: "Favorite a movie or person to save it here.",
                     systemImage: "heart"
                 )
-            case .loaded(let favoritesList, let activity):
-                List {
-                    ForEach(favoritesList) { favorite in
-                        NavigationLink(value: Route.movieDetail(id: favorite.id)) {
-                            FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
-                        }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                Task { await viewModel.toggleFavorite(favorite) }
-                            } label: {
-                                Label("Remove", systemImage: "trash")
-                            }
-                            .accessibilityLabel("Remove Favorite")
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await viewModel.removeFavorites(at: offsets) }
-                    }
-                }
-                .listStyle(.plain)
-                .overlay(alignment: .top) {
-                    if case .failed(let error) = activity {
-                        Text("\(error.title): \(error.message)")
-                            .font(.footnote)
-                            .foregroundStyle(.white)
-                            .padding(8)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.red)
-                            .accessibilityLabel("\(error.title). \(error.message)")
-                    }
-                }
+            case .loaded(_, let activity):
+                loadedBody(activity: activity)
             case .failed(let error):
                 ErrorStateView(error: error) {
                     await viewModel.retry()
                 }
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "Search Favorites")
         .onAppear {
             Task { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private func loadedBody(activity: LoadActivity) -> some View {
+        let displayed = viewModel.displayedFavorites
+        VStack(spacing: 0) {
+            filterPicker
+            if displayed.isEmpty {
+                EmptyStateView(
+                    title: noMatchesTitle,
+                    message: noMatchesMessage,
+                    systemImage: "line.3.horizontal.decrease.circle"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(displayed, id: \.listID) { favorite in
+                        favoriteRow(favorite)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await viewModel.toggleFavorite(favorite) }
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                                .accessibilityLabel("Remove Favorite")
+                            }
+                    }
+                    .onDelete { offsets in
+                        Task { await viewModel.removeFavorites(at: offsets) }
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .overlay(alignment: .top) {
+            if case .failed(let error) = activity {
+                Text("\(error.title): \(error.message)")
+                    .font(.footnote)
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red)
+                    .accessibilityLabel("\(error.title). \(error.message)")
+            }
+        }
+    }
+
+    private var filterPicker: some View {
+        Picker("Filter favorites", selection: $viewModel.filter) {
+            ForEach(FavoritesFilter.allCases, id: \.self) { option in
+                Text(option.title).tag(option)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .accessibilityLabel("Filter favorites")
+    }
+
+    private var noMatchesTitle: String {
+        let query = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            return "No Matches"
+        }
+        switch viewModel.filter {
+        case .all: return "No Matches"
+        case .movies: return "No Movie Favorites"
+        case .people: return "No People Favorites"
+        }
+    }
+
+    private var noMatchesMessage: String {
+        let query = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            switch viewModel.filter {
+            case .all:
+                return "Nothing matches \"\(query)\"."
+            case .movies:
+                return "No movies match \"\(query)\"."
+            case .people:
+                return "No people match \"\(query)\"."
+            }
+        }
+        switch viewModel.filter {
+        case .all: return "Nothing matches the current filter."
+        case .movies: return "Favorite a movie to see it here."
+        case .people: return "Favorite a person from a cast or crew card to see them here."
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteRow(_ favorite: FavoriteRecord) -> some View {
+        switch favorite.kind {
+        case .movie:
+            NavigationLink(value: Route.movieDetail(id: favorite.id)) {
+                FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
+            }
+        case .person:
+            FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
         }
     }
 }
@@ -95,7 +167,7 @@ private struct FavoriteMovieRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
-        .task(id: favorite.id) {
+        .task(id: favorite.listID) {
             await loadPoster()
         }
     }
@@ -111,7 +183,7 @@ private struct FavoriteMovieRow: View {
             }
         }
         .frame(width: posterSize.width, height: posterSize.height)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
         .accessibilityHidden(true)
     }
 
@@ -134,13 +206,13 @@ private struct FavoriteMovieRow: View {
               ) else {
             return
         }
-        let expectedID = favorite.id
+        let expectedID = favorite.listID
         let image = try? await imageLoader.image(
             for: url,
             targetSize: posterSize,
             scale: displayScale
         )
-        guard expectedID == favorite.id else { return }
+        guard expectedID == favorite.listID else { return }
         poster = image
     }
 
@@ -156,5 +228,53 @@ private struct FavoriteMovieRow: View {
     static func releaseDateText(for date: Date?) -> String {
         guard let date else { return "Release date unavailable" }
         return dateFormatter.string(from: date)
+    }
+}
+
+/// Favorites row for a bookmarked person; not navigable (no person destination yet).
+private struct FavoritePersonRow: View {
+    let favorite: FavoriteRecord
+    let imageLoader: ImageLoader
+
+    private let profileWidth: CGFloat = 70
+    private let profileAspect: CGFloat = 2 / 3
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            RemoteImageView(
+                path: favorite.posterPath,
+                kind: .profile,
+                width: profileWidth,
+                aspectRatio: profileAspect,
+                imageLoader: imageLoader,
+                placeholderSystemImage: "person.fill"
+            )
+            .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(favorite.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if !favorite.genreNames.isEmpty {
+                    Text(favorite.genreNames.joined(separator: ", "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Person")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [favorite.title]
+        if !favorite.genreNames.isEmpty {
+            parts.append(favorite.genreNames.joined(separator: ", "))
+        }
+        parts.append("Person")
+        return parts.joined(separator: ", ")
     }
 }

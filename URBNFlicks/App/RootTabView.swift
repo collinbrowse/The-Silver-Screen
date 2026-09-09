@@ -76,7 +76,7 @@ struct RootTabView: View {
 
 private struct FavoritesTabRoot: View {
     @Bindable var router: NavigationRouter
-    @State var viewModel: FavoritesListViewModel
+    @Bindable var viewModel: FavoritesListViewModel
     let imageLoader: ImageLoader
     let favorites: FavoritesRepository
     let movies: MovieRepository

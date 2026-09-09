@@ -58,9 +58,11 @@ final class MovieTableViewCellTests: XCTestCase {
         XCTAssertEqual(cell.posterView.bounds.height, 176, accuracy: 0.5)
         XCTAssertEqual(cell.posterView.contentMode, .scaleAspectFill)
         XCTAssertTrue(cell.posterView.clipsToBounds)
+        XCTAssertEqual(cell.posterView.layer.cornerRadius, DesignRadius.poster, accuracy: 0.5)
+        XCTAssertEqual(cell.posterView.layer.cornerCurve, .continuous)
     }
 
-    func test_layout_titleAndRatingPinNearTop_pillUnderRating_yearPinsToBottom() {
+    func test_layout_titleAndRatingPinNearTop_yearPinsToBottom() {
         let cell = laidOutCell(
             title: "This is a very long movie title that should wrap across multiple lines In 3D"
         )
@@ -72,14 +74,9 @@ final class MovieTableViewCellTests: XCTestCase {
             cell.titleLabel.frame.maxY + 6,
             accuracy: 0.5
         )
-        XCTAssertEqual(
-            cell.favoritePill.frame.minY,
-            cell.ratingLabel.frame.maxY + 6,
-            accuracy: 1.0
-        )
         XCTAssertEqual(cell.releaseYearLabel.frame.maxY, cell.posterView.frame.maxY, accuracy: 0.5)
         XCTAssertGreaterThanOrEqual(
-            cell.releaseYearLabel.frame.minY - cell.favoritePill.frame.maxY,
+            cell.releaseYearLabel.frame.minY - cell.ratingLabel.frame.maxY,
             6 - 1.0
         )
         XCTAssertGreaterThan(cell.titleLabel.frame.height, 20)
@@ -87,15 +84,27 @@ final class MovieTableViewCellTests: XCTestCase {
         XCTAssertEqual(cell.posterView.frame.minY, padding, accuracy: 0.5)
     }
 
-    func test_layout_favoritePillSitsUnderRating() {
+    func test_layout_favoriteStarOverlaysPosterTopTrailing() {
         let cell = laidOutCell(title: "Short Movie Title", isFavorite: true)
-        XCTAssertGreaterThan(cell.favoritePill.bounds.height, 0)
+        XCTAssertEqual(cell.favoriteStar.frame.width, 44, accuracy: 0.5)
+        XCTAssertEqual(cell.favoriteStar.frame.height, 44, accuracy: 0.5)
         XCTAssertEqual(
-            cell.favoritePill.frame.minY,
-            cell.ratingLabel.frame.maxY + 6,
-            accuracy: 1.5
+            cell.favoriteStar.frame.minY,
+            cell.posterView.frame.minY + 4,
+            accuracy: 1.0
         )
-        XCTAssertEqual(cell.favoritePill.frame.minX, cell.ratingLabel.frame.minX, accuracy: 1.0)
+        XCTAssertEqual(
+            cell.favoriteStar.frame.maxX,
+            cell.posterView.frame.maxX - 4,
+            accuracy: 1.0
+        )
+    }
+
+    func testSeparatorAlignsWithTitleColumn() {
+        let cell = laidOutCell(title: "Alien")
+        XCTAssertEqual(cell.rowSeparator.frame.minX, cell.titleLabel.frame.minX, accuracy: 1.0)
+        XCTAssertEqual(cell.rowSeparator.frame.maxX, cell.contentView.bounds.width, accuracy: 1.0)
+        XCTAssertEqual(cell.rowSeparator.backgroundColor, UIColor.separator)
     }
 
     // MARK: - Helpers

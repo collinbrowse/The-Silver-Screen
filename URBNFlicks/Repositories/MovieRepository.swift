@@ -242,6 +242,8 @@ final class MovieRepository: Sendable {
                 skipped += 1
                 continue
             }
+            let knownFor = item.knownForDepartment?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             cast.append(
                 CastMember(
                     id: creditID,
@@ -249,7 +251,8 @@ final class MovieRepository: Sendable {
                     name: name,
                     character: item.character?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
                     profilePath: item.profilePath,
-                    order: item.order ?? Int.max
+                    order: item.order ?? Int.max,
+                    knownForDepartment: (knownFor?.isEmpty == false) ? knownFor : nil
                 )
             )
         }
@@ -275,6 +278,8 @@ final class MovieRepository: Sendable {
                 skipped += 1
                 continue
             }
+            let knownFor = item.knownForDepartment?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             crew.append(
                 CrewMember(
                     id: creditID,
@@ -282,7 +287,8 @@ final class MovieRepository: Sendable {
                     name: name,
                     job: job,
                     department: department,
-                    profilePath: item.profilePath
+                    profilePath: item.profilePath,
+                    knownForDepartment: (knownFor?.isEmpty == false) ? knownFor : nil
                 )
             )
         }
@@ -304,7 +310,8 @@ final class MovieRepository: Sendable {
                         id: existing.id,
                         name: existing.name,
                         roles: existing.roles + [role],
-                        profilePath: existing.profilePath ?? member.profilePath
+                        profilePath: existing.profilePath ?? member.profilePath,
+                        knownForDepartment: existing.knownForDepartment ?? member.knownForDepartment
                     )
                     byPerson[member.personID] = existing
                 }
@@ -313,7 +320,8 @@ final class MovieRepository: Sendable {
                     id: member.personID,
                     name: member.name,
                     roles: [role],
-                    profilePath: member.profilePath
+                    profilePath: member.profilePath,
+                    knownForDepartment: member.knownForDepartment
                 )
                 order.append(member.personID)
             }

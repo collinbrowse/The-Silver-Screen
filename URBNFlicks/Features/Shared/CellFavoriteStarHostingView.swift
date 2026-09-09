@@ -1,14 +1,14 @@
 //
-//  FavoritePillHostingView.swift
+//  CellFavoriteStarHostingView.swift
 //  URBNFlicks
 //
 
 import SwiftUI
 import UIKit
 
-/// Embeds `FavoritePillButton` in UIKit cells without owning a view controller lifecycle.
-final class FavoritePillHostingView: UIView {
-    private var hostingController: UIHostingController<FavoritePillButton>?
+/// Embeds `CellFavoriteStar` in UIKit cells without owning a view controller lifecycle.
+final class CellFavoriteStarHostingView: UIView {
+    private var hostingController: UIHostingController<CellFavoriteStar>?
     private var onToggle: (() -> Void)?
 
     override init(frame: CGRect) {
@@ -26,9 +26,9 @@ final class FavoritePillHostingView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(isFavorite: Bool, onToggle: @escaping () -> Void) {
+    func configure(name: String, isFavorite: Bool, onToggle: @escaping () -> Void) {
         self.onToggle = onToggle
-        let root = FavoritePillButton(isFavorite: isFavorite) { [weak self] in
+        let root = CellFavoriteStar(name: name, isFavorite: isFavorite) { [weak self] in
             self?.onToggle?()
         }
 
@@ -58,18 +58,6 @@ final class FavoritePillHostingView: UIView {
     }
 
     override var intrinsicContentSize: CGSize {
-        guard let hostingController else {
-            return CGSize(width: 110, height: 36)
-        }
-        let size = hostingController.sizeThatFits(in: CGSize(
-            width: UIView.layoutFittingExpandedSize.width,
-            height: UIView.layoutFittingExpandedSize.height
-        ))
-        return CGSize(width: ceil(size.width), height: max(ceil(size.height), 36))
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        invalidateIntrinsicContentSize()
+        CGSize(width: 44, height: 44)
     }
 }

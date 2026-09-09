@@ -32,6 +32,7 @@ struct CastMemberDTO: Decodable, Sendable {
     let character: String?
     let profilePath: String?
     let order: Int?
+    let knownForDepartment: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -40,6 +41,7 @@ struct CastMemberDTO: Decodable, Sendable {
         case character
         case profilePath = "profile_path"
         case order
+        case knownForDepartment = "known_for_department"
     }
 }
 
@@ -50,6 +52,7 @@ struct CrewMemberDTO: Decodable, Sendable {
     let job: String?
     let department: String?
     let profilePath: String?
+    let knownForDepartment: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -58,6 +61,7 @@ struct CrewMemberDTO: Decodable, Sendable {
         case job
         case department
         case profilePath = "profile_path"
+        case knownForDepartment = "known_for_department"
     }
 }
 

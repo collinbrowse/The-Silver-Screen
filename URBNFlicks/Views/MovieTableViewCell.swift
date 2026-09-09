@@ -17,12 +17,15 @@ final class MovieTableViewCell: UITableViewCell {
     let titleLabel = UILabel()
     let releaseYearLabel = UILabel()
     let ratingLabel = UILabel()
-    let favoritePill = FavoritePillHostingView()
+    /// Same star overlay used on detail carousel posters.
+    let favoriteStar = CellFavoriteStarHostingView()
+    /// Favorites-style hairline; system table separators are disabled on this list.
+    let rowSeparator = UIView()
 
     private let padding: CGFloat = 8
     private let titleToRatingSpacing: CGFloat = 6
-    private let ratingToPillSpacing: CGFloat = 6
-    private let minPillToYearSpacing: CGFloat = 6
+    private let starInset: CGFloat = 4
+    private let separatorHeight: CGFloat = 1.0 / 3.0
 
     private var imageTask: Task<Void, Never>?
     private var movieID: Movie.ID?
@@ -66,7 +69,11 @@ final class MovieTableViewCell: UITableViewCell {
         titleLabel.text = movie.title
         ratingLabel.text = Self.ratingText(for: movie.voteAverage)
         releaseYearLabel.text = Self.releaseYearText(for: movie.releaseDate)
-        favoritePill.configure(isFavorite: isFavorite, onToggle: onFavoriteToggle)
+        favoriteStar.configure(
+            name: movie.title,
+            isFavorite: isFavorite,
+            onToggle: onFavoriteToggle
+        )
         posterView.image = Self.placeholderImage
 
         imageTask?.cancel()
@@ -121,6 +128,8 @@ final class MovieTableViewCell: UITableViewCell {
         posterView.translatesAutoresizingMaskIntoConstraints = false
         posterView.contentMode = .scaleAspectFill
         posterView.clipsToBounds = true
+        posterView.layer.cornerRadius = DesignRadius.poster
+        posterView.layer.cornerCurve = .continuous
         posterView.image = Self.placeholderImage
         posterView.setContentHuggingPriority(.required, for: .horizontal)
         posterView.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -144,12 +153,8 @@ final class MovieTableViewCell: UITableViewCell {
         ratingLabel.setContentHuggingPriority(.required, for: .vertical)
         ratingLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
-        favoritePill.translatesAutoresizingMaskIntoConstraints = false
-        favoritePill.clipsToBounds = false
-        favoritePill.setContentHuggingPriority(.required, for: .vertical)
-        favoritePill.setContentHuggingPriority(.required, for: .horizontal)
-        favoritePill.setContentCompressionResistancePriority(.required, for: .vertical)
-        favoritePill.setContentCompressionResistancePriority(.required, for: .horizontal)
+        favoriteStar.translatesAutoresizingMaskIntoConstraints = false
+        favoriteStar.clipsToBounds = false
 
         releaseYearLabel.translatesAutoresizingMaskIntoConstraints = false
         releaseYearLabel.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(
@@ -160,11 +165,16 @@ final class MovieTableViewCell: UITableViewCell {
         releaseYearLabel.setContentHuggingPriority(.required, for: .vertical)
         releaseYearLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
+        rowSeparator.translatesAutoresizingMaskIntoConstraints = false
+        rowSeparator.backgroundColor = .separator
+        rowSeparator.isAccessibilityElement = false
+
         contentView.addSubview(posterView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(ratingLabel)
-        contentView.addSubview(favoritePill)
         contentView.addSubview(releaseYearLabel)
+        contentView.addSubview(favoriteStar)
+        contentView.addSubview(rowSeparator)
 
         let bottomConstraint = posterView.bottomAnchor.constraint(
             equalTo: contentView.bottomAnchor,
@@ -187,22 +197,29 @@ final class MovieTableViewCell: UITableViewCell {
             ratingLabel.trailingAnchor.constraint(lessThanOrEqualTo: titleLabel.trailingAnchor),
             ratingLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: titleToRatingSpacing),
 
-            favoritePill.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            favoritePill.trailingAnchor.constraint(lessThanOrEqualTo: titleLabel.trailingAnchor),
-            favoritePill.topAnchor.constraint(equalTo: ratingLabel.bottomAnchor, constant: ratingToPillSpacing),
-            favoritePill.heightAnchor.constraint(greaterThanOrEqualToConstant: 36),
-
             releaseYearLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             releaseYearLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             releaseYearLabel.bottomAnchor.constraint(equalTo: posterView.bottomAnchor),
             releaseYearLabel.topAnchor.constraint(
-                greaterThanOrEqualTo: favoritePill.bottomAnchor,
-                constant: minPillToYearSpacing
+                greaterThanOrEqualTo: ratingLabel.bottomAnchor,
+                constant: titleToRatingSpacing
             ),
+
+            // Match detail carousel: star overlays the poster’s top-trailing corner.
+            favoriteStar.topAnchor.constraint(equalTo: posterView.topAnchor, constant: starInset),
+            favoriteStar.trailingAnchor.constraint(equalTo: posterView.trailingAnchor, constant: -starInset),
+            favoriteStar.widthAnchor.constraint(equalToConstant: 44),
+            favoriteStar.heightAnchor.constraint(equalToConstant: 44),
+
+            // Align with Favorites plain-list separators: text column to trailing edge.
+            rowSeparator.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            rowSeparator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            rowSeparator.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            rowSeparator.heightAnchor.constraint(equalToConstant: separatorHeight),
         ])
 
-        // Movie content is one element; the pill is a separate control.
-        accessibilityElements = [titleLabel, ratingLabel, releaseYearLabel, favoritePill]
+        // Movie content is one element; the star is a separate control.
+        accessibilityElements = [titleLabel, ratingLabel, releaseYearLabel, favoriteStar]
     }
 
     override var accessibilityLabel: String? {
