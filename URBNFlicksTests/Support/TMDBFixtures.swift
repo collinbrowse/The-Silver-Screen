@@ -53,6 +53,35 @@ enum TMDBFixtures {
         """.utf8
     )
 
+    /// Second discover page; used with `topMoviesPage1` for paging tests.
+    static let topMoviesPage2 = Data(
+        """
+        {
+          "page": 2,
+          "results": [
+            {
+              "adult": false,
+              "backdrop_path": null,
+              "genre_ids": [18],
+              "id": 240,
+              "original_language": "en",
+              "original_title": "The Godfather Part II",
+              "overview": "The early life and career of Vito Corleone.",
+              "popularity": 85.0,
+              "poster_path": "/godfather2.jpg",
+              "release_date": "1974-12-20",
+              "title": "The Godfather Part II",
+              "video": false,
+              "vote_average": 8.6,
+              "vote_count": 12000
+            }
+          ],
+          "total_pages": 2,
+          "total_results": 3
+        }
+        """.utf8
+    )
+
     /// Same shape, but one result has an empty release_date (TMDB does this).
     static let topMoviesWithEmptyReleaseDate = Data(
         """
