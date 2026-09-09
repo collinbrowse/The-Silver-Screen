@@ -79,7 +79,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
         XCTAssertEqual(favorites.map(\.id), [1])
-        let stillFavorite = try await repository.isFavorite(id: 2)
+        let stillFavorite = try await repository.isFavorite(id: 2, kind: .movie)
         XCTAssertFalse(stillFavorite)
     }
 

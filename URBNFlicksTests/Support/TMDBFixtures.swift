@@ -144,7 +144,8 @@ enum TMDBFixtures {
                 "name": "Tim Robbins",
                 "character": "Andy Dufresne",
                 "profile_path": "/tim.jpg",
-                "order": 0
+                "order": 0,
+                "known_for_department": "Acting"
               },
               {
                 "id": 192,
@@ -152,7 +153,8 @@ enum TMDBFixtures {
                 "name": "Morgan Freeman",
                 "character": "Ellis Boyd Redding",
                 "profile_path": "/morgan.jpg",
-                "order": 1
+                "order": 1,
+                "known_for_department": "Acting"
               }
             ],
             "crew": [
@@ -162,7 +164,8 @@ enum TMDBFixtures {
                 "name": "Frank Darabont",
                 "job": "Director",
                 "department": "Directing",
-                "profile_path": "/frank.jpg"
+                "profile_path": "/frank.jpg",
+                "known_for_department": "Directing"
               },
               {
                 "id": 4027,

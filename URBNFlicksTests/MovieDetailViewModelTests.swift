@@ -225,7 +225,7 @@ final class MovieDetailViewModelTests: XCTestCase {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
         XCTAssertTrue(content.isFavorite)
-        let isFavorite = try await favorites.isFavorite(id: 278)
+        let isFavorite = try await favorites.isFavorite(id: 278, kind: .movie)
         XCTAssertTrue(isFavorite)
     }
 

@@ -106,7 +106,7 @@ final class MovieDetailViewModel {
 
         do {
             let detail = try await movies.movieDetail(id: movieID)
-            let isFavorite = (try? await favorites.isFavorite(id: movieID)) ?? false
+            let isFavorite = (try? await favorites.isFavorite(id: movieID, kind: .movie)) ?? false
             async let collectionSection = Self.loadCollectionSection(
                 movieID: movieID,
                 detail: detail,

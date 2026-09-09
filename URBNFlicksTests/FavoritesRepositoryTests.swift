@@ -23,7 +23,7 @@ final class FavoritesRepositoryTests: XCTestCase {
         let isFavorite = try await repository.toggle(movie: movie, favoritedAt: favoritedAt)
 
         XCTAssertTrue(isFavorite)
-        let favorited = try await repository.isFavorite(id: 278)
+        let favorited = try await repository.isFavorite(id: 278, kind: .movie)
         XCTAssertTrue(favorited)
         let favorites = try await repository.favorites()
         XCTAssertEqual(favorites.count, 1)
@@ -45,7 +45,7 @@ final class FavoritesRepositoryTests: XCTestCase {
         let isFavorite = try await repository.toggle(movie: movie, favoritedAt: TestMovies.date("2024-01-02"))
 
         XCTAssertFalse(isFavorite)
-        let favorited = try await repository.isFavorite(id: 1)
+        let favorited = try await repository.isFavorite(id: 1, kind: .movie)
         XCTAssertFalse(favorited)
         let favorites = try await repository.favorites()
         XCTAssertTrue(favorites.isEmpty)
@@ -117,5 +117,93 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(movie.posterPath, "/poster.jpg")
         XCTAssertEqual(movie.releaseDate, TestMovies.date("1994-09-23"))
         XCTAssertEqual(movie.genreIDs, [18, 80])
+    }
+
+    func test_togglePerson_addsFavoriteWithKnownForDepartment() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let person = FavoritePerson(
+            id: 504,
+            name: "Tim Robbins",
+            profilePath: "/tim.jpg",
+            knownForDepartment: "Acting"
+        )
+        let favoritedAt = TestMovies.date("2024-07-01")
+
+        let isFavorite = try await repository.toggle(person: person, favoritedAt: favoritedAt)
+
+        XCTAssertTrue(isFavorite)
+        let isPersonFavorite = try await repository.isFavorite(id: 504, kind: .person)
+        let isMovieFavorite = try await repository.isFavorite(id: 504, kind: .movie)
+        XCTAssertTrue(isPersonFavorite)
+        XCTAssertFalse(isMovieFavorite)
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, 1)
+        XCTAssertEqual(favorites[0].kind, .person)
+        XCTAssertEqual(favorites[0].title, "Tim Robbins")
+        XCTAssertEqual(favorites[0].posterPath, "/tim.jpg")
+        XCTAssertNil(favorites[0].releaseDate)
+        XCTAssertEqual(favorites[0].genreNames, ["Acting"])
+        XCTAssertEqual(favorites[0].listID, "person-504")
+    }
+
+    func test_togglePerson_removesExistingFavorite() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let person = FavoritePerson(id: 1, name: "One", profilePath: nil, knownForDepartment: nil)
+
+        _ = try await repository.toggle(person: person, favoritedAt: TestMovies.date("2024-01-01"))
+        let isFavorite = try await repository.toggle(person: person, favoritedAt: TestMovies.date("2024-01-02"))
+
+        XCTAssertFalse(isFavorite)
+        let stillFavorited = try await repository.isFavorite(id: 1, kind: .person)
+        XCTAssertFalse(stillFavorited)
+        let favorites = try await repository.favorites()
+        XCTAssertTrue(favorites.isEmpty)
+    }
+
+    func test_movieAndPerson_sameID_coexistAsSeparateRecords() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let movie = TestMovies.make(id: 500, title: "Reservoir Dogs", genreIDs: [80])
+        let person = FavoritePerson(
+            id: 500,
+            name: "Tom Cruise",
+            profilePath: "/cruise.jpg",
+            knownForDepartment: "Acting"
+        )
+
+        _ = try await repository.toggle(movie: movie, favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(person: person, favoritedAt: TestMovies.date("2024-02-01"))
+
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, 2)
+        XCTAssertEqual(Set(favorites.map(\.listID)), Set(["movie-500", "person-500"]))
+        let isMovieFavorite = try await repository.isFavorite(id: 500, kind: .movie)
+        let isPersonFavorite = try await repository.isFavorite(id: 500, kind: .person)
+        XCTAssertTrue(isMovieFavorite)
+        XCTAssertTrue(isPersonFavorite)
+        let personIDs = try await repository.favoritePersonIDs()
+        XCTAssertEqual(personIDs, [500])
+    }
+
+    func test_favoritePersonIDs_returnsOnlyPersonRecords() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 10, name: "A", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-01-02")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 20, name: "B", profilePath: nil, knownForDepartment: nil),
+            favoritedAt: TestMovies.date("2024-01-03")
+        )
+
+        let personIDs = try await repository.favoritePersonIDs()
+        XCTAssertEqual(personIDs, [10, 20])
     }
 }
