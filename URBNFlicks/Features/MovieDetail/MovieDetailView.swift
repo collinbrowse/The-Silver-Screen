@@ -142,6 +142,8 @@ struct MovieDetailView: View {
     // MARK: - Carousels
 
     private func imagesCarousel(_ section: MovieDetailContent.ImagesSection) -> some View {
+        // Images has no caption stack under each card (unlike cast/crew/similar),
+        // so add matching bottom air so the gap before the next section matches.
         DetailCarousel(title: "Images") {
             ForEach(Array(section.items.enumerated()), id: \.element.id) { index, image in
                 RemoteImageView(
@@ -166,6 +168,7 @@ struct MovieDetailView: View {
                 }
             }
         }
+        .padding(.bottom, DesignSpacing.xl)
     }
 
     private func castCarousel(_ section: MovieDetailContent.CastSection) -> some View {
