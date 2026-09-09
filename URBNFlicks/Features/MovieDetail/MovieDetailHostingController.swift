@@ -4,7 +4,8 @@
 //
 //  UIKit navigation bridge: SwiftUI toolbar items do not reliably appear on a
 //  plain UIHostingController pushed onto a UINavigationController, so the
-//  favorite control is owned here via navigationItem.
+//  favorite control is owned here via navigationItem. Fullscreen image
+//  presentation is also owned here for the same reason.
 //
 
 import SwiftUI
@@ -14,15 +15,19 @@ import UIKit
 final class MovieDetailHostingController: UIViewController {
     private let viewModel: MovieDetailViewModel
     private let imageLoader: ImageLoader
+    private let router: NavigationRouter
     private var hostingController: UIHostingController<MovieDetailView>!
     private var observationTask: Task<Void, Never>?
     private var starHost: UIHostingController<FavoriteStarButton>?
+    private var lightboxHost: UIHostingController<FullscreenImageViewer>?
+    private var presentedLightboxID: String?
 
     init(
         movieID: Int,
         movies: MovieRepository,
         favorites: FavoritesRepository,
-        imageLoader: ImageLoader
+        imageLoader: ImageLoader,
+        router: NavigationRouter
     ) {
         self.viewModel = MovieDetailViewModel(
             movieID: movieID,
@@ -30,6 +35,7 @@ final class MovieDetailHostingController: UIViewController {
             favorites: favorites
         )
         self.imageLoader = imageLoader
+        self.router = router
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -49,6 +55,7 @@ final class MovieDetailHostingController: UIViewController {
         let root = MovieDetailView(
             viewModel: viewModel,
             imageLoader: imageLoader,
+            router: router,
             showsToolbarFavorite: false
         )
         let host = UIHostingController(rootView: root)
@@ -68,6 +75,7 @@ final class MovieDetailHostingController: UIViewController {
             guard let self else { return }
             for await state in Observations({ self.viewModel.state }) {
                 self.syncFavoriteButton(state: state)
+                self.syncLightbox(state: state)
             }
         }
     }
@@ -92,5 +100,33 @@ final class MovieDetailHostingController: UIViewController {
             starHost = host
             navigationItem.rightBarButtonItem = UIBarButtonItem(customView: host.view)
         }
+    }
+
+    private func syncLightbox(state: LoadState<MovieDetailContent>) {
+        guard case .loaded(let content, _) = state,
+              let fullscreen = content.fullscreenImages else {
+            if lightboxHost != nil {
+                lightboxHost?.dismiss(animated: true)
+                lightboxHost = nil
+                presentedLightboxID = nil
+            }
+            return
+        }
+
+        guard presentedLightboxID != fullscreen.id else { return }
+
+        let viewer = FullscreenImageViewer(
+            images: fullscreen.images,
+            initialID: fullscreen.initialID,
+            imageLoader: imageLoader
+        ) { [weak self] in
+            self?.viewModel.dismissImages()
+        }
+        let host = UIHostingController(rootView: viewer)
+        host.modalPresentationStyle = .fullScreen
+        host.view.backgroundColor = .systemBackground
+        presentedLightboxID = fullscreen.id
+        lightboxHost = host
+        present(host, animated: true)
     }
 }

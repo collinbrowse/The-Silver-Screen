@@ -60,6 +60,14 @@
 		B10001322788B823003D8011 /* FavoritesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001332788B823003D8011 /* FavoritesListView.swift */; };
 		B10001342788B823003D8011 /* FavoritesListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001352788B823003D8011 /* FavoritesListViewModelTests.swift */; };
 
+		B10002402788B823003D8011 /* MovieImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002412788B823003D8011 /* MovieImage.swift */; };
+		B10002422788B823003D8011 /* MovieCredit.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002432788B823003D8011 /* MovieCredit.swift */; };
+		B10002442788B823003D8011 /* MovieCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002452788B823003D8011 /* MovieCollection.swift */; };
+		B10002462788B823003D8011 /* MovieReview.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002472788B823003D8011 /* MovieReview.swift */; };
+		B10002482788B823003D8011 /* DetailCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002492788B823003D8011 /* DetailCarousel.swift */; };
+		B100024A2788B823003D8011 /* RemoteImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100024B2788B823003D8011 /* RemoteImageView.swift */; };
+		B100024C2788B823003D8011 /* ZoomableScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100024D2788B823003D8011 /* ZoomableScrollView.swift */; };
+		B100024E2788B823003D8011 /* FullscreenImageViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100024F2788B823003D8011 /* FullscreenImageViewer.swift */; };
 		B10002002788B823003D8011 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002012788B823003D8011 /* MovieDetail.swift */; };
 		B10002022788B823003D8011 /* MovieDetailDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002032788B823003D8011 /* MovieDetailDTO.swift */; };
 		B10002042788B823003D8011 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002052788B823003D8011 /* DesignTokens.swift */; };
@@ -152,6 +160,14 @@
 		B10001332788B823003D8011 /* FavoritesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesListView.swift; sourceTree = "<group>"; };
 		B10001352788B823003D8011 /* FavoritesListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesListViewModelTests.swift; sourceTree = "<group>"; };
 
+		B10002412788B823003D8011 /* MovieImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieImage.swift; sourceTree = "<group>"; };
+		B10002432788B823003D8011 /* MovieCredit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieCredit.swift; sourceTree = "<group>"; };
+		B10002452788B823003D8011 /* MovieCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieCollection.swift; sourceTree = "<group>"; };
+		B10002472788B823003D8011 /* MovieReview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieReview.swift; sourceTree = "<group>"; };
+		B10002492788B823003D8011 /* DetailCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailCarousel.swift; sourceTree = "<group>"; };
+		B100024B2788B823003D8011 /* RemoteImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImageView.swift; sourceTree = "<group>"; };
+		B100024D2788B823003D8011 /* ZoomableScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableScrollView.swift; sourceTree = "<group>"; };
+		B100024F2788B823003D8011 /* FullscreenImageViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenImageViewer.swift; sourceTree = "<group>"; };
 		B10002012788B823003D8011 /* MovieDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetail.swift; sourceTree = "<group>"; };
 		B10002032788B823003D8011 /* MovieDetailDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailDTO.swift; sourceTree = "<group>"; };
 		B10002052788B823003D8011 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -300,6 +316,10 @@
 			children = (
 				B10000172788B823003D8011 /* Movie.swift */,
 				B10000192788B823003D8011 /* MovieSummaryDTO.swift */,
+				B10002412788B823003D8011 /* MovieImage.swift */,
+				B10002432788B823003D8011 /* MovieCredit.swift */,
+				B10002452788B823003D8011 /* MovieCollection.swift */,
+				B10002472788B823003D8011 /* MovieReview.swift */,
 				B10002012788B823003D8011 /* MovieDetail.swift */,
 				B10002032788B823003D8011 /* MovieDetailDTO.swift */,
 				B10001012788B823003D8011 /* FavoriteRecord.swift */,
@@ -435,6 +455,8 @@
 		B10002162788B823003D8011 /* MovieDetail */ = {
 			isa = PBXGroup;
 			children = (
+				B100024D2788B823003D8011 /* ZoomableScrollView.swift */,
+				B100024F2788B823003D8011 /* FullscreenImageViewer.swift */,
 				B100020D2788B823003D8011 /* MovieDetailViewModel.swift */,
 				B100020F2788B823003D8011 /* MovieDetailView.swift */,
 				B10002192788B823003D8011 /* MovieDetailHostingController.swift */,
@@ -445,6 +467,8 @@
 		B10002172788B823003D8011 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				B10002492788B823003D8011 /* DetailCarousel.swift */,
+				B100024B2788B823003D8011 /* RemoteImageView.swift */,
 				B10002052788B823003D8011 /* DesignTokens.swift */,
 				B10002072788B823003D8011 /* MoviePosterView.swift */,
 				B10002092788B823003D8011 /* TagChip.swift */,
@@ -614,6 +638,14 @@
 				B10001242788B823003D8011 /* AppRouter.swift in Sources */,
 				B10001222788B823003D8011 /* NavigationRouter.swift in Sources */,
 				B10001202788B823003D8011 /* Route.swift in Sources */,
+				B10002402788B823003D8011 /* MovieImage.swift in Sources */,
+				B10002422788B823003D8011 /* MovieCredit.swift in Sources */,
+				B10002442788B823003D8011 /* MovieCollection.swift in Sources */,
+				B10002462788B823003D8011 /* MovieReview.swift in Sources */,
+				B10002482788B823003D8011 /* DetailCarousel.swift in Sources */,
+				B100024A2788B823003D8011 /* RemoteImageView.swift in Sources */,
+				B100024C2788B823003D8011 /* ZoomableScrollView.swift in Sources */,
+				B100024E2788B823003D8011 /* FullscreenImageViewer.swift in Sources */,
 				B10002002788B823003D8011 /* MovieDetail.swift in Sources */,
 				B10002022788B823003D8011 /* MovieDetailDTO.swift in Sources */,
 				B10002042788B823003D8011 /* DesignTokens.swift in Sources */,

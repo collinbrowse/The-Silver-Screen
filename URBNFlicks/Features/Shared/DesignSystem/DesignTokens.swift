@@ -20,6 +20,8 @@ enum DesignSpacing {
 enum DesignRadius {
     static let poster: CGFloat = 10
     static let card: CGFloat = 14
+    /// Apple TV–style carousel cards (continuous rounded rect).
+    static let carousel: CGFloat = 22
     static let chip: CGFloat = 100
 }
 

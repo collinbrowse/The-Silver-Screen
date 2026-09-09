@@ -20,6 +20,11 @@ struct MovieDetail: Sendable, Identifiable, Equatable, Hashable {
     let genres: [MovieGenre]
     let budget: Int
     let revenue: Int
+    let images: [MovieImage]
+    let cast: [CastMember]
+    let crew: [CrewMember]
+    let similar: [Movie]
+    let collection: MovieCollectionRef?
 
     /// Summary used when toggling favorites from detail.
     func asMovie() -> Movie {

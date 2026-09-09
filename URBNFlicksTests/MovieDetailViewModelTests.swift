@@ -27,6 +27,127 @@ final class MovieDetailViewModelTests: XCTestCase {
         XCTAssertEqual(content.formattedRevenue, "$28.3M")
         XCTAssertEqual(content.formattedReleaseDate, "Sep 23, 1994")
         XCTAssertFalse(content.isFavorite)
+        XCTAssertEqual(content.images?.items.map(\.filePath), ["/backdrop-a.jpg", "/backdrop-b.jpg"])
+        XCTAssertEqual(content.cast?.members.map(\.name), ["Tim Robbins", "Morgan Freeman"])
+        XCTAssertEqual(content.crew?.people.count, 1)
+        XCTAssertEqual(content.crew?.people.first?.name, "Frank Darabont")
+        XCTAssertEqual(content.crew?.people.first?.roles, ["Director", "Screenplay"])
+        XCTAssertEqual(content.similar?.items.map(\.id), [311])
+        XCTAssertNil(content.collection)
+        XCTAssertNil(content.reviews)
+    }
+
+    func test_load_whenNoImages_hidesImagesSection() async {
+        let viewModel = makeViewModel(stub: .success(TMDBFixtures.movieDetailSparse))
+
+        await viewModel.load()
+
+        guard case .loaded(let content, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertNil(content.images)
+        XCTAssertNil(content.cast)
+        XCTAssertNil(content.crew)
+        XCTAssertNil(content.similar)
+    }
+
+    func test_load_whenCollectionHasOtherParts_setsCollectionSection() async {
+        let client = RoutingHTTPClient(routes: [
+            "/movie/238": .success(TMDBFixtures.movieDetailWithCollection),
+            "/collection/230": .success(TMDBFixtures.collectionGodfather),
+            "/reviews": .success(TMDBFixtures.movieReviewsEmpty),
+        ])
+        let viewModel = MovieDetailViewModel(
+            movieID: 238,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.collection?.title, "The Godfather Collection")
+        XCTAssertEqual(content.collection?.movies.map(\.id), [240])
+    }
+
+    func test_load_whenCollectionOnlyContainsSelf_hidesCollectionSection() async {
+        let client = RoutingHTTPClient(routes: [
+            "/movie/238": .success(TMDBFixtures.movieDetailWithCollection),
+            "/collection/230": .success(TMDBFixtures.collectionSolo),
+            "/reviews": .success(TMDBFixtures.movieReviewsEmpty),
+        ])
+        let viewModel = MovieDetailViewModel(
+            movieID: 238,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertNil(content.collection)
+    }
+
+    func test_load_whenReviewsExist_setsReviewsSection() async {
+        let client = RoutingHTTPClient(routes: [
+            "/movie/278": .success(TMDBFixtures.movieDetailShawshank),
+            "/reviews": .success(TMDBFixtures.movieReviewsPage1),
+        ])
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.reviews?.items.map(\.id), ["rev-1"])
+        XCTAssertEqual(content.reviews?.items.first?.username, "alice_reviews")
+        XCTAssertTrue(content.reviews?.hasMore == true)
+    }
+
+    func test_loadMoreReviews_appendsDedupedPage() async {
+        let client = ReviewPagingHTTPClient()
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+
+        await viewModel.load()
+        await viewModel.loadMoreReviews()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.reviews?.items.map(\.id), ["rev-1", "rev-2"])
+        XCTAssertEqual(content.reviews?.hasMore, false)
+    }
+
+    func test_openImages_setsFullscreenSelection() async {
+        let viewModel = makeViewModel(stub: .success(TMDBFixtures.movieDetailShawshank))
+        await viewModel.load()
+
+        viewModel.openImages(initialID: "/backdrop-a.jpg")
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.fullscreenImages?.initialID, "/backdrop-a.jpg")
+        XCTAssertEqual(content.fullscreenImages?.images.count, 2)
+
+        viewModel.dismissImages()
+        guard case .loaded(let dismissed, _) = viewModel.state else {
+            return XCTFail("Expected loaded after dismiss")
+        }
+        XCTAssertNil(dismissed.fullscreenImages)
     }
 
     func test_load_whenSparseDetail_formatsUnavailableFields() async {
@@ -152,5 +273,23 @@ private actor SwitchableDetailHTTPClient: HTTPClient {
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         try await FakeHTTPClient(stub: stub).data(for: request)
+    }
+}
+
+/// Detail + reviews page 1, then reviews page 2 for pagination.
+private actor ReviewPagingHTTPClient: HTTPClient {
+    private var reviewPage = 0
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let path = request.url?.path ?? ""
+        if path.contains("/reviews") {
+            reviewPage += 1
+            let stub: FakeHTTPClient.Stub = reviewPage == 1
+                ? .success(TMDBFixtures.movieReviewsPage1)
+                : .success(TMDBFixtures.movieReviewsPage2)
+            return try await FakeHTTPClient(stub: stub).data(for: request)
+        }
+        return try await FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
+            .data(for: request)
     }
 }
