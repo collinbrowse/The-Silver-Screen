@@ -46,7 +46,7 @@ Update the `Completed / Total` column as you go.
 | ------------------------------------------------- | ----------------- |
 | [Top Movies](top-movies.md)                       | 4 / 4             |
 | [Favorites & Bookmarking](favorites.md)           | 3 / 9             |
-| [Movie Detail View](movie-detail-view.md)         | 1 / 7             |
+| [Movie Detail View](movie-detail-view.md)         | 7 / 7             |
 | [Tab Bar](tab-bar.md)                             | 0 / 2             |
 | [Now Playing Tab](now-playing-tab.md)             | 0 / 2             |
 | [Upcoming Tab](upcoming-tab.md)                   | 0 / 2             |

@@ -9,9 +9,29 @@ import UIKit
 struct MovieDetailView: View {
     @State var viewModel: MovieDetailViewModel
     let imageLoader: ImageLoader
+    var router: NavigationRouter?
     var showsToolbarFavorite: Bool = true
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private let backdropCardWidth: CGFloat = 280
+    private let portraitCardWidth: CGFloat = 140
+
+    private var fullscreenBinding: Binding<FullscreenImages?> {
+        Binding(
+            get: {
+                if case .loaded(let content, _) = viewModel.state {
+                    return content.fullscreenImages
+                }
+                return nil
+            },
+            set: { newValue in
+                if newValue == nil {
+                    viewModel.dismissImages()
+                }
+            }
+        )
+    }
 
     var body: some View {
         Group {
@@ -49,25 +69,48 @@ struct MovieDetailView: View {
                 await viewModel.load()
             }
         }
+        .fullScreenCover(item: showsToolbarFavorite ? fullscreenBinding : .constant(nil)) { selection in
+            FullscreenImageViewer(
+                images: selection.images,
+                initialID: selection.initialID,
+                imageKind: selection.kind,
+                imageLoader: imageLoader
+            ) {
+                viewModel.dismissImages()
+            }
+        }
     }
 
     @ViewBuilder
     private func loadedBody(content: MovieDetailContent, activity: LoadActivity) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
-                header(content)
-                if !content.detail.genres.isEmpty {
-                    genres(content.detail.genres)
+                metadataBlock(content)
+
+                if let images = content.images {
+                    imagesCarousel(images)
                 }
-                ratingCard(content)
-                overviewSection(content.detail.overview)
-                factsCard(content)
+                if let cast = content.cast {
+                    castCarousel(cast)
+                }
+                if let crew = content.crew {
+                    crewCarousel(crew)
+                }
+                if let similar = content.similar {
+                    similarCarousel(similar)
+                }
+                if let collection = content.collection {
+                    collectionCarousel(collection)
+                }
+                if let reviews = content.reviews {
+                    reviewsSection(reviews)
+                }
             }
-            .padding(.horizontal, DesignSpacing.lg)
             .padding(.vertical, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
         }
+        .scrollEdgeEffectHidden(true)
         .overlay(alignment: .top) {
             if case .failed(let error) = activity {
                 Text("\(error.title): \(error.message)")
@@ -84,19 +127,265 @@ struct MovieDetailView: View {
         }
     }
 
+    private func metadataBlock(_ content: MovieDetailContent) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.xl) {
+            header(content)
+            if !content.detail.genres.isEmpty {
+                genres(content.detail.genres)
+            }
+            ratingCard(content)
+            overviewSection(content.detail.overview)
+            factsCard(content)
+        }
+        .padding(.horizontal, DesignSpacing.lg)
+    }
+
+    // MARK: - Carousels
+
+    private func imagesCarousel(_ section: MovieDetailContent.ImagesSection) -> some View {
+        // Images has no caption stack under each card (unlike cast/crew/similar),
+        // so add matching bottom air so the gap before the next section matches.
+        DetailCarousel(title: "Images") {
+            ForEach(Array(section.items.enumerated()), id: \.element.id) { index, image in
+                RemoteImageView(
+                    path: image.filePath,
+                    kind: .backdrop,
+                    width: backdropCardWidth,
+                    aspectRatio: 16 / 9,
+                    imageLoader: imageLoader,
+                    placeholderSystemImage: "photo"
+                )
+                .clipShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
+                .frame(width: backdropCardWidth, height: backdropCardWidth * 9 / 16)
+                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
+                .onTapGesture {
+                    viewModel.openImages(initialID: image.id)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Image \(index + 1) of \(section.items.count)")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    viewModel.openImages(initialID: image.id)
+                }
+            }
+        }
+        .padding(.bottom, DesignSpacing.xl)
+    }
+
+    private func castCarousel(_ section: MovieDetailContent.CastSection) -> some View {
+        DetailCarousel(title: "Top Billed Cast") {
+            ForEach(section.members) { member in
+                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                    RemoteImageView(
+                        path: member.profilePath,
+                        kind: .profile,
+                        width: portraitCardWidth,
+                        aspectRatio: 2 / 3,
+                        imageLoader: imageLoader,
+                        placeholderSystemImage: "person.fill"
+                    )
+                    .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+                    Text(member.name)
+                        .font(DesignTypography.metadata.weight(.semibold))
+                        .foregroundStyle(DesignTheme.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(member.character.isEmpty ? " " : member.character)
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(width: portraitCardWidth, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(castAccessibilityLabel(member))
+            }
+        }
+    }
+
+    private func crewCarousel(_ section: MovieDetailContent.CrewSection) -> some View {
+        DetailCarousel(title: "Directors & Writers") {
+            ForEach(section.people) { person in
+                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                    RemoteImageView(
+                        path: person.profilePath,
+                        kind: .profile,
+                        width: portraitCardWidth,
+                        aspectRatio: 2 / 3,
+                        imageLoader: imageLoader,
+                        placeholderSystemImage: "person.fill"
+                    )
+                    .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+                    Text(person.name)
+                        .font(DesignTypography.metadata.weight(.semibold))
+                        .foregroundStyle(DesignTheme.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(person.rolesLabel)
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(width: portraitCardWidth, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(person.name), \(person.rolesLabel)")
+            }
+        }
+    }
+
+    private func similarCarousel(_ section: MovieDetailContent.SimilarSection) -> some View {
+        DetailCarousel(title: "More Like This") {
+            ForEach(section.items) { item in
+                Button {
+                    router?.push(.movieDetail(id: item.id))
+                } label: {
+                    similarMovieCell(item)
+                }
+                .buttonStyle(.plain)
+                .disabled(router == nil)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(similarAccessibilityLabel(item))
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
+            }
+        }
+    }
+
+    private func collectionCarousel(_ section: MovieDetailContent.CollectionSection) -> some View {
+        DetailCarousel(title: section.title) {
+            ForEach(section.movies) { movie in
+                Button {
+                    router?.push(.movieDetail(id: movie.id))
+                } label: {
+                    moviePosterCell(
+                        posterPath: movie.posterPath,
+                        title: movie.title,
+                        subtitle: nil
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(router == nil)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(movie.title)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
+            }
+        }
+    }
+
+    private func similarMovieCell(_ item: MovieDetailContent.SimilarSection.Item) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+            RemoteImageView(
+                path: item.movie.posterPath,
+                kind: .poster,
+                width: portraitCardWidth,
+                aspectRatio: 2 / 3,
+                imageLoader: imageLoader,
+                placeholderSystemImage: "film"
+            )
+            .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+            Text(item.movie.title)
+                .font(DesignTypography.metadata.weight(.semibold))
+                .foregroundStyle(DesignTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !item.genreNames.isEmpty {
+                Text(item.genreNames.joined(separator: ", "))
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if item.formattedReleaseDate != "Not available" {
+                Text(item.formattedReleaseDate)
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(width: portraitCardWidth, alignment: .leading)
+    }
+
+    private func moviePosterCell(
+        posterPath: String?,
+        title: String,
+        subtitle: String?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+            RemoteImageView(
+                path: posterPath,
+                kind: .poster,
+                width: portraitCardWidth,
+                aspectRatio: 2 / 3,
+                imageLoader: imageLoader,
+                placeholderSystemImage: "film"
+            )
+            .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+            Text(title)
+                .font(DesignTypography.metadata.weight(.semibold))
+                .foregroundStyle(DesignTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(width: portraitCardWidth, alignment: .leading)
+    }
+
+    // MARK: - Reviews
+
+    private func reviewsSection(_ section: MovieDetailContent.ReviewsSection) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.md) {
+            Text("Reviews")
+                .font(DesignTypography.section)
+                .foregroundStyle(DesignTheme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+
+            LazyVStack(alignment: .leading, spacing: DesignSpacing.md) {
+                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, review in
+                    ReviewRow(review: review)
+                        .onAppear {
+                            if index == section.items.count - 1 {
+                                Task { await viewModel.loadMoreReviews() }
+                            }
+                        }
+                }
+
+                if section.isLoadingPage {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignSpacing.sm)
+                }
+
+                if let error = section.pageError {
+                    Text("\(error.title): \(error.message)")
+                        .font(DesignTypography.metadata)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.horizontal, DesignSpacing.lg)
+    }
+
+    // MARK: - Story 1 metadata
+
     @ViewBuilder
     private func header(_ content: MovieDetailContent) -> some View {
         let stackVertically = dynamicTypeSize.isAccessibilitySize
         let posterWidth: CGFloat = stackVertically ? 128 : 112
+        let poster = posterThumbnail(path: content.detail.posterPath, width: posterWidth)
 
         Group {
             if stackVertically {
                 VStack(alignment: .leading, spacing: DesignSpacing.md) {
-                    MoviePosterView(
-                        posterPath: content.detail.posterPath,
-                        imageLoader: imageLoader,
-                        width: posterWidth
-                    )
+                    poster
                     Text(content.detail.title)
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
@@ -104,11 +393,7 @@ struct MovieDetailView: View {
                 }
             } else {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {
-                    MoviePosterView(
-                        posterPath: content.detail.posterPath,
-                        imageLoader: imageLoader,
-                        width: posterWidth
-                    )
+                    poster
                     Text(content.detail.title)
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
@@ -119,6 +404,29 @@ struct MovieDetailView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(content.detail.title)
+        .accessibilityHint(content.detail.posterPath == nil ? "" : "Shows the poster full screen")
+        .accessibilityAction(named: "Show poster") {
+            viewModel.openPoster()
+        }
+    }
+
+    @ViewBuilder
+    private func posterThumbnail(path: String?, width: CGFloat) -> some View {
+        let poster = MoviePosterView(
+            posterPath: path,
+            imageLoader: imageLoader,
+            width: width
+        )
+        if path != nil {
+            poster
+                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
+                .onTapGesture {
+                    viewModel.openPoster()
+                }
+                .accessibilityAddTraits(.isButton)
+        } else {
+            poster
+        }
     }
 
     private func genres(_ genres: [MovieGenre]) -> some View {
@@ -215,5 +523,60 @@ struct MovieDetailView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label), \(accessibility)")
+    }
+
+    private func castAccessibilityLabel(_ member: CastMember) -> String {
+        if member.character.isEmpty {
+            return member.name
+        }
+        return "\(member.name) as \(member.character)"
+    }
+
+    private func similarAccessibilityLabel(_ item: MovieDetailContent.SimilarSection.Item) -> String {
+        var parts = [item.movie.title]
+        if !item.genreNames.isEmpty {
+            parts.append(item.genreNames.joined(separator: ", "))
+        }
+        if item.formattedReleaseDate != "Not available" {
+            parts.append(item.formattedReleaseDate)
+        }
+        return parts.joined(separator: ", ")
+    }
+}
+
+private struct ReviewRow: View {
+    let review: MovieReview
+    @State private var expanded = false
+
+    var body: some View {
+        SurfaceCard {
+            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                Text(review.author)
+                    .font(DesignTypography.metadata.weight(.semibold))
+                    .foregroundStyle(DesignTheme.textPrimary)
+                Text("@\(review.username)")
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                Text(MovieDetailViewModel.formatReviewDate(review.updatedAt))
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textMuted)
+                Text(review.content)
+                    .font(DesignTypography.body)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .lineLimit(expanded ? nil : 6)
+                    .fixedSize(horizontal: false, vertical: true)
+                if review.content.count > 280 {
+                    Button(expanded ? "Show Less" : "Show More") {
+                        expanded.toggle()
+                    }
+                    .font(DesignTypography.chip.weight(.semibold))
+                    .foregroundStyle(DesignTheme.accent)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(review.author), \(review.username), \(MovieDetailViewModel.formatReviewDate(review.updatedAt)). \(review.content)"
+        )
     }
 }

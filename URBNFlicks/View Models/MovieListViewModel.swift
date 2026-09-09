@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Client-side ordering for the Top Movies list; only `.topRanked` matches TMDB page order.
 enum SortOption: String, CaseIterable, Sendable, Equatable {
     case topRanked
     case alphabetical
@@ -23,16 +24,20 @@ enum SortOption: String, CaseIterable, Sendable, Equatable {
     }
 }
 
+/// Drives the Top Movies UIKit list: first page, refresh, paging, and local sort.
 @Observable
 @MainActor
 final class MovieListViewModel {
     private(set) var state: LoadState<[Movie]> = .idle
     private(set) var sortOption: SortOption = .topRanked
 
+    /// Whether TMDB reported further pages for the current list. The view stops asking once this is false.
+    private(set) var hasMore = true
+
     private let movies: MovieRepository
     private var accumulated: [Movie] = []
     private var nextPage = 1
-    private var hasMore = true
+    /// Prevents overlapping page requests while `.loadingMore` is in flight.
     private var isPaging = false
 
     init(movies: MovieRepository) {
@@ -87,6 +92,8 @@ final class MovieListViewModel {
         }
     }
 
+    /// Fetches the next page while keeping the current list on screen.
+    /// Concurrent calls are ignored; failures stay on `.loaded` with a failed activity.
     func loadMore() async {
         guard hasMore, !isPaging else { return }
         guard case .loaded(let current, let activity) = state, activity == .none else { return }

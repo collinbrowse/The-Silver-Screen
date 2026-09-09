@@ -38,6 +38,11 @@ deinit { stateTask?.cancel() }
 ## Table view
 
 - `UITableViewDiffableDataSource`, not `reloadData()`. A blanket `reloadData()` on every update kills scroll position, cancels nothing, and re-lays out rows that did not change — it is part of why this screen feels slow.
+- **Paging must not interrupt deceleration.** Three separate things stop a fling dead, and infinite scroll needs all three handled:
+  - **`UIRefreshControl.endRefreshing()` retargets `contentOffset` even when the control is idle**, which synchronously ends deceleration. Guard it on `isRefreshing`. Calling it unconditionally from a `render(_:)` that runs on every state change means every page load kills the scroll.
+  - **Wrong height estimates get corrected during the append**, shifting content under the user. Cache each row's measured height as it displays and serve it from `estimatedHeightForRowAt`, so rows already scrolled past need no correction.
+  - Skip `apply` when item IDs are unchanged (activity-only updates), and append with `animatingDifferences: false`. Animated diffs are for sort/reorder.
+- **Trigger paging off the projected resting offset, not the visible rows.** `scrollViewWillEndDragging` hands you `targetContentOffset`, so a request made there gets the whole deceleration as loading time. A row-count threshold cannot express "before the fling lands" — a hard fling outruns any fixed number of rows.
 - Sorting and filtering apply a new snapshot; the diff animates and rows that did not move are not re-configured.
 - Cells get the `ImageLoader` injected in `configure(with:loader:)` — a cell never builds a URL or reaches the network. See [`images.mdc`](.cursor/rules/images.mdc) for the reuse contract.
 - Register cells with a `static let reuseIdentifier`, never a bare string literal.

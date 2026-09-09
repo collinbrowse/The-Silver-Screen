@@ -196,8 +196,63 @@ final class MovieRepositoryTests: XCTestCase {
         let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
         XCTAssertTrue(items.contains(URLQueryItem(name: "api_key", value: "test-key")))
         XCTAssertTrue(items.contains(URLQueryItem(name: "language", value: "en-US")))
+        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "credits,images,similar")))
+        XCTAssertTrue(items.contains(URLQueryItem(name: "include_image_language", value: "en,null")))
         let authorization = await client.lastAuthorizationHeader
         XCTAssertNil(authorization)
+
+        XCTAssertEqual(detail.images.map(\.filePath), ["/backdrop-a.jpg", "/backdrop-b.jpg"])
+        XCTAssertEqual(detail.cast.map(\.name), ["Tim Robbins", "Morgan Freeman"])
+        XCTAssertEqual(detail.crew.filter { $0.job == "Director" }.map(\.name), ["Frank Darabont"])
+        XCTAssertEqual(detail.similar.map(\.id), [311])
+        XCTAssertNil(detail.collection)
+    }
+
+    func test_creditedDirectorsAndWriters_dedupesDirectorAndScreenplay() {
+        let crew = [
+            CrewMember(id: "1", personID: 4027, name: "Frank Darabont", job: "Director", department: "Directing", profilePath: nil),
+            CrewMember(id: "2", personID: 4027, name: "Frank Darabont", job: "Screenplay", department: "Writing", profilePath: nil),
+            CrewMember(id: "3", personID: 9, name: "Cam", job: "Director of Photography", department: "Camera", profilePath: nil),
+        ]
+        let people = MovieRepository.creditedDirectorsAndWriters(from: crew)
+        XCTAssertEqual(people.count, 1)
+        XCTAssertEqual(people[0].roles, ["Director", "Screenplay"])
+    }
+
+    func test_collection_mapsParts() async throws {
+        let client = FakeHTTPClient(stub: .success(TMDBFixtures.collectionGodfather))
+        let repository = MovieRepository.test(client: client)
+        let collection = try await repository.collection(id: 230)
+        XCTAssertEqual(collection.name, "The Godfather Collection")
+        XCTAssertEqual(collection.parts.map(\.id), [238, 240])
+    }
+
+    func test_movieReviews_mapsAuthorAndFractionalDate() async throws {
+        let client = FakeHTTPClient(stub: .success(TMDBFixtures.movieReviewsPage1))
+        let repository = MovieRepository.test(client: client)
+        let page = try await repository.movieReviews(id: 278, page: 1)
+        XCTAssertEqual(page.reviews.count, 1)
+        XCTAssertEqual(page.reviews[0].username, "alice_reviews")
+        XCTAssertNotNil(page.reviews[0].updatedAt)
+        XCTAssertTrue(page.hasMore)
+    }
+
+    func test_imageURL_selectsBackdropAndProfileTokens() {
+        let backdrop = ImageLoader.imageURL(
+            path: "/b.jpg",
+            kind: .backdrop,
+            targetWidthPoints: 400,
+            scale: 3
+        )
+        XCTAssertTrue(backdrop?.absoluteString.contains("/w1280/") == true)
+
+        let profile = ImageLoader.imageURL(
+            path: "p.jpg",
+            kind: .profile,
+            targetWidthPoints: 140,
+            scale: 3
+        )
+        XCTAssertTrue(profile?.absoluteString.contains("/h632/") == true)
     }
 
     func test_movieDetail_emptyReleaseDateAndZeroMoney_mapsCleanly() async throws {

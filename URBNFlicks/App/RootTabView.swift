@@ -67,7 +67,8 @@ struct RootTabView: View {
                 movieID: id,
                 movies: movies,
                 favorites: favorites,
-                imageLoader: imageLoader
+                imageLoader: imageLoader,
+                router: router.topMovies
             )
         }
     }
@@ -92,7 +93,8 @@ private struct FavoritesTabRoot: View {
                     route: route,
                     movies: movies,
                     favorites: favorites,
-                    imageLoader: imageLoader
+                    imageLoader: imageLoader,
+                    router: router
                 )
             }
         }

@@ -96,3 +96,32 @@ actor SequencingHTTPClient: HTTPClient {
         return try await FakeHTTPClient(stub: stub).data(for: request)
     }
 }
+
+/// Routes stubs by URL path fragment — use when one screen hits multiple endpoints.
+actor RoutingHTTPClient: HTTPClient {
+    private var routes: [String: FakeHTTPClient.Stub]
+    private let fallback: FakeHTTPClient.Stub
+    private(set) var requests: [URLRequest] = []
+
+    init(routes: [String: FakeHTTPClient.Stub], fallback: FakeHTTPClient.Stub = .failure(URLError(.badURL))) {
+        self.routes = routes
+        self.fallback = fallback
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requests.append(request)
+        let path = request.url?.path ?? ""
+        let match = routes
+            .compactMap { key, stub -> (key: String, stub: FakeHTTPClient.Stub, score: Int)? in
+                guard let range = path.range(of: key) else { return nil }
+                // Prefer matches that end later in the path, then longer keys.
+                let end = path.distance(from: path.startIndex, to: range.upperBound)
+                return (key, stub, end * 1_000 + key.count)
+            }
+            .max(by: { $0.score < $1.score })
+        let stub = match?.stub ?? fallback
+        return try await FakeHTTPClient(stub: stub).data(for: request)
+    }
+
+    var requestCount: Int { requests.count }
+}

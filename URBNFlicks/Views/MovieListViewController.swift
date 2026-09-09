@@ -7,11 +7,19 @@
 
 import UIKit
 
+/// Legacy UIKit Top Ranked Movies list — observes `MovieListViewModel` and pages via diffable data source.
 final class MovieListViewController: UIViewController {
 
     private enum Section: Hashable {
         case main
     }
+
+    /// How much content to keep loaded past the resting point of a scroll, in viewport heights.
+    /// A hard fling travels roughly two screens, so three keeps the list ahead of the finger.
+    private static let loadMoreViewportBuffer: CGFloat = 3
+
+    /// Starting guess for a row: poster height plus the cell's vertical padding.
+    private static let estimatedRowHeight: CGFloat = 192
 
     private let viewModel: MovieListViewModel
     private let imageLoader: ImageLoader
@@ -29,8 +37,15 @@ final class MovieListViewController: UIViewController {
 
     private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
     private var moviesByID: [Movie.ID: Movie] = [:]
+    /// Deduped favorite movie IDs for cell star state; refreshed on appear.
     private var favoriteIDs: Set<Movie.ID> = []
+    /// Heights of rows the user has already scrolled past. Self-sizing rows vary by a point or two
+    /// when a title wraps, and without this the estimate for those rows is corrected during a page
+    /// append — which shifts the content under the user mid-fling.
+    private var measuredRowHeights: [Movie.ID: CGFloat] = [:]
     private var stateTask: Task<Void, Never>?
+    /// Non-nil while a page fetch is in flight, so scroll events cannot pile up duplicate requests.
+    private var loadMoreTask: Task<Void, Never>?
     private var sortButton: UIBarButtonItem!
 
     init(
@@ -52,6 +67,7 @@ final class MovieListViewController: UIViewController {
 
     deinit {
         stateTask?.cancel()
+        loadMoreTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -61,6 +77,12 @@ final class MovieListViewController: UIViewController {
         setupTableView()
         setupOverlayViews()
         configureDataSource()
+
+        // Cached heights are measured at the current text size, so they expire when it changes.
+        _ = registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
+            (viewController: MovieListViewController, _) in
+            viewController.measuredRowHeights.removeAll()
+        }
 
         stateTask = Task { [weak self] in
             guard let self else { return }
@@ -100,7 +122,7 @@ final class MovieListViewController: UIViewController {
         ])
 
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 192
+        tableView.estimatedRowHeight = Self.estimatedRowHeight
         tableView.register(MovieTableViewCell.self, forCellReuseIdentifier: MovieTableViewCell.reuseIdentifier)
         tableView.delegate = self
         tableView.prefetchDataSource = self
@@ -285,13 +307,13 @@ final class MovieListViewController: UIViewController {
             switch activity {
             case .none:
                 bannerLabel.isHidden = true
-                tableView.refreshControl?.endRefreshing()
+                endRefreshingIfNeeded()
             case .refreshing:
                 bannerLabel.isHidden = true
             case .loadingMore:
                 bannerLabel.isHidden = true
             case .failed(let error):
-                tableView.refreshControl?.endRefreshing()
+                endRefreshingIfNeeded()
                 showBanner(error)
             }
 
@@ -310,12 +332,56 @@ final class MovieListViewController: UIViewController {
         }
     }
 
+    /// Ends the pull-to-refresh spinner only when it is actually running.
+    /// `endRefreshing()` retargets the scroll view's offset even when idle, which
+    /// synchronously terminates an in-flight fling — the paging story lands on every page.
+    private func endRefreshingIfNeeded() {
+        guard let refreshControl = tableView.refreshControl, refreshControl.isRefreshing else { return }
+        refreshControl.endRefreshing()
+    }
+
+    /// Updates the diffable snapshot only when item identity/order changes.
+    /// Activity-only updates (e.g. `.loadingMore`) skip `apply` so deceleration is not killed.
+    /// Page appends use a non-animated apply so fling velocity continues when rows arrive.
     private func apply(movies: [Movie]) {
         moviesByID = Dictionary(uniqueKeysWithValues: movies.map { ($0.id, $0) })
+        let newIDs = movies.map(\.id)
+        let oldIDs = dataSource.snapshot().itemIdentifiers
+        guard newIDs != oldIDs else { return }
+
+        let isAppend =
+            !oldIDs.isEmpty
+            && newIDs.count > oldIDs.count
+            && Array(newIDs.prefix(oldIDs.count)) == oldIDs
+
         var snapshot = NSDiffableDataSourceSnapshot<Section, Movie.ID>()
         snapshot.appendSections([.main])
-        snapshot.appendItems(movies.map(\.id), toSection: .main)
-        dataSource.apply(snapshot, animatingDifferences: true)
+        snapshot.appendItems(newIDs, toSection: .main)
+        dataSource.apply(snapshot, animatingDifferences: !isAppend)
+
+        // Fresh content may still leave the buffer short (a long fling, or a viewport
+        // taller than one page), so re-check now that `contentSize` reflects the append.
+        requestLoadMoreIfNeeded()
+    }
+
+    /// Requests the next page while `restingOffsetY` — where the current scroll or fling will
+    /// come to rest — is still within `loadMoreViewportBuffer` viewports of the end of the list.
+    /// Requesting against the projected resting point, rather than the visible rows, is what lets
+    /// a page arrive mid-fling instead of after the scroll has already hit the bottom.
+    private func requestLoadMoreIfNeeded(restingOffsetY: CGFloat? = nil) {
+        guard loadMoreTask == nil, viewModel.hasMore else { return }
+
+        let viewportHeight = tableView.bounds.height
+        guard viewportHeight > 0 else { return }
+
+        let offsetY = restingOffsetY ?? tableView.contentOffset.y
+        let distanceToEnd = tableView.contentSize.height - (offsetY + viewportHeight)
+        guard distanceToEnd < viewportHeight * Self.loadMoreViewportBuffer else { return }
+
+        loadMoreTask = Task { [weak self] in
+            await self?.viewModel.loadMore()
+            self?.loadMoreTask = nil
+        }
     }
 
     private func showBanner(_ error: AppError) {
@@ -360,9 +426,30 @@ extension MovieListViewController: UITableViewDelegate {
         willDisplay cell: UITableViewCell,
         forRowAt indexPath: IndexPath
     ) {
-        let count = dataSource.snapshot().numberOfItems
-        guard count > 0, indexPath.row >= count - 5 else { return }
-        Task { await viewModel.loadMore() }
+        guard let id = dataSource.itemIdentifier(for: indexPath) else { return }
+        measuredRowHeights[id] = cell.bounds.height
+    }
+
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        guard let id = dataSource.itemIdentifier(for: indexPath),
+              let measured = measuredRowHeights[id] else {
+            return Self.estimatedRowHeight
+        }
+        return measured
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        requestLoadMoreIfNeeded()
+    }
+
+    /// The moment the finger lifts, UIKit reports where the fling will land. Requesting against
+    /// that point buys the whole deceleration as loading time, so rows are in place on arrival.
+    func scrollViewWillEndDragging(
+        _ scrollView: UIScrollView,
+        withVelocity velocity: CGPoint,
+        targetContentOffset: UnsafeMutablePointer<CGPoint>
+    ) {
+        requestLoadMoreIfNeeded(restingOffsetY: targetContentOffset.pointee.y)
     }
 }
 

@@ -18,8 +18,13 @@ enum DesignSpacing {
 }
 
 enum DesignRadius {
-    static let poster: CGFloat = 10
-    static let card: CGFloat = 14
+    /// Continuous corner radius for posters, surface cards, and carousel media
+    /// on new SwiftUI screens (iOS 26 / Apple TV–style squircle language).
+    static let media: CGFloat = 22
+    static let poster: CGFloat = media
+    static let card: CGFloat = media
+    static let carousel: CGFloat = media
+    /// Fully rounded pills (genre chips).
     static let chip: CGFloat = 100
 }
 

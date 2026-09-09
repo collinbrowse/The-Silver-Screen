@@ -135,6 +135,104 @@ final class MovieListViewModelTests: XCTestCase {
         XCTAssertEqual(movies.map(\.title), ["The Godfather", "The Shawshank Redemption"])
     }
 
+    func test_loadMore_appendsNextPageAndClearsLoadingMore() async {
+        let client = PagingHTTPClient(pages: [
+            1: TMDBFixtures.topMoviesPage1,
+            2: TMDBFixtures.topMoviesPage2,
+        ])
+        let viewModel = MovieListViewModel(movies: MovieRepository.test(client: client))
+        await viewModel.load()
+
+        await viewModel.loadMore()
+
+        guard case .loaded(let movies, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded with no activity, got \(viewModel.state)")
+        }
+        XCTAssertEqual(movies.map(\.id), [278, 238, 240])
+        let requestCount = await client.requestCount
+        XCTAssertEqual(requestCount, 2)
+    }
+
+    func test_loadMore_whileAlreadyPaging_isIgnored() async {
+        let client = GateablePagingHTTPClient(
+            page1: TMDBFixtures.topMoviesPage1,
+            page2: TMDBFixtures.topMoviesPage2
+        )
+        let viewModel = MovieListViewModel(movies: MovieRepository.test(client: client))
+        await viewModel.load()
+
+        async let first: Void = viewModel.loadMore()
+        await client.waitUntilPage2Started()
+        await viewModel.loadMore()
+        await client.releasePage2()
+        await first
+
+        guard case .loaded(let movies, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(movies.map(\.id), [278, 238, 240])
+        let requestCount = await client.requestCount
+        XCTAssertEqual(requestCount, 2)
+    }
+
+    func test_hasMore_whenFinalPageArrives_stopsReportingMorePages() async {
+        let client = PagingHTTPClient(pages: [
+            1: TMDBFixtures.topMoviesPage1,
+            2: TMDBFixtures.topMoviesPage2,
+        ])
+        let viewModel = MovieListViewModel(movies: MovieRepository.test(client: client))
+        await viewModel.load()
+        XCTAssertTrue(viewModel.hasMore)
+
+        await viewModel.loadMore()
+
+        XCTAssertFalse(viewModel.hasMore)
+    }
+
+    func test_loadMore_afterFinalPage_doesNotRequestAgain() async {
+        let client = PagingHTTPClient(pages: [
+            1: TMDBFixtures.topMoviesPage1,
+            2: TMDBFixtures.topMoviesPage2,
+        ])
+        let viewModel = MovieListViewModel(movies: MovieRepository.test(client: client))
+        await viewModel.load()
+        await viewModel.loadMore()
+        let requestsAfterLastPage = await client.requestCount
+
+        await viewModel.loadMore()
+
+        let requestsAfterExtraCall = await client.requestCount
+        XCTAssertEqual(requestsAfterExtraCall, requestsAfterLastPage)
+    }
+
+    func test_hasMore_whenOnlyOnePageExists_isFalseAfterLoad() async {
+        let viewModel = makeViewModel(stub: .success(TMDBFixtures.topMoviesWithEmptyReleaseDate))
+
+        await viewModel.load()
+
+        XCTAssertFalse(viewModel.hasMore)
+    }
+
+    func test_loadMore_keepsContentOnScreenWhilePageIsInFlight() async {
+        let client = GateablePagingHTTPClient(
+            page1: TMDBFixtures.topMoviesPage1,
+            page2: TMDBFixtures.topMoviesPage2
+        )
+        let viewModel = MovieListViewModel(movies: MovieRepository.test(client: client))
+        await viewModel.load()
+
+        async let paging: Void = viewModel.loadMore()
+        await client.waitUntilPage2Started()
+
+        guard case .loaded(let movies, activity: .loadingMore) = viewModel.state else {
+            return XCTFail("Expected loaded with loadingMore activity, got \(viewModel.state)")
+        }
+        XCTAssertEqual(movies.count, 2)
+
+        await client.releasePage2()
+        await paging
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(stub: FakeHTTPClient.Stub) -> MovieListViewModel {
@@ -177,5 +275,86 @@ private actor CountingHTTPClient: HTTPClient {
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         requestCount += 1
         return try await FakeHTTPClient(stub: stub).data(for: request)
+    }
+}
+
+/// Returns fixture JSON keyed by the `page` query item.
+private actor PagingHTTPClient: HTTPClient {
+    private let pages: [Int: Data]
+    private(set) var requestCount = 0
+
+    init(pages: [Int: Data]) {
+        self.pages = pages
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requestCount += 1
+        let page = pageNumber(from: request) ?? 1
+        guard let data = pages[page] else {
+            throw URLError(.badServerResponse)
+        }
+        return try await FakeHTTPClient(stub: .success(data)).data(for: request)
+    }
+
+    private func pageNumber(from request: URLRequest) -> Int? {
+        guard let url = request.url,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let value = components.queryItems?.first(where: { $0.name == "page" })?.value else {
+            return nil
+        }
+        return Int(value)
+    }
+}
+
+/// Holds page 2 until released so overlapping `loadMore` calls can be asserted.
+private actor GateablePagingHTTPClient: HTTPClient {
+    private let page1: Data
+    private let page2: Data
+    private(set) var requestCount = 0
+    private var page2Started: CheckedContinuation<Void, Never>?
+    private var page2Gate: CheckedContinuation<Void, Never>?
+    private var waitingForRelease = false
+
+    init(page1: Data, page2: Data) {
+        self.page1 = page1
+        self.page2 = page2
+    }
+
+    func waitUntilPage2Started() async {
+        if waitingForRelease { return }
+        await withCheckedContinuation { continuation in
+            page2Started = continuation
+        }
+    }
+
+    func releasePage2() {
+        page2Gate?.resume()
+        page2Gate = nil
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requestCount += 1
+        let page = pageNumber(from: request) ?? 1
+        if page == 1 {
+            return try await FakeHTTPClient(stub: .success(page1)).data(for: request)
+        }
+
+        waitingForRelease = true
+        page2Started?.resume()
+        page2Started = nil
+        await withCheckedContinuation { continuation in
+            page2Gate = continuation
+        }
+        waitingForRelease = false
+        return try await FakeHTTPClient(stub: .success(page2)).data(for: request)
+    }
+
+    private func pageNumber(from request: URLRequest) -> Int? {
+        guard let url = request.url,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let value = components.queryItems?.first(where: { $0.name == "page" })?.value else {
+            return nil
+        }
+        return Int(value)
     }
 }

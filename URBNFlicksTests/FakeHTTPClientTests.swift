@@ -56,4 +56,19 @@ final class FakeHTTPClientTests: XCTestCase {
         XCTAssertEqual(list.results.count, 1)
         XCTAssertEqual(list.results[0].releaseDate, "")
     }
+
+    func test_routingClient_prefersLongestPathMatch() async throws {
+        let client = RoutingHTTPClient(routes: [
+            "/movie/278": .success(TMDBFixtures.movieDetailShawshank),
+            "/movie/278/reviews": .success(TMDBFixtures.movieReviewsPage1),
+        ])
+        let detailRequest = URLRequest(url: URL(string: "https://api.themoviedb.org/3/movie/278")!)
+        let reviewsRequest = URLRequest(url: URL(string: "https://api.themoviedb.org/3/movie/278/reviews")!)
+
+        let (detailData, _) = try await client.data(for: detailRequest)
+        let (reviewsData, _) = try await client.data(for: reviewsRequest)
+
+        XCTAssertEqual(detailData, TMDBFixtures.movieDetailShawshank)
+        XCTAssertEqual(reviewsData, TMDBFixtures.movieReviewsPage1)
+    }
 }

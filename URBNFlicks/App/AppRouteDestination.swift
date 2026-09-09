@@ -10,6 +10,7 @@ struct AppRouteDestination: View {
     let movies: MovieRepository
     let favorites: FavoritesRepository
     let imageLoader: ImageLoader
+    let router: NavigationRouter
 
     var body: some View {
         switch route {
@@ -18,7 +19,8 @@ struct AppRouteDestination: View {
                 movieID: id,
                 movies: movies,
                 favorites: favorites,
-                imageLoader: imageLoader
+                imageLoader: imageLoader,
+                router: router
             )
         }
     }
@@ -27,12 +29,14 @@ struct AppRouteDestination: View {
 struct MovieDetailRouteView: View {
     @State private var viewModel: MovieDetailViewModel
     let imageLoader: ImageLoader
+    let router: NavigationRouter
 
     init(
         movieID: Int,
         movies: MovieRepository,
         favorites: FavoritesRepository,
-        imageLoader: ImageLoader
+        imageLoader: ImageLoader,
+        router: NavigationRouter
     ) {
         _viewModel = State(
             initialValue: MovieDetailViewModel(
@@ -42,9 +46,10 @@ struct MovieDetailRouteView: View {
             )
         )
         self.imageLoader = imageLoader
+        self.router = router
     }
 
     var body: some View {
-        MovieDetailView(viewModel: viewModel, imageLoader: imageLoader)
+        MovieDetailView(viewModel: viewModel, imageLoader: imageLoader, router: router)
     }
 }
