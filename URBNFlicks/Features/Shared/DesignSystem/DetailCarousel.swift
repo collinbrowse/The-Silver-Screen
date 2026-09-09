@@ -22,9 +22,11 @@ struct DetailCarousel<Content: View>: View {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {
                     content()
                 }
+                .scrollTargetLayout()
                 .padding(.horizontal, DesignSpacing.lg)
                 .padding(.vertical, DesignSpacing.xs)
             }
+            .scrollTargetBehavior(.viewAligned)
             .scrollClipDisabled()
             .scrollEdgeEffectHidden(true)
         }

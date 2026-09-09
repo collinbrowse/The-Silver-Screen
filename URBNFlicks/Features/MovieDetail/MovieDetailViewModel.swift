@@ -65,9 +65,25 @@ struct MovieDetailContent: Sendable, Equatable {
 }
 
 struct FullscreenImages: Sendable, Equatable, Identifiable {
+    enum Kind: Sendable, Equatable {
+        case poster
+        case backdrop
+    }
+
     var id: String { initialID }
     let initialID: String
     let images: [MovieImage]
+    let kind: Kind
+
+    init(
+        initialID: String,
+        images: [MovieImage],
+        kind: Kind = .backdrop
+    ) {
+        self.initialID = initialID
+        self.images = images
+        self.kind = kind
+    }
 }
 
 @Observable
@@ -268,7 +284,20 @@ final class MovieDetailViewModel {
               let images = content.images else { return }
         state = .loaded(
             content.withFullscreen(
-                FullscreenImages(initialID: initialID, images: images.items)
+                FullscreenImages(initialID: initialID, images: images.items, kind: .backdrop)
+            ),
+            activity: activity
+        )
+    }
+
+    func openPoster() {
+        guard case .loaded(let content, let activity) = state,
+              let path = content.detail.posterPath,
+              !path.isEmpty else { return }
+        let poster = MovieImage(filePath: path, voteAverage: 0)
+        state = .loaded(
+            content.withFullscreen(
+                FullscreenImages(initialID: path, images: [poster], kind: .poster)
             ),
             activity: activity
         )

@@ -73,6 +73,7 @@ struct MovieDetailView: View {
             FullscreenImageViewer(
                 images: selection.images,
                 initialID: selection.initialID,
+                imageKind: selection.kind,
                 imageLoader: imageLoader
             ) {
                 viewModel.dismissImages()
@@ -241,11 +242,7 @@ struct MovieDetailView: View {
                 Button {
                     router?.push(.movieDetail(id: item.id))
                 } label: {
-                    moviePosterCell(
-                        posterPath: item.movie.posterPath,
-                        title: item.movie.title,
-                        subtitle: similarSubtitle(item)
-                    )
+                    similarMovieCell(item)
                 }
                 .buttonStyle(.plain)
                 .disabled(router == nil)
@@ -259,15 +256,56 @@ struct MovieDetailView: View {
     private func collectionCarousel(_ section: MovieDetailContent.CollectionSection) -> some View {
         DetailCarousel(title: section.title) {
             ForEach(section.movies) { movie in
-                moviePosterCell(
-                    posterPath: movie.posterPath,
-                    title: movie.title,
-                    subtitle: nil
-                )
+                Button {
+                    router?.push(.movieDetail(id: movie.id))
+                } label: {
+                    moviePosterCell(
+                        posterPath: movie.posterPath,
+                        title: movie.title,
+                        subtitle: nil
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(router == nil)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(movie.title)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
             }
         }
+    }
+
+    private func similarMovieCell(_ item: MovieDetailContent.SimilarSection.Item) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+            RemoteImageView(
+                path: item.movie.posterPath,
+                kind: .poster,
+                width: portraitCardWidth,
+                aspectRatio: 2 / 3,
+                imageLoader: imageLoader,
+                placeholderSystemImage: "film"
+            )
+            .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+            Text(item.movie.title)
+                .font(DesignTypography.metadata.weight(.semibold))
+                .foregroundStyle(DesignTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !item.genreNames.isEmpty {
+                Text(item.genreNames.joined(separator: ", "))
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if item.formattedReleaseDate != "Not available" {
+                Text(item.formattedReleaseDate)
+                    .font(DesignTypography.chip)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(width: portraitCardWidth, alignment: .leading)
     }
 
     private func moviePosterCell(
@@ -289,13 +327,11 @@ struct MovieDetailView: View {
             Text(title)
                 .font(DesignTypography.metadata.weight(.semibold))
                 .foregroundStyle(DesignTheme.textPrimary)
-                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
                     .font(DesignTypography.chip)
                     .foregroundStyle(DesignTheme.textSecondary)
-                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -344,15 +380,12 @@ struct MovieDetailView: View {
     private func header(_ content: MovieDetailContent) -> some View {
         let stackVertically = dynamicTypeSize.isAccessibilitySize
         let posterWidth: CGFloat = stackVertically ? 128 : 112
+        let poster = posterThumbnail(path: content.detail.posterPath, width: posterWidth)
 
         Group {
             if stackVertically {
                 VStack(alignment: .leading, spacing: DesignSpacing.md) {
-                    MoviePosterView(
-                        posterPath: content.detail.posterPath,
-                        imageLoader: imageLoader,
-                        width: posterWidth
-                    )
+                    poster
                     Text(content.detail.title)
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
@@ -360,11 +393,7 @@ struct MovieDetailView: View {
                 }
             } else {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {
-                    MoviePosterView(
-                        posterPath: content.detail.posterPath,
-                        imageLoader: imageLoader,
-                        width: posterWidth
-                    )
+                    poster
                     Text(content.detail.title)
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
@@ -375,6 +404,29 @@ struct MovieDetailView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(content.detail.title)
+        .accessibilityHint(content.detail.posterPath == nil ? "" : "Shows the poster full screen")
+        .accessibilityAction(named: "Show poster") {
+            viewModel.openPoster()
+        }
+    }
+
+    @ViewBuilder
+    private func posterThumbnail(path: String?, width: CGFloat) -> some View {
+        let poster = MoviePosterView(
+            posterPath: path,
+            imageLoader: imageLoader,
+            width: width
+        )
+        if path != nil {
+            poster
+                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
+                .onTapGesture {
+                    viewModel.openPoster()
+                }
+                .accessibilityAddTraits(.isButton)
+        } else {
+            poster
+        }
     }
 
     private func genres(_ genres: [MovieGenre]) -> some View {
@@ -478,17 +530,6 @@ struct MovieDetailView: View {
             return member.name
         }
         return "\(member.name) as \(member.character)"
-    }
-
-    private func similarSubtitle(_ item: MovieDetailContent.SimilarSection.Item) -> String {
-        var parts: [String] = []
-        if !item.genreNames.isEmpty {
-            parts.append(item.genreNames.joined(separator: ", "))
-        }
-        if item.formattedReleaseDate != "Not available" {
-            parts.append(item.formattedReleaseDate)
-        }
-        return parts.joined(separator: " · ")
     }
 
     private func similarAccessibilityLabel(_ item: MovieDetailContent.SimilarSection.Item) -> String {

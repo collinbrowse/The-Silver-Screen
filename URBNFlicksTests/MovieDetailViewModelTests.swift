@@ -142,12 +142,27 @@ final class MovieDetailViewModelTests: XCTestCase {
         }
         XCTAssertEqual(content.fullscreenImages?.initialID, "/backdrop-a.jpg")
         XCTAssertEqual(content.fullscreenImages?.images.count, 2)
+        XCTAssertEqual(content.fullscreenImages?.kind, .backdrop)
 
         viewModel.dismissImages()
         guard case .loaded(let dismissed, _) = viewModel.state else {
             return XCTFail("Expected loaded after dismiss")
         }
         XCTAssertNil(dismissed.fullscreenImages)
+    }
+
+    func test_openPoster_setsFullscreenPoster() async {
+        let viewModel = makeViewModel(stub: .success(TMDBFixtures.movieDetailShawshank))
+        await viewModel.load()
+
+        viewModel.openPoster()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.fullscreenImages?.kind, .poster)
+        XCTAssertEqual(content.fullscreenImages?.images.map(\.filePath), [content.detail.posterPath].compactMap { $0 })
+        XCTAssertEqual(content.fullscreenImages?.images.count, 1)
     }
 
     func test_load_whenSparseDetail_formatsUnavailableFields() async {

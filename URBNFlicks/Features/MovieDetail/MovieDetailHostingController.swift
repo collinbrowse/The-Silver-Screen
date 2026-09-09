@@ -118,6 +118,7 @@ final class MovieDetailHostingController: UIViewController {
         let viewer = FullscreenImageViewer(
             images: fullscreen.images,
             initialID: fullscreen.initialID,
+            imageKind: fullscreen.kind,
             imageLoader: imageLoader
         ) { [weak self] in
             self?.viewModel.dismissImages()
