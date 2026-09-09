@@ -185,4 +185,87 @@ final class FavoritesListViewModelTests: XCTestCase {
         let personStillFavorite = try await repository.isFavorite(id: 500, kind: .person)
         XCTAssertFalse(personStillFavorite)
     }
+
+    func test_displayedFavorites_filtersByKind() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+
+        viewModel.filter = .all
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2", "movie-1"])
+
+        viewModel.filter = .movies
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["movie-1"])
+
+        viewModel.filter = .people
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2"])
+    }
+
+    func test_displayedFavorites_whenFilterYieldsEmpty_keepsLoadedState() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+
+        viewModel.filter = .people
+
+        guard case .loaded = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertTrue(viewModel.displayedFavorites.isEmpty)
+    }
+
+    func test_removeFavorites_underPeopleFilter_deletesDisplayedPerson() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .people
+
+        await viewModel.removeFavorites(at: IndexSet(integer: 0))
+
+        guard case .loaded(let favorites, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(favorites.map(\.listID), ["movie-1"])
+        let personGone = try await repository.isFavorite(id: 2, kind: .person)
+        XCTAssertFalse(personGone)
+    }
+
+    func test_load_preservesActiveFilter() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .movies
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.filter, .movies)
+    }
 }

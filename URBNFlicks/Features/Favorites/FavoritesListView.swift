@@ -7,7 +7,7 @@ import SwiftUI
 import UIKit
 
 struct FavoritesListView: View {
-    @State var viewModel: FavoritesListViewModel
+    @Bindable var viewModel: FavoritesListViewModel
     let imageLoader: ImageLoader
 
     var body: some View {
@@ -22,9 +22,34 @@ struct FavoritesListView: View {
                     message: "Favorite a movie or person to save it here.",
                     systemImage: "heart"
                 )
-            case .loaded(let favoritesList, let activity):
+            case .loaded(_, let activity):
+                loadedBody(activity: activity)
+            case .failed(let error):
+                ErrorStateView(error: error) {
+                    await viewModel.retry()
+                }
+            }
+        }
+        .onAppear {
+            Task { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private func loadedBody(activity: LoadActivity) -> some View {
+        let displayed = viewModel.displayedFavorites
+        VStack(spacing: 0) {
+            filterPicker
+            if displayed.isEmpty {
+                EmptyStateView(
+                    title: noMatchesTitle,
+                    message: noMatchesMessage,
+                    systemImage: "line.3.horizontal.decrease.circle"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
                 List {
-                    ForEach(favoritesList, id: \.listID) { favorite in
+                    ForEach(displayed, id: \.listID) { favorite in
                         favoriteRow(favorite)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -41,25 +66,46 @@ struct FavoritesListView: View {
                     }
                 }
                 .listStyle(.plain)
-                .overlay(alignment: .top) {
-                    if case .failed(let error) = activity {
-                        Text("\(error.title): \(error.message)")
-                            .font(.footnote)
-                            .foregroundStyle(.white)
-                            .padding(8)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.red)
-                            .accessibilityLabel("\(error.title). \(error.message)")
-                    }
-                }
-            case .failed(let error):
-                ErrorStateView(error: error) {
-                    await viewModel.retry()
-                }
             }
         }
-        .onAppear {
-            Task { await viewModel.load() }
+        .overlay(alignment: .top) {
+            if case .failed(let error) = activity {
+                Text("\(error.title): \(error.message)")
+                    .font(.footnote)
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red)
+                    .accessibilityLabel("\(error.title). \(error.message)")
+            }
+        }
+    }
+
+    private var filterPicker: some View {
+        Picker("Filter favorites", selection: $viewModel.filter) {
+            ForEach(FavoritesFilter.allCases, id: \.self) { option in
+                Text(option.title).tag(option)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .accessibilityLabel("Filter favorites")
+    }
+
+    private var noMatchesTitle: String {
+        switch viewModel.filter {
+        case .all: return "No Matches"
+        case .movies: return "No Movie Favorites"
+        case .people: return "No People Favorites"
+        }
+    }
+
+    private var noMatchesMessage: String {
+        switch viewModel.filter {
+        case .all: return "Nothing matches the current filter."
+        case .movies: return "Favorite a movie to see it here."
+        case .people: return "Favorite a person from a cast or crew card to see them here."
         }
     }
 

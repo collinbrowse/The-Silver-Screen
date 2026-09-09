@@ -5,16 +5,47 @@
 
 import Foundation
 
+/// Which favorite kinds the list shows. No TV case: TV favorites cannot be created (stories 4-5 are open).
+enum FavoritesFilter: String, CaseIterable, Sendable, Equatable {
+    case all
+    case movies
+    case people
+
+    var title: String {
+        switch self {
+        case .all: return "All"
+        case .movies: return "Movies"
+        case .people: return "People"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class FavoritesListViewModel {
     private(set) var state: LoadState<[FavoriteRecord]> = .idle
     private(set) var toggleError: AppError?
 
+    /// Active kind filter; preserved across reloads because this VM is long-lived.
+    var filter: FavoritesFilter = .all
+
     private let favorites: FavoritesRepository
 
     init(favorites: FavoritesRepository) {
         self.favorites = favorites
+    }
+
+    /// Records visible under the current filter (and later, search). Derived from `state`.
+    var displayedFavorites: [FavoriteRecord] {
+        guard case .loaded(let records, _) = state else { return [] }
+        switch filter {
+        case .all:
+            return records
+        case .movies:
+            return records.filter { $0.kind == .movie }
+        case .people:
+            return records.filter { $0.kind == .person }
+        }
     }
 
     func load() async {
@@ -56,11 +87,12 @@ final class FavoritesListViewModel {
         }
     }
 
+    /// Deletes rows by index into `displayedFavorites` (not the unfiltered `state` array).
     func removeFavorites(at offsets: IndexSet) async {
-        guard case .loaded(let current, _) = state else { return }
+        let displayed = displayedFavorites
         let toRemove = offsets.compactMap { index -> FavoriteRecord? in
-            guard current.indices.contains(index) else { return nil }
-            return current[index]
+            guard displayed.indices.contains(index) else { return nil }
+            return displayed[index]
         }
         for record in toRemove {
             await toggleFavorite(record)
