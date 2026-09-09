@@ -183,7 +183,7 @@ private struct FavoriteMovieRow: View {
             }
         }
         .frame(width: posterSize.width, height: posterSize.height)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
         .accessibilityHidden(true)
     }
 
@@ -249,6 +249,7 @@ private struct FavoritePersonRow: View {
                 imageLoader: imageLoader,
                 placeholderSystemImage: "person.fill"
             )
+            .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
             VStack(alignment: .leading, spacing: 6) {
                 Text(favorite.title)
                     .font(.headline)

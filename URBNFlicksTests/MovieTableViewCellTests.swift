@@ -58,6 +58,8 @@ final class MovieTableViewCellTests: XCTestCase {
         XCTAssertEqual(cell.posterView.bounds.height, 176, accuracy: 0.5)
         XCTAssertEqual(cell.posterView.contentMode, .scaleAspectFill)
         XCTAssertTrue(cell.posterView.clipsToBounds)
+        XCTAssertEqual(cell.posterView.layer.cornerRadius, DesignRadius.poster, accuracy: 0.5)
+        XCTAssertEqual(cell.posterView.layer.cornerCurve, .continuous)
     }
 
     func test_layout_titleAndRatingPinNearTop_pillUnderRating_yearPinsToBottom() {

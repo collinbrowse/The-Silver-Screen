@@ -121,6 +121,8 @@ final class MovieTableViewCell: UITableViewCell {
         posterView.translatesAutoresizingMaskIntoConstraints = false
         posterView.contentMode = .scaleAspectFill
         posterView.clipsToBounds = true
+        posterView.layer.cornerRadius = DesignRadius.poster
+        posterView.layer.cornerCurve = .continuous
         posterView.image = Self.placeholderImage
         posterView.setContentHuggingPriority(.required, for: .horizontal)
         posterView.setContentCompressionResistancePriority(.required, for: .horizontal)
