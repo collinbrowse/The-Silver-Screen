@@ -268,4 +268,100 @@ final class FavoritesListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.filter, .movies)
     }
+
+    func test_displayedFavorites_searchMatchesTitleCaseInsensitive() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Reservoir Dogs", genreIDs: [80]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Tom Cruise", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+
+        viewModel.searchText = "reservoir"
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["movie-1"])
+
+        viewModel.searchText = "CRUISE"
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2"])
+    }
+
+    func test_displayedFavorites_searchRespectsMoviesFilter() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Léon: The Professional", genreIDs: [28]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Léon", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .movies
+        viewModel.searchText = "Léon"
+
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["movie-1"])
+    }
+
+    func test_displayedFavorites_searchRespectsPeopleFilter() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Léon: The Professional", genreIDs: [28]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Léon", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .people
+        viewModel.searchText = "Léon"
+
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2"])
+    }
+
+    func test_displayedFavorites_clearingSearchRestoresFilteredSet() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .people
+        viewModel.searchText = "zzz"
+        XCTAssertTrue(viewModel.displayedFavorites.isEmpty)
+
+        viewModel.searchText = ""
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2"])
+    }
+
+    func test_load_preservesSearchText() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.searchText = "Movie"
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.searchText, "Movie")
+    }
 }

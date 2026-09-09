@@ -28,6 +28,8 @@ final class FavoritesListViewModel {
 
     /// Active kind filter; preserved across reloads because this VM is long-lived.
     var filter: FavoritesFilter = .all
+    /// In-memory title/name query; applied after `filter`.
+    var searchText: String = ""
 
     private let favorites: FavoritesRepository
 
@@ -35,17 +37,21 @@ final class FavoritesListViewModel {
         self.favorites = favorites
     }
 
-    /// Records visible under the current filter (and later, search). Derived from `state`.
+    /// Records visible under the current filter and search. Derived from `state`.
     var displayedFavorites: [FavoriteRecord] {
         guard case .loaded(let records, _) = state else { return [] }
+        let filtered: [FavoriteRecord]
         switch filter {
         case .all:
-            return records
+            filtered = records
         case .movies:
-            return records.filter { $0.kind == .movie }
+            filtered = records.filter { $0.kind == .movie }
         case .people:
-            return records.filter { $0.kind == .person }
+            filtered = records.filter { $0.kind == .person }
         }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return filtered }
+        return filtered.filter { $0.title.localizedStandardContains(query) }
     }
 
     func load() async {

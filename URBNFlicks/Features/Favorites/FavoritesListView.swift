@@ -30,6 +30,7 @@ struct FavoritesListView: View {
                 }
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "Search Favorites")
         .onAppear {
             Task { await viewModel.load() }
         }
@@ -94,6 +95,10 @@ struct FavoritesListView: View {
     }
 
     private var noMatchesTitle: String {
+        let query = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            return "No Matches"
+        }
         switch viewModel.filter {
         case .all: return "No Matches"
         case .movies: return "No Movie Favorites"
@@ -102,6 +107,17 @@ struct FavoritesListView: View {
     }
 
     private var noMatchesMessage: String {
+        let query = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            switch viewModel.filter {
+            case .all:
+                return "Nothing matches \"\(query)\"."
+            case .movies:
+                return "No movies match \"\(query)\"."
+            case .people:
+                return "No people match \"\(query)\"."
+            }
+        }
         switch viewModel.filter {
         case .all: return "Nothing matches the current filter."
         case .movies: return "Favorite a movie to see it here."

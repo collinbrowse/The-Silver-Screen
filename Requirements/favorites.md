@@ -14,4 +14,4 @@ Let users bookmark movies (and eventually TV series and people) and browse them 
 | 6 | Add bookmarking UI to any (or all) People cells or detail view. | No | [x] |
 | 7 | Show People in the same list UI as movies and TV. | No | [x] |
 | 8 | Add the ability to filter the Favorites list between Movies, TV Series, and People. | No | [ ] |
-| 9 | Add the ability to search within the Favorites view. This search respects any filters applied. | No | [ ] |
+| 9 | Add the ability to search within the Favorites view. This search respects any filters applied. | No | [x] |
