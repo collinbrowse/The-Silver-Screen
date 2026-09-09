@@ -123,4 +123,66 @@ final class FavoritesListViewModelTests: XCTestCase {
         }
         XCTAssertEqual(favorites.map(\.id), [1])
     }
+
+    func test_load_mixedMovieAndPerson_sortsNewestFirst() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 500, title: "Reservoir Dogs", genreIDs: [80]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(
+                id: 500,
+                name: "Tom Cruise",
+                profilePath: "/cruise.jpg",
+                knownForDepartment: "Acting"
+            ),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+
+        await viewModel.load()
+
+        guard case .loaded(let favorites, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(favorites.map(\.listID), ["person-500", "movie-500"])
+        XCTAssertEqual(favorites[0].genreNames, ["Acting"])
+    }
+
+    func test_toggleFavorite_person_leavesSameIDMovieIntact() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 500, title: "Reservoir Dogs", genreIDs: [80]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            person: FavoritePerson(
+                id: 500,
+                name: "Tom Cruise",
+                profilePath: "/cruise.jpg",
+                knownForDepartment: "Acting"
+            ),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+
+        guard case .loaded(let before, _) = viewModel.state else {
+            return XCTFail("Expected loaded before toggle")
+        }
+        let person = before.first { $0.kind == .person }!
+        await viewModel.toggleFavorite(person)
+
+        guard case .loaded(let favorites, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(favorites.map(\.listID), ["movie-500"])
+        let movieStillFavorite = try await repository.isFavorite(id: 500, kind: .movie)
+        XCTAssertTrue(movieStillFavorite)
+        let personStillFavorite = try await repository.isFavorite(id: 500, kind: .person)
+        XCTAssertFalse(personStillFavorite)
+    }
 }

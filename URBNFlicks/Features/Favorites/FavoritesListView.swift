@@ -19,24 +19,22 @@ struct FavoritesListView: View {
             case .empty:
                 EmptyStateView(
                     title: "No Favorites Yet",
-                    message: "Tap Favorite on a movie to save it here.",
+                    message: "Favorite a movie or person to save it here.",
                     systemImage: "heart"
                 )
             case .loaded(let favoritesList, let activity):
                 List {
-                    ForEach(favoritesList) { favorite in
-                        NavigationLink(value: Route.movieDetail(id: favorite.id)) {
-                            FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
-                        }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                Task { await viewModel.toggleFavorite(favorite) }
-                            } label: {
-                                Label("Remove", systemImage: "trash")
+                    ForEach(favoritesList, id: \.listID) { favorite in
+                        favoriteRow(favorite)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await viewModel.toggleFavorite(favorite) }
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                                .accessibilityLabel("Remove Favorite")
                             }
-                            .accessibilityLabel("Remove Favorite")
-                        }
                     }
                     .onDelete { offsets in
                         Task { await viewModel.removeFavorites(at: offsets) }
@@ -62,6 +60,18 @@ struct FavoritesListView: View {
         }
         .onAppear {
             Task { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteRow(_ favorite: FavoriteRecord) -> some View {
+        switch favorite.kind {
+        case .movie:
+            NavigationLink(value: Route.movieDetail(id: favorite.id)) {
+                FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
+            }
+        case .person:
+            FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
         }
     }
 }
@@ -95,7 +105,7 @@ private struct FavoriteMovieRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
-        .task(id: favorite.id) {
+        .task(id: favorite.listID) {
             await loadPoster()
         }
     }
@@ -134,13 +144,13 @@ private struct FavoriteMovieRow: View {
               ) else {
             return
         }
-        let expectedID = favorite.id
+        let expectedID = favorite.listID
         let image = try? await imageLoader.image(
             for: url,
             targetSize: posterSize,
             scale: displayScale
         )
-        guard expectedID == favorite.id else { return }
+        guard expectedID == favorite.listID else { return }
         poster = image
     }
 
@@ -156,5 +166,52 @@ private struct FavoriteMovieRow: View {
     static func releaseDateText(for date: Date?) -> String {
         guard let date else { return "Release date unavailable" }
         return dateFormatter.string(from: date)
+    }
+}
+
+/// Favorites row for a bookmarked person; not navigable (no person destination yet).
+private struct FavoritePersonRow: View {
+    let favorite: FavoriteRecord
+    let imageLoader: ImageLoader
+
+    private let profileWidth: CGFloat = 70
+    private let profileAspect: CGFloat = 2 / 3
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            RemoteImageView(
+                path: favorite.posterPath,
+                kind: .profile,
+                width: profileWidth,
+                aspectRatio: profileAspect,
+                imageLoader: imageLoader,
+                placeholderSystemImage: "person.fill"
+            )
+            VStack(alignment: .leading, spacing: 6) {
+                Text(favorite.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if !favorite.genreNames.isEmpty {
+                    Text(favorite.genreNames.joined(separator: ", "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Person")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [favorite.title]
+        if !favorite.genreNames.isEmpty {
+            parts.append(favorite.genreNames.joined(separator: ", "))
+        }
+        parts.append("Person")
+        return parts.joined(separator: ", ")
     }
 }
