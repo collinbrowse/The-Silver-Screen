@@ -39,6 +39,7 @@
 		B10001102788B823003D8011 /* FavoritePillButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001112788B823003D8011 /* FavoritePillButton.swift */; };
 		B10001122788B823003D8011 /* FavoritePillHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001132788B823003D8011 /* FavoritePillHostingView.swift */; };
 		B10001502788B823003D8011 /* FavoriteStarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001512788B823003D8011 /* FavoriteStarButton.swift */; };
+		B10001602788B823003D8011 /* PersonFavoriteStar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001612788B823003D8011 /* PersonFavoriteStar.swift */; };
 		C73510D7278BCE95006AEEF9 /* MovieTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73510D6278BCE95006AEEF9 /* MovieTableViewCell.swift */; };
 		C77D45322788B821003D8011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45312788B821003D8011 /* AppDelegate.swift */; };
 		C77D45342788B821003D8011 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45332788B821003D8011 /* SceneDelegate.swift */; };
@@ -135,6 +136,7 @@
 		B10001112788B823003D8011 /* FavoritePillButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePillButton.swift; sourceTree = "<group>"; };
 		B10001132788B823003D8011 /* FavoritePillHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritePillHostingView.swift; sourceTree = "<group>"; };
 		B10001512788B823003D8011 /* FavoriteStarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStarButton.swift; sourceTree = "<group>"; };
+		B10001612788B823003D8011 /* PersonFavoriteStar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonFavoriteStar.swift; sourceTree = "<group>"; };
 		C73510D6278BCE95006AEEF9 /* MovieTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieTableViewCell.swift; sourceTree = "<group>"; };
 		C77D452E2788B821003D8011 /* URBNFlicks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URBNFlicks.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C77D45312788B821003D8011 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -376,6 +378,7 @@
 				B10001112788B823003D8011 /* FavoritePillButton.swift */,
 				B10001132788B823003D8011 /* FavoritePillHostingView.swift */,
 				B10001512788B823003D8011 /* FavoriteStarButton.swift */,
+				B10001612788B823003D8011 /* PersonFavoriteStar.swift */,
 				B100012D2788B823003D8011 /* EmptyStateView.swift */,
 				B100012F2788B823003D8011 /* ErrorStateView.swift */,
 			);
@@ -628,6 +631,7 @@
 				B10001102788B823003D8011 /* FavoritePillButton.swift in Sources */,
 				B10001122788B823003D8011 /* FavoritePillHostingView.swift in Sources */,
 				B10001502788B823003D8011 /* FavoriteStarButton.swift in Sources */,
+				B10001602788B823003D8011 /* PersonFavoriteStar.swift in Sources */,
 				B10001322788B823003D8011 /* FavoritesListView.swift in Sources */,
 				B10001302788B823003D8011 /* FavoritesListViewModel.swift in Sources */,
 				B100012E2788B823003D8011 /* ErrorStateView.swift in Sources */,

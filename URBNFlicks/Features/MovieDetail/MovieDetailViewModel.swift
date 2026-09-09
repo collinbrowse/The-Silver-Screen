@@ -45,6 +45,8 @@ struct MovieDetailContent: Sendable, Equatable {
 
     let detail: MovieDetail
     let isFavorite: Bool
+    /// Favorited person ids used to paint cast/crew star overlays.
+    let favoritePersonIDs: Set<Int>
     let formattedRating: String
     let ratingAccessibilityLabel: String
     let formattedBudget: String
@@ -116,9 +118,11 @@ final class MovieDetailViewModel {
                 movieID: movieID,
                 movies: movies
             )
+            async let personIDsResult = favorites.favoritePersonIDs()
             let content = Self.makeContent(
                 detail: detail,
                 isFavorite: isFavorite,
+                favoritePersonIDs: (try? await personIDsResult) ?? [],
                 collection: await collectionSection,
                 reviews: await reviewsSection
             )
@@ -143,6 +147,31 @@ final class MovieDetailViewModel {
             let isFavorite = try await favorites.toggle(movie: content.detail.asMovie())
             state = .loaded(
                 content.replacing(isFavorite: isFavorite),
+                activity: .none
+            )
+        } catch is CancellationError {
+            return
+        } catch let error as AppError {
+            state = .loaded(content, activity: .failed(error))
+        } catch {
+            state = .loaded(content, activity: .failed(.unknown))
+        }
+    }
+
+    /// Favorites or unfavorites a person from a cast/crew card without changing movie favorite state.
+    func toggleFavorite(person: FavoritePerson) async {
+        guard case .loaded(let content, _) = state else { return }
+
+        do {
+            let isFavorite = try await favorites.toggle(person: person)
+            var ids = content.favoritePersonIDs
+            if isFavorite {
+                ids.insert(person.id)
+            } else {
+                ids.remove(person.id)
+            }
+            state = .loaded(
+                content.replacing(favoritePersonIDs: ids),
                 activity: .none
             )
         } catch is CancellationError {
@@ -233,6 +262,7 @@ final class MovieDetailViewModel {
     static func makeContent(
         detail: MovieDetail,
         isFavorite: Bool,
+        favoritePersonIDs: Set<Int> = [],
         collection: MovieDetailContent.CollectionSection? = nil,
         reviews: MovieDetailContent.ReviewsSection? = nil
     ) -> MovieDetailContent {
@@ -262,6 +292,7 @@ final class MovieDetailViewModel {
         return MovieDetailContent(
             detail: detail,
             isFavorite: isFavorite,
+            favoritePersonIDs: favoritePersonIDs,
             formattedRating: formatRating(detail.voteAverage),
             ratingAccessibilityLabel: ratingAccessibility(detail.voteAverage),
             formattedBudget: budget.display,
@@ -417,10 +448,17 @@ private struct ReviewsPatch {
 }
 
 private extension MovieDetailContent {
-    func withFullscreen(_ fullscreen: FullscreenImages?) -> MovieDetailContent {
+    func copy(
+        isFavorite: Bool? = nil,
+        favoritePersonIDs: Set<Int>? = nil,
+        collection: CollectionSection?? = nil,
+        reviews: ReviewsSection?? = nil,
+        fullscreenImages: FullscreenImages?? = nil
+    ) -> MovieDetailContent {
         MovieDetailContent(
             detail: detail,
-            isFavorite: isFavorite,
+            isFavorite: isFavorite ?? self.isFavorite,
+            favoritePersonIDs: favoritePersonIDs ?? self.favoritePersonIDs,
             formattedRating: formattedRating,
             ratingAccessibilityLabel: ratingAccessibilityLabel,
             formattedBudget: formattedBudget,
@@ -432,78 +470,39 @@ private extension MovieDetailContent {
             cast: cast,
             crew: crew,
             similar: similar,
-            collection: collection,
-            reviews: reviews,
-            fullscreenImages: fullscreen
+            collection: collection ?? self.collection,
+            reviews: reviews ?? self.reviews,
+            fullscreenImages: fullscreenImages ?? self.fullscreenImages
         )
+    }
+
+    func withFullscreen(_ fullscreen: FullscreenImages?) -> MovieDetailContent {
+        copy(fullscreenImages: .some(fullscreen))
     }
 
     func replacing(isFavorite: Bool) -> MovieDetailContent {
-        MovieDetailContent(
-            detail: detail,
-            isFavorite: isFavorite,
-            formattedRating: formattedRating,
-            ratingAccessibilityLabel: ratingAccessibilityLabel,
-            formattedBudget: formattedBudget,
-            budgetAccessibilityLabel: budgetAccessibilityLabel,
-            formattedRevenue: formattedRevenue,
-            revenueAccessibilityLabel: revenueAccessibilityLabel,
-            formattedReleaseDate: formattedReleaseDate,
-            images: images,
-            cast: cast,
-            crew: crew,
-            similar: similar,
-            collection: collection,
-            reviews: reviews,
-            fullscreenImages: fullscreenImages
-        )
+        copy(isFavorite: isFavorite)
+    }
+
+    func replacing(favoritePersonIDs: Set<Int>) -> MovieDetailContent {
+        copy(favoritePersonIDs: favoritePersonIDs)
     }
 
     func replacing(collection: CollectionSection?) -> MovieDetailContent {
-        MovieDetailContent(
-            detail: detail,
-            isFavorite: isFavorite,
-            formattedRating: formattedRating,
-            ratingAccessibilityLabel: ratingAccessibilityLabel,
-            formattedBudget: formattedBudget,
-            budgetAccessibilityLabel: budgetAccessibilityLabel,
-            formattedRevenue: formattedRevenue,
-            revenueAccessibilityLabel: revenueAccessibilityLabel,
-            formattedReleaseDate: formattedReleaseDate,
-            images: images,
-            cast: cast,
-            crew: crew,
-            similar: similar,
-            collection: collection,
-            reviews: reviews,
-            fullscreenImages: fullscreenImages
-        )
+        copy(collection: .some(collection))
     }
 
     func replacing(reviews: ReviewsPatch) -> MovieDetailContent {
-        MovieDetailContent(
-            detail: detail,
-            isFavorite: isFavorite,
-            formattedRating: formattedRating,
-            ratingAccessibilityLabel: ratingAccessibilityLabel,
-            formattedBudget: formattedBudget,
-            budgetAccessibilityLabel: budgetAccessibilityLabel,
-            formattedRevenue: formattedRevenue,
-            revenueAccessibilityLabel: revenueAccessibilityLabel,
-            formattedReleaseDate: formattedReleaseDate,
-            images: images,
-            cast: cast,
-            crew: crew,
-            similar: similar,
-            collection: collection,
-            reviews: ReviewsSection(
-                items: reviews.items,
-                nextPage: reviews.nextPage,
-                hasMore: reviews.hasMore,
-                isLoadingPage: reviews.isLoadingPage,
-                pageError: reviews.pageError
-            ),
-            fullscreenImages: fullscreenImages
+        copy(
+            reviews: .some(
+                ReviewsSection(
+                    items: reviews.items,
+                    nextPage: reviews.nextPage,
+                    hasMore: reviews.hasMore,
+                    isLoadingPage: reviews.isLoadingPage,
+                    pageError: reviews.pageError
+                )
+            )
         )
     }
 }

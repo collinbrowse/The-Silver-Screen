@@ -91,10 +91,10 @@ struct MovieDetailView: View {
                     imagesCarousel(images)
                 }
                 if let cast = content.cast {
-                    castCarousel(cast)
+                    castCarousel(cast, favoritePersonIDs: content.favoritePersonIDs)
                 }
                 if let crew = content.crew {
-                    crewCarousel(crew)
+                    crewCarousel(crew, favoritePersonIDs: content.favoritePersonIDs)
                 }
                 if let similar = content.similar {
                     similarCarousel(similar)
@@ -172,7 +172,10 @@ struct MovieDetailView: View {
         .padding(.bottom, DesignSpacing.xl)
     }
 
-    private func castCarousel(_ section: MovieDetailContent.CastSection) -> some View {
+    private func castCarousel(
+        _ section: MovieDetailContent.CastSection,
+        favoritePersonIDs: Set<Int>
+    ) -> some View {
         DetailCarousel(title: "Top Billed Cast") {
             ForEach(section.members) { member in
                 VStack(alignment: .leading, spacing: DesignSpacing.sm) {
@@ -185,26 +188,50 @@ struct MovieDetailView: View {
                         placeholderSystemImage: "person.fill"
                     )
                     .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+                    .overlay(alignment: .topTrailing) {
+                        PersonFavoriteStar(
+                            personName: member.name,
+                            isFavorite: favoritePersonIDs.contains(member.personID)
+                        ) {
+                            Task {
+                                await viewModel.toggleFavorite(
+                                    person: FavoritePerson(
+                                        id: member.personID,
+                                        name: member.name,
+                                        profilePath: member.profilePath,
+                                        knownForDepartment: member.knownForDepartment
+                                    )
+                                )
+                            }
+                        }
+                        .padding(DesignSpacing.xs)
+                    }
 
-                    Text(member.name)
-                        .font(DesignTypography.metadata.weight(.semibold))
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(member.character.isEmpty ? " " : member.character)
-                        .font(DesignTypography.chip)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                        Text(member.name)
+                            .font(DesignTypography.metadata.weight(.semibold))
+                            .foregroundStyle(DesignTheme.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(member.character.isEmpty ? " " : member.character)
+                            .font(DesignTypography.chip)
+                            .foregroundStyle(DesignTheme.textSecondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(castAccessibilityLabel(member))
                 }
                 .frame(width: portraitCardWidth, alignment: .leading)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(castAccessibilityLabel(member))
+                .accessibilityElement(children: .contain)
             }
         }
     }
 
-    private func crewCarousel(_ section: MovieDetailContent.CrewSection) -> some View {
+    private func crewCarousel(
+        _ section: MovieDetailContent.CrewSection,
+        favoritePersonIDs: Set<Int>
+    ) -> some View {
         DetailCarousel(title: "Directors & Writers") {
             ForEach(section.people) { person in
                 VStack(alignment: .leading, spacing: DesignSpacing.sm) {
@@ -217,21 +244,42 @@ struct MovieDetailView: View {
                         placeholderSystemImage: "person.fill"
                     )
                     .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+                    .overlay(alignment: .topTrailing) {
+                        PersonFavoriteStar(
+                            personName: person.name,
+                            isFavorite: favoritePersonIDs.contains(person.id)
+                        ) {
+                            Task {
+                                await viewModel.toggleFavorite(
+                                    person: FavoritePerson(
+                                        id: person.id,
+                                        name: person.name,
+                                        profilePath: person.profilePath,
+                                        knownForDepartment: person.knownForDepartment
+                                    )
+                                )
+                            }
+                        }
+                        .padding(DesignSpacing.xs)
+                    }
 
-                    Text(person.name)
-                        .font(DesignTypography.metadata.weight(.semibold))
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(person.rolesLabel)
-                        .font(DesignTypography.chip)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                        Text(person.name)
+                            .font(DesignTypography.metadata.weight(.semibold))
+                            .foregroundStyle(DesignTheme.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(person.rolesLabel)
+                            .font(DesignTypography.chip)
+                            .foregroundStyle(DesignTheme.textSecondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(person.name), \(person.rolesLabel)")
                 }
                 .frame(width: portraitCardWidth, alignment: .leading)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(person.name), \(person.rolesLabel)")
+                .accessibilityElement(children: .contain)
             }
         }
     }
