@@ -80,6 +80,20 @@
 		B10002142788B823003D8011 /* NavigationRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002152788B823003D8011 /* NavigationRouterTests.swift */; };
 		B10002182788B823003D8011 /* MovieDetailHostingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002192788B823003D8011 /* MovieDetailHostingController.swift */; };
 		B10002202788B823003D8011 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002212788B823003D8011 /* FlowLayout.swift */; };
+
+		B10003002788B823003D8011 /* PersonDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003012788B823003D8011 /* PersonDetail.swift */; };
+		B10003022788B823003D8011 /* PersonDetailDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003032788B823003D8011 /* PersonDetailDTO.swift */; };
+		B10003042788B823003D8011 /* TVGenreCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003052788B823003D8011 /* TVGenreCatalog.swift */; };
+		B10003062788B823003D8011 /* PersonRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003072788B823003D8011 /* PersonRepository.swift */; };
+		B10003082788B823003D8011 /* PersonDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003092788B823003D8011 /* PersonDetailViewModel.swift */; };
+		B100030A2788B823003D8011 /* PersonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100030B2788B823003D8011 /* PersonDetailView.swift */; };
+		B100030C2788B823003D8011 /* CreditsListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100030D2788B823003D8011 /* CreditsListViewModel.swift */; };
+		B100030E2788B823003D8011 /* CreditsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100030F2788B823003D8011 /* CreditsListView.swift */; };
+		B10003102788B823003D8011 /* PersonHostingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003112788B823003D8011 /* PersonHostingController.swift */; };
+		B10003122788B823003D8011 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003132788B823003D8011 /* SectionHeader.swift */; };
+		B10003162788B823003D8011 /* PersonRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003172788B823003D8011 /* PersonRepositoryTests.swift */; };
+		B10003182788B823003D8011 /* PersonDetailViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003192788B823003D8011 /* PersonDetailViewModelTests.swift */; };
+		B100031A2788B823003D8011 /* CreditsListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100031B2788B823003D8011 /* CreditsListViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +193,19 @@
 		B10002152788B823003D8011 /* NavigationRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationRouterTests.swift; sourceTree = "<group>"; };
 		B10002192788B823003D8011 /* MovieDetailHostingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailHostingController.swift; sourceTree = "<group>"; };
 		B10002212788B823003D8011 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		B10003012788B823003D8011 /* PersonDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetail.swift; sourceTree = "<group>"; };
+		B10003032788B823003D8011 /* PersonDetailDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailDTO.swift; sourceTree = "<group>"; };
+		B10003052788B823003D8011 /* TVGenreCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVGenreCatalog.swift; sourceTree = "<group>"; };
+		B10003072788B823003D8011 /* PersonRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonRepository.swift; sourceTree = "<group>"; };
+		B10003092788B823003D8011 /* PersonDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailViewModel.swift; sourceTree = "<group>"; };
+		B100030B2788B823003D8011 /* PersonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailView.swift; sourceTree = "<group>"; };
+		B100030D2788B823003D8011 /* CreditsListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsListViewModel.swift; sourceTree = "<group>"; };
+		B100030F2788B823003D8011 /* CreditsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsListView.swift; sourceTree = "<group>"; };
+		B10003112788B823003D8011 /* PersonHostingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonHostingController.swift; sourceTree = "<group>"; };
+		B10003132788B823003D8011 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
+		B10003172788B823003D8011 /* PersonRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonRepositoryTests.swift; sourceTree = "<group>"; };
+		B10003192788B823003D8011 /* PersonDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailViewModelTests.swift; sourceTree = "<group>"; };
+		B100031B2788B823003D8011 /* CreditsListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsListViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -275,6 +302,9 @@
 				B10001352788B823003D8011 /* FavoritesListViewModelTests.swift */,
 				B10002132788B823003D8011 /* MovieDetailViewModelTests.swift */,
 				B10002152788B823003D8011 /* NavigationRouterTests.swift */,
+				B10003172788B823003D8011 /* PersonRepositoryTests.swift */,
+				B10003192788B823003D8011 /* PersonDetailViewModelTests.swift */,
+				B100031B2788B823003D8011 /* CreditsListViewModelTests.swift */,
 			);
 			path = URBNFlicksTests;
 			sourceTree = "<group>";
@@ -322,6 +352,9 @@
 				B10002032788B823003D8011 /* MovieDetailDTO.swift */,
 				B10001012788B823003D8011 /* FavoriteRecord.swift */,
 				B10001032788B823003D8011 /* MovieGenreCatalog.swift */,
+				B10003012788B823003D8011 /* PersonDetail.swift */,
+				B10003032788B823003D8011 /* PersonDetailDTO.swift */,
+				B10003052788B823003D8011 /* TVGenreCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -342,6 +375,7 @@
 			isa = PBXGroup;
 			children = (
 				B100001F2788B823003D8011 /* MovieRepository.swift */,
+				B10003072788B823003D8011 /* PersonRepository.swift */,
 				B10001092788B823003D8011 /* FavoritesRepository.swift */,
 			);
 			path = Repositories;
@@ -363,6 +397,7 @@
 				B10001422788B823003D8011 /* TopMovies */,
 				B10001432788B823003D8011 /* Favorites */,
 				B10002162788B823003D8011 /* MovieDetail */,
+				B10003142788B823003D8011 /* People */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -471,8 +506,21 @@
 				B10002092788B823003D8011 /* TagChip.swift */,
 				B100020B2788B823003D8011 /* SurfaceCard.swift */,
 				B10002212788B823003D8011 /* FlowLayout.swift */,
+				B10003132788B823003D8011 /* SectionHeader.swift */,
 			);
 			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		B10003142788B823003D8011 /* People */ = {
+			isa = PBXGroup;
+			children = (
+				B10003092788B823003D8011 /* PersonDetailViewModel.swift */,
+				B100030B2788B823003D8011 /* PersonDetailView.swift */,
+				B100030D2788B823003D8011 /* CreditsListViewModel.swift */,
+				B100030F2788B823003D8011 /* CreditsListView.swift */,
+				B10003112788B823003D8011 /* PersonHostingController.swift */,
+			);
+			path = People;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -653,6 +701,16 @@
 				B100020E2788B823003D8011 /* MovieDetailView.swift in Sources */,
 				B10002102788B823003D8011 /* AppRouteDestination.swift in Sources */,
 				B10002182788B823003D8011 /* MovieDetailHostingController.swift in Sources */,
+				B10003002788B823003D8011 /* PersonDetail.swift in Sources */,
+				B10003022788B823003D8011 /* PersonDetailDTO.swift in Sources */,
+				B10003042788B823003D8011 /* TVGenreCatalog.swift in Sources */,
+				B10003062788B823003D8011 /* PersonRepository.swift in Sources */,
+				B10003082788B823003D8011 /* PersonDetailViewModel.swift in Sources */,
+				B100030A2788B823003D8011 /* PersonDetailView.swift in Sources */,
+				B100030C2788B823003D8011 /* CreditsListViewModel.swift in Sources */,
+				B100030E2788B823003D8011 /* CreditsListView.swift in Sources */,
+				B10003102788B823003D8011 /* PersonHostingController.swift in Sources */,
+				B10003122788B823003D8011 /* SectionHeader.swift in Sources */,
 				B10000202788B823003D8011 /* ImageLoader.swift in Sources */,
 				C77D45362788B821003D8011 /* MovieListViewController.swift in Sources */,
 				C77D45322788B821003D8011 /* AppDelegate.swift in Sources */,
@@ -679,6 +737,9 @@
 				B10001342788B823003D8011 /* FavoritesListViewModelTests.swift in Sources */,
 				B10002122788B823003D8011 /* MovieDetailViewModelTests.swift in Sources */,
 				B10002142788B823003D8011 /* NavigationRouterTests.swift in Sources */,
+				B10003162788B823003D8011 /* PersonRepositoryTests.swift in Sources */,
+				B10003182788B823003D8011 /* PersonDetailViewModelTests.swift in Sources */,
+				B100031A2788B823003D8011 /* CreditsListViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

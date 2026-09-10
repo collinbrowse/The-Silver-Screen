@@ -347,4 +347,134 @@ enum TMDBFixtures {
         }
         """.utf8
     )
+
+    /// Person detail with bio, deathday, IMDb id, images, and movie+TV cast/crew credits.
+    static let personDetailMorganFreeman = Data(
+        """
+        {
+          "id": 1922,
+          "name": "Morgan Freeman",
+          "biography": "An American actor known for his distinctive voice.",
+          "birthday": "1937-06-01",
+          "deathday": null,
+          "place_of_birth": "Memphis, Tennessee, USA",
+          "profile_path": "/oYJ3x8VfQU04f6ihfTXBL5H2OKD.jpg",
+          "known_for_department": "Acting",
+          "images": {
+            "profiles": [
+              {"file_path": "/profile1.jpg", "vote_average": 5.2},
+              {"file_path": "/profile2.jpg", "vote_average": 4.1}
+            ]
+          },
+          "external_ids": {
+            "imdb_id": "nm0000151"
+          },
+          "combined_credits": {
+            "cast": [
+              {
+                "id": 278,
+                "media_type": "movie",
+                "title": "The Shawshank Redemption",
+                "poster_path": "/poster.jpg",
+                "release_date": "1994-09-23",
+                "genre_ids": [18, 80],
+                "character": "Ellis Boyd 'Red' Redding",
+                "popularity": 100.0
+              },
+              {
+                "id": 1396,
+                "media_type": "tv",
+                "name": "Breaking Bad",
+                "poster_path": "/bb.jpg",
+                "first_air_date": "2008-01-20",
+                "genre_ids": [18, 80],
+                "character": "Guest",
+                "popularity": 50.0
+              }
+            ],
+            "crew": [
+              {
+                "id": 550,
+                "media_type": "movie",
+                "title": "Fight Club",
+                "poster_path": "/fc.jpg",
+                "release_date": "1999-10-15",
+                "genre_ids": [18],
+                "job": "Executive Producer",
+                "popularity": 80.0
+              },
+              {
+                "id": 550,
+                "media_type": "movie",
+                "title": "Fight Club",
+                "poster_path": "/fc.jpg",
+                "release_date": "1999-10-15",
+                "genre_ids": [18],
+                "job": "Producer",
+                "popularity": 80.0
+              }
+            ]
+          }
+        }
+        """.utf8
+    )
+
+    /// Sparse person: no images, no credits, no deathday, no imdb.
+    static let personDetailSparse = Data(
+        """
+        {
+          "id": 1,
+          "name": "Unknown Actor",
+          "biography": "",
+          "birthday": null,
+          "deathday": null,
+          "place_of_birth": null,
+          "profile_path": null,
+          "known_for_department": null,
+          "images": {"profiles": []},
+          "external_ids": {"imdb_id": null},
+          "combined_credits": {"cast": [], "crew": []}
+        }
+        """.utf8
+    )
+
+    /// Deceased person with many cast credits (>10) for View All threshold tests.
+    static let personDetailManyCredits: Data = {
+        let castItems = (1...12).map { i in
+            """
+              {
+                "id": \(i),
+                "media_type": "movie",
+                "title": "Movie \(i)",
+                "poster_path": "/m\(i).jpg",
+                "release_date": "200\(i % 10)-01-01",
+                "genre_ids": [18],
+                "character": "Role \(i)",
+                "popularity": \(100 - i)
+              }
+            """
+        }.joined(separator: ",\n")
+        return Data(
+            """
+            {
+              "id": 123,
+              "name": "Busy Actor",
+              "biography": "Lots of credits.",
+              "birthday": "1950-01-01",
+              "deathday": "2020-12-31",
+              "place_of_birth": "Los Angeles, USA",
+              "profile_path": "/busy.jpg",
+              "known_for_department": "Acting",
+              "images": {"profiles": [{"file_path": "/busy1.jpg", "vote_average": 1.0}]},
+              "external_ids": {"imdb_id": "nm9999999"},
+              "combined_credits": {
+                "cast": [
+            \(castItems)
+                ],
+                "crew": []
+              }
+            }
+            """.utf8
+        )
+    }()
 }
