@@ -59,7 +59,16 @@ final class FavoritesListViewModel {
     }
 
     func load() async {
-        state = .loading
+        // Only a cold load shows the full-screen spinner. Returning to the tab (`onAppear` fires
+        // again) is a refresh that keeps the current list on screen instead of throwing it away
+        // and flashing a spinner.
+        if case .loaded(let current, _) = state {
+            state = .loaded(current, activity: .refreshing)
+        } else if case .empty = state {
+            // Keep the empty state; re-fetch silently.
+        } else {
+            state = .loading
+        }
         toggleError = nil
         do {
             let records = try await favorites.favorites()
@@ -67,9 +76,18 @@ final class FavoritesListViewModel {
         } catch is CancellationError {
             return
         } catch let error as AppError {
-            state = .failed(error)
+            failRefresh(with: error)
         } catch {
-            state = .failed(.unknown)
+            failRefresh(with: .unknown)
+        }
+    }
+
+    /// A refresh failure keeps any content already on screen; only a cold failure is full-screen.
+    private func failRefresh(with error: AppError) {
+        if case .loaded(let current, _) = state {
+            state = .loaded(current, activity: .failed(error))
+        } else {
+            state = .failed(error)
         }
     }
 

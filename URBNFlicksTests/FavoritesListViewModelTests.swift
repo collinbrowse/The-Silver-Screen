@@ -304,6 +304,33 @@ final class FavoritesListViewModelTests: XCTestCase {
         XCTAssertFalse(personGone)
     }
 
+    func test_load_whenAlreadyLoaded_refreshesInPlaceWithoutLoadingFlash() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Keep", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        guard case .loaded(let loaded, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded after first load, got \(viewModel.state)")
+        }
+
+        // Reload (e.g. tab reappears) must not throw the list away for a spinner.
+        let reload = Task { await viewModel.load() }
+        await Task.yield()
+
+        if case .loading = viewModel.state {
+            XCTFail("Reload regressed to .loading and flashed a spinner")
+        }
+        if case .idle = viewModel.state {
+            XCTFail("Reload regressed to .idle")
+        }
+        await reload.value
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.id), loaded.map(\.id))
+    }
+
     func test_load_preservesActiveFilter() async throws {
         let store = InMemoryFavoritesStore()
         let repository = FavoritesRepository(store: store, logger: SilentLogger())
