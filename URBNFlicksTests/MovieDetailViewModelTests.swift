@@ -26,7 +26,6 @@ final class MovieDetailViewModelTests: XCTestCase {
         XCTAssertEqual(content.formattedBudget, "$25.0M")
         XCTAssertEqual(content.formattedRevenue, "$28.3M")
         XCTAssertEqual(content.formattedReleaseDate, "Sep 23, 1994")
-        XCTAssertFalse(content.isFavorite)
         XCTAssertEqual(content.images?.items.map(\.filePath), ["/backdrop-a.jpg", "/backdrop-b.jpg"])
         XCTAssertEqual(content.cast?.members.map(\.name), ["Tim Robbins", "Morgan Freeman"])
         XCTAssertEqual(content.crew?.people.count, 1)
@@ -207,9 +206,10 @@ final class MovieDetailViewModelTests: XCTestCase {
         XCTAssertEqual(content.detail.id, 278)
     }
 
-    func test_toggleFavorite_updatesFavoriteFlag() async throws {
+    func test_toggleFavorite_updatesSharedIndex() async throws {
+        let index = FavoritesIndex()
         let store = InMemoryFavoritesStore()
-        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        let favorites = FavoritesRepository(store: store, logger: SilentLogger(), index: index)
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(
@@ -221,19 +221,23 @@ final class MovieDetailViewModelTests: XCTestCase {
 
         await viewModel.toggleFavorite()
 
-        guard case .loaded(let content, activity: .none) = viewModel.state else {
+        guard case .loaded(_, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
-        XCTAssertTrue(content.isFavorite)
+        XCTAssertTrue(index.contains(278, kind: .movie))
         let isFavorite = try await favorites.isFavorite(id: 278, kind: .movie)
         XCTAssertTrue(isFavorite)
-        XCTAssertTrue(content.favoritePersonIDs.isEmpty)
-        XCTAssertEqual(content.favoriteMovieIDs, [278])
+        XCTAssertTrue(index.personIDs.isEmpty)
+        XCTAssertEqual(index.movieIDs, [278])
     }
 
-    func test_toggleFavorite_carouselMovie_updatesMovieIDsWithoutChangingDetailFavorite() async throws {
-        let store = InMemoryFavoritesStore()
-        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+    func test_toggleFavorite_carouselMovie_updatesIndexWithoutFavoritingDetail() async throws {
+        let index = FavoritesIndex()
+        let favorites = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(
@@ -246,20 +250,24 @@ final class MovieDetailViewModelTests: XCTestCase {
         let similar = TestMovies.make(id: 311, title: "Similar", genreIDs: [18])
         await viewModel.toggleFavorite(movie: similar)
 
-        guard case .loaded(let content, activity: .none) = viewModel.state else {
+        guard case .loaded(_, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
-        XCTAssertFalse(content.isFavorite)
-        XCTAssertEqual(content.favoriteMovieIDs, [311])
+        XCTAssertEqual(index.movieIDs, [311])
+        XCTAssertFalse(index.contains(278, kind: .movie))
         let similarFavorite = try await favorites.isFavorite(id: 311, kind: .movie)
         XCTAssertTrue(similarFavorite)
         let detailFavorite = try await favorites.isFavorite(id: 278, kind: .movie)
         XCTAssertFalse(detailFavorite)
     }
 
-    func test_toggleFavoritePerson_updatesPersonIDsWithoutChangingMovieFavorite() async throws {
-        let store = InMemoryFavoritesStore()
-        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+    func test_toggleFavoritePerson_updatesSharedIndexWithoutFavoritingMovie() async throws {
+        let index = FavoritesIndex()
+        let favorites = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(
@@ -278,11 +286,11 @@ final class MovieDetailViewModelTests: XCTestCase {
             )
         )
 
-        guard case .loaded(let content, activity: .none) = viewModel.state else {
+        guard case .loaded(_, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
-        XCTAssertFalse(content.isFavorite)
-        XCTAssertEqual(content.favoritePersonIDs, [504])
+        XCTAssertFalse(index.contains(278, kind: .movie))
+        XCTAssertEqual(index.personIDs, [504])
         let isPersonFavorite = try await favorites.isFavorite(id: 504, kind: .person)
         XCTAssertTrue(isPersonFavorite)
 
@@ -295,16 +303,19 @@ final class MovieDetailViewModelTests: XCTestCase {
             )
         )
 
-        guard case .loaded(let after, activity: .none) = viewModel.state else {
+        guard case .loaded(_, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded after unfavorite, got \(viewModel.state)")
         }
-        XCTAssertFalse(after.isFavorite)
-        XCTAssertTrue(after.favoritePersonIDs.isEmpty)
+        XCTAssertTrue(index.personIDs.isEmpty)
     }
 
     func test_toggleFavorite_movie_leavesFavoritePersonIDsUntouched() async throws {
-        let store = InMemoryFavoritesStore()
-        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        let index = FavoritesIndex()
+        let favorites = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
         _ = try await favorites.toggle(
             person: FavoritePerson(
                 id: 504,
@@ -323,21 +334,19 @@ final class MovieDetailViewModelTests: XCTestCase {
         )
         await viewModel.load()
 
-        guard case .loaded(let before, _) = viewModel.state else {
-            return XCTFail("Expected loaded, got \(viewModel.state)")
-        }
-        XCTAssertEqual(before.favoritePersonIDs, [504])
+        XCTAssertEqual(index.personIDs, [504])
 
         await viewModel.toggleFavorite()
 
-        guard case .loaded(let after, activity: .none) = viewModel.state else {
+        guard case .loaded(_, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
-        XCTAssertTrue(after.isFavorite)
-        XCTAssertEqual(after.favoritePersonIDs, [504])
+        XCTAssertTrue(index.contains(278, kind: .movie))
+        XCTAssertEqual(index.personIDs, [504])
     }
 
-    func test_toggleFavorite_whenPersistenceFails_keepsContentWithFailedActivity() async {
+    func test_toggleFavorite_whenPersistenceFails_keepsIndexAndSetsFailedActivity() async {
+        let index = FavoritesIndex()
         let store = InMemoryFavoritesStore()
         await store.setSaveError(CocoaError(.fileWriteUnknown))
         let viewModel = MovieDetailViewModel(
@@ -345,7 +354,7 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: FavoritesRepository(store: store, logger: SilentLogger())
+            favorites: FavoritesRepository(store: store, logger: SilentLogger(), index: index)
         )
         await viewModel.load()
 
@@ -355,8 +364,42 @@ final class MovieDetailViewModelTests: XCTestCase {
             return XCTFail("Expected loaded with failed activity, got \(viewModel.state)")
         }
         XCTAssertEqual(content.detail.id, 278)
-        XCTAssertFalse(content.isFavorite)
+        XCTAssertFalse(index.contains(278, kind: .movie))
         XCTAssertEqual(error, .persistence)
+    }
+
+    func test_personToggleOnOtherScreen_updatesSharedIndexWithoutMovieReload() async throws {
+        let index = FavoritesIndex()
+        let favorites = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
+        let movieViewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
+            ),
+            favorites: favorites
+        )
+        let personViewModel = PersonDetailViewModel(
+            personID: 1922,
+            people: PersonRepository.test(
+                client: FakeHTTPClient(stub: .success(TMDBFixtures.personDetailMorganFreeman))
+            ),
+            favorites: favorites
+        )
+        await movieViewModel.load()
+        await personViewModel.load()
+
+        XCTAssertTrue(index.personIDs.isEmpty)
+
+        await personViewModel.toggleFavorite()
+
+        XCTAssertTrue(index.contains(1922, kind: .person))
+        guard case .loaded = movieViewModel.state else {
+            return XCTFail("Movie detail should stay loaded")
+        }
     }
 
     func test_formatCurrency_zero_isNotAvailable() {

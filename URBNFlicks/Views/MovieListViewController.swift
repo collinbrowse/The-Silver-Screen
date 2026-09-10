@@ -24,6 +24,7 @@ final class MovieListViewController: UIViewController {
     private let viewModel: MovieListViewModel
     private let imageLoader: ImageLoader
     private let favorites: FavoritesRepository
+    private let favoritesIndex: FavoritesIndex
     private let router: NavigationRouter
 
     private let tableView = UITableView(frame: .zero, style: .plain)
@@ -37,13 +38,12 @@ final class MovieListViewController: UIViewController {
 
     private var dataSource: UITableViewDiffableDataSource<Section, Movie.ID>!
     private var moviesByID: [Movie.ID: Movie] = [:]
-    /// Deduped favorite movie IDs for cell star state; refreshed on appear.
-    private var favoriteIDs: Set<Movie.ID> = []
     /// Heights of rows the user has already scrolled past. Self-sizing rows vary by a point or two
     /// when a title wraps, and without this the estimate for those rows is corrected during a page
     /// append — which shifts the content under the user mid-fling.
     private var measuredRowHeights: [Movie.ID: CGFloat] = [:]
     private var stateTask: Task<Void, Never>?
+    private var favoritesIndexTask: Task<Void, Never>?
     /// Non-nil while a page fetch is in flight, so scroll events cannot pile up duplicate requests.
     private var loadMoreTask: Task<Void, Never>?
     private var sortButton: UIBarButtonItem!
@@ -52,11 +52,13 @@ final class MovieListViewController: UIViewController {
         viewModel: MovieListViewModel,
         imageLoader: ImageLoader,
         favorites: FavoritesRepository,
+        favoritesIndex: FavoritesIndex,
         router: NavigationRouter
     ) {
         self.viewModel = viewModel
         self.imageLoader = imageLoader
         self.favorites = favorites
+        self.favoritesIndex = favoritesIndex
         self.router = router
         super.init(nibName: nil, bundle: nil)
     }
@@ -67,6 +69,7 @@ final class MovieListViewController: UIViewController {
 
     deinit {
         stateTask?.cancel()
+        favoritesIndexTask?.cancel()
         loadMoreTask?.cancel()
     }
 
@@ -91,13 +94,14 @@ final class MovieListViewController: UIViewController {
             }
         }
 
-        Task { await viewModel.load() }
-        Task { await refreshFavoriteIDs() }
-    }
+        favoritesIndexTask = Task { [weak self] in
+            guard let self else { return }
+            for await _ in Observations({ self.favoritesIndex.movieIDs }) {
+                self.reconfigureVisibleCells()
+            }
+        }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        Task { await refreshFavoriteIDs(reconfigureVisible: true) }
+        Task { await viewModel.load() }
     }
 
     // MARK: - Setup
@@ -210,7 +214,7 @@ final class MovieListViewController: UIViewController {
             cell.configure(
                 with: movie,
                 loader: self.imageLoader,
-                isFavorite: self.favoriteIDs.contains(movie.id)
+                isFavorite: self.favoritesIndex.contains(movie.id, kind: .movie)
             ) { [weak self] in
                 self?.toggleFavorite(movie)
             }
@@ -220,28 +224,10 @@ final class MovieListViewController: UIViewController {
 
     // MARK: - Favorites
 
-    private func refreshFavoriteIDs(reconfigureVisible: Bool = false) async {
-        do {
-            let records = try await favorites.favorites()
-            favoriteIDs = Set(records.filter { $0.kind == .movie }.map(\.id))
-            if reconfigureVisible {
-                reconfigureVisibleCells()
-            }
-        } catch {
-            // Keep last known favorite state; persistence errors surface on toggle.
-        }
-    }
-
     private func toggleFavorite(_ movie: Movie) {
         Task { @MainActor in
             do {
                 let isFavorite = try await favorites.toggle(movie: movie)
-                if isFavorite {
-                    favoriteIDs.insert(movie.id)
-                } else {
-                    favoriteIDs.remove(movie.id)
-                }
-                reconfigureVisibleCells(for: movie.id)
                 let message = isFavorite ? "Added to Favorites" : "Removed from Favorites"
                 UIAccessibility.post(notification: .announcement, argument: message)
             } catch let error as AppError {
@@ -264,7 +250,7 @@ final class MovieListViewController: UIViewController {
             cell.configure(
                 with: movie,
                 loader: imageLoader,
-                isFavorite: favoriteIDs.contains(id)
+                isFavorite: favoritesIndex.contains(id, kind: .movie)
             ) { [weak self] in
                 self?.toggleFavorite(movie)
             }

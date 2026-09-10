@@ -10,6 +10,7 @@ struct TopMoviesListRepresentable: UIViewControllerRepresentable {
     let viewModel: MovieListViewModel
     let imageLoader: ImageLoader
     let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
     let router: NavigationRouter
     let makeDestination: @MainActor (Route) -> UIViewController
 
@@ -22,6 +23,7 @@ struct TopMoviesListRepresentable: UIViewControllerRepresentable {
             viewModel: viewModel,
             imageLoader: imageLoader,
             favorites: favorites,
+            favoritesIndex: favoritesIndex,
             router: router
         )
         let navigationController = UINavigationController(rootViewController: list)

@@ -44,11 +44,6 @@ struct MovieDetailContent: Sendable, Equatable {
     }
 
     let detail: MovieDetail
-    let isFavorite: Bool
-    /// Favorited person ids used to paint cast/crew star overlays.
-    let favoritePersonIDs: Set<Int>
-    /// Favorited movie ids used to paint similar/collection star overlays.
-    let favoriteMovieIDs: Set<Int>
     let formattedRating: String
     let ratingAccessibilityLabel: String
     let formattedBudget: String
@@ -72,6 +67,7 @@ struct FullscreenImages: Sendable, Equatable, Identifiable {
     enum Kind: Sendable, Equatable {
         case poster
         case backdrop
+        case profile
     }
 
     var id: String { initialID }
@@ -110,7 +106,6 @@ final class MovieDetailViewModel {
 
         do {
             let detail = try await movies.movieDetail(id: movieID)
-            let isFavorite = (try? await favorites.isFavorite(id: movieID, kind: .movie)) ?? false
             async let collectionSection = Self.loadCollectionSection(
                 movieID: movieID,
                 detail: detail,
@@ -120,13 +115,8 @@ final class MovieDetailViewModel {
                 movieID: movieID,
                 movies: movies
             )
-            async let personIDsResult = favorites.favoritePersonIDs()
-            async let movieIDsResult = favorites.favoriteMovieIDs()
             let content = Self.makeContent(
                 detail: detail,
-                isFavorite: isFavorite,
-                favoritePersonIDs: (try? await personIDsResult) ?? [],
-                favoriteMovieIDs: (try? await movieIDsResult) ?? [],
                 collection: await collectionSection,
                 reviews: await reviewsSection
             )
@@ -148,17 +138,8 @@ final class MovieDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            let isFavorite = try await favorites.toggle(movie: content.detail.asMovie())
-            var movieIDs = content.favoriteMovieIDs
-            if isFavorite {
-                movieIDs.insert(movieID)
-            } else {
-                movieIDs.remove(movieID)
-            }
-            state = .loaded(
-                content.replacing(isFavorite: isFavorite, favoriteMovieIDs: movieIDs),
-                activity: .none
-            )
+            try await favorites.toggle(movie: content.detail.asMovie())
+            state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -173,17 +154,8 @@ final class MovieDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            let isFavorite = try await favorites.toggle(person: person)
-            var ids = content.favoritePersonIDs
-            if isFavorite {
-                ids.insert(person.id)
-            } else {
-                ids.remove(person.id)
-            }
-            state = .loaded(
-                content.replacing(favoritePersonIDs: ids),
-                activity: .none
-            )
+            try await favorites.toggle(person: person)
+            state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -194,23 +166,12 @@ final class MovieDetailViewModel {
     }
 
     /// Favorites or unfavorites a movie from a similar/collection card.
-    /// Updates the toolbar star when the card is the detail movie itself.
     func toggleFavorite(movie: Movie) async {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            let isFavorite = try await favorites.toggle(movie: movie)
-            var movieIDs = content.favoriteMovieIDs
-            if isFavorite {
-                movieIDs.insert(movie.id)
-            } else {
-                movieIDs.remove(movie.id)
-            }
-            let detailIsFavorite = movie.id == movieID ? isFavorite : content.isFavorite
-            state = .loaded(
-                content.replacing(isFavorite: detailIsFavorite, favoriteMovieIDs: movieIDs),
-                activity: .none
-            )
+            try await favorites.toggle(movie: movie)
+            state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -298,9 +259,6 @@ final class MovieDetailViewModel {
 
     static func makeContent(
         detail: MovieDetail,
-        isFavorite: Bool,
-        favoritePersonIDs: Set<Int> = [],
-        favoriteMovieIDs: Set<Int> = [],
         collection: MovieDetailContent.CollectionSection? = nil,
         reviews: MovieDetailContent.ReviewsSection? = nil
     ) -> MovieDetailContent {
@@ -329,9 +287,6 @@ final class MovieDetailViewModel {
 
         return MovieDetailContent(
             detail: detail,
-            isFavorite: isFavorite,
-            favoritePersonIDs: favoritePersonIDs,
-            favoriteMovieIDs: favoriteMovieIDs,
             formattedRating: formatRating(detail.voteAverage),
             ratingAccessibilityLabel: ratingAccessibility(detail.voteAverage),
             formattedBudget: budget.display,
@@ -488,18 +443,12 @@ private struct ReviewsPatch {
 
 private extension MovieDetailContent {
     func copy(
-        isFavorite: Bool? = nil,
-        favoritePersonIDs: Set<Int>? = nil,
-        favoriteMovieIDs: Set<Int>? = nil,
         collection: CollectionSection?? = nil,
         reviews: ReviewsSection?? = nil,
         fullscreenImages: FullscreenImages?? = nil
     ) -> MovieDetailContent {
         MovieDetailContent(
             detail: detail,
-            isFavorite: isFavorite ?? self.isFavorite,
-            favoritePersonIDs: favoritePersonIDs ?? self.favoritePersonIDs,
-            favoriteMovieIDs: favoriteMovieIDs ?? self.favoriteMovieIDs,
             formattedRating: formattedRating,
             ratingAccessibilityLabel: ratingAccessibilityLabel,
             formattedBudget: formattedBudget,
@@ -519,18 +468,6 @@ private extension MovieDetailContent {
 
     func withFullscreen(_ fullscreen: FullscreenImages?) -> MovieDetailContent {
         copy(fullscreenImages: .some(fullscreen))
-    }
-
-    func replacing(isFavorite: Bool, favoriteMovieIDs: Set<Int>? = nil) -> MovieDetailContent {
-        copy(isFavorite: isFavorite, favoriteMovieIDs: favoriteMovieIDs)
-    }
-
-    func replacing(favoritePersonIDs: Set<Int>) -> MovieDetailContent {
-        copy(favoritePersonIDs: favoritePersonIDs)
-    }
-
-    func replacing(favoriteMovieIDs: Set<Int>) -> MovieDetailContent {
-        copy(favoriteMovieIDs: favoriteMovieIDs)
     }
 
     func replacing(collection: CollectionSection?) -> MovieDetailContent {

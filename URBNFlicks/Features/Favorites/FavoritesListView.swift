@@ -133,7 +133,9 @@ struct FavoritesListView: View {
                 FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
             }
         case .person:
-            FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
+            NavigationLink(value: Route.person(id: favorite.id)) {
+                FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
+            }
         }
     }
 }
@@ -231,7 +233,7 @@ private struct FavoriteMovieRow: View {
     }
 }
 
-/// Favorites row for a bookmarked person; not navigable (no person destination yet).
+/// Favorites row for a bookmarked person.
 private struct FavoritePersonRow: View {
     let favorite: FavoriteRecord
     let imageLoader: ImageLoader

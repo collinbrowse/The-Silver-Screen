@@ -36,7 +36,7 @@ struct RemoteImageView: View {
             }
         }
         .frame(width: width, height: height)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.media, style: .continuous))
         .accessibilityHidden(true)
         .task(id: path) {
             await load()

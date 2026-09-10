@@ -16,16 +16,28 @@ struct FavoritePerson: Sendable, Equatable {
 actor FavoritesRepository {
     private let store: any FavoritesStore
     private let logger: any AppLogging
+    private let index: FavoritesIndex
     private var cached: [FavoriteRecord]?
 
-    init(store: any FavoritesStore, logger: any AppLogging) {
+    @MainActor
+    init(
+        store: any FavoritesStore,
+        logger: any AppLogging,
+        index: FavoritesIndex = FavoritesIndex()
+    ) {
         self.store = store
         self.logger = logger
+        self.index = index
     }
 
     func favorites() async throws -> [FavoriteRecord] {
         let records = try await loadCache()
         return Self.sorted(records)
+    }
+
+    /// Reads persistence into the shared index. Call once at launch; later calls hit the cache.
+    func loadIndex() async throws {
+        try await loadCache()
     }
 
     func isFavorite(id: Int, kind: FavoriteKind) async throws -> Bool {
@@ -112,6 +124,8 @@ actor FavoritesRepository {
 
     // MARK: - Private
 
+    /// Loads from disk once, then serves memory. Publishes ids into `FavoritesIndex`.
+    @discardableResult
     private func loadCache() async throws -> [FavoriteRecord] {
         if let cached {
             return cached
@@ -119,6 +133,7 @@ actor FavoritesRepository {
         do {
             let records = try await store.load()
             cached = records
+            await index.replace(with: records)
             return records
         } catch {
             logger.error("Favorites load failed", category: .persistence)
@@ -130,6 +145,7 @@ actor FavoritesRepository {
         do {
             try await store.save(records)
             cached = records
+            await index.replace(with: records)
         } catch {
             logger.error("Favorites save failed", category: .persistence)
             throw AppError.persistence

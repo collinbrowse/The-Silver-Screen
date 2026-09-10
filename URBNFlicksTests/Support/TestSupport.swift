@@ -27,6 +27,22 @@ extension MovieRepository {
     }
 }
 
+extension PersonRepository {
+    /// Test factory: real repository over a fake client, no retry backoff delay.
+    static func test(
+        client: any HTTPClient,
+        apiKey: String = "test",
+        logger: any AppLogging = SilentLogger()
+    ) -> PersonRepository {
+        PersonRepository(
+            client: client,
+            apiKey: apiKey,
+            logger: logger,
+            sleeper: NoopSleeper()
+        )
+    }
+}
+
 extension ImageLoader {
     static func test(
         client: any HTTPClient,

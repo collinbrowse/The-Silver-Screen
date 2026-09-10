@@ -24,10 +24,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         do {
             let dependencies = try AppDependencies.live()
             let favoritesListViewModel = FavoritesListViewModel(favorites: dependencies.favorites)
+            Task { try? await dependencies.favorites.loadIndex() }
             let root = RootTabView(
                 router: dependencies.router,
                 movies: dependencies.movies,
+                people: dependencies.people,
                 favorites: dependencies.favorites,
+                favoritesIndex: dependencies.favoritesIndex,
                 imageLoader: dependencies.imageLoader,
                 favoritesListViewModel: favoritesListViewModel
             )

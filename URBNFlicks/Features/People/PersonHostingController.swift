@@ -1,5 +1,5 @@
 //
-//  MovieDetailHostingController.swift
+//  PersonHostingController.swift
 //  URBNFlicks
 //
 //  UIKit navigation bridge: SwiftUI toolbar items do not reliably appear on a
@@ -12,28 +12,28 @@ import SwiftUI
 import UIKit
 
 @MainActor
-final class MovieDetailHostingController: UIViewController {
-    private let viewModel: MovieDetailViewModel
+final class PersonHostingController: UIViewController {
+    private let viewModel: PersonDetailViewModel
     private let favoritesIndex: FavoritesIndex
     private let imageLoader: ImageLoader
     private let router: NavigationRouter
-    private var hostingController: UIHostingController<MovieDetailView>!
+    private var hostingController: UIHostingController<PersonDetailView>!
     private var observationTask: Task<Void, Never>?
     private var starHost: UIHostingController<CellFavoriteStar>?
     private var lightboxHost: UIHostingController<FullscreenImageViewer>?
     private var presentedLightboxID: String?
 
     init(
-        movieID: Int,
-        movies: MovieRepository,
+        personID: Int,
+        people: PersonRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
-        self.viewModel = MovieDetailViewModel(
-            movieID: movieID,
-            movies: movies,
+        self.viewModel = PersonDetailViewModel(
+            personID: personID,
+            people: people,
             favorites: favorites
         )
         self.favoritesIndex = favoritesIndex
@@ -55,7 +55,7 @@ final class MovieDetailHostingController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
         view.backgroundColor = .systemBackground
 
-        let root = MovieDetailView(
+        let root = PersonDetailView(
             viewModel: viewModel,
             favoritesIndex: favoritesIndex,
             imageLoader: imageLoader,
@@ -78,7 +78,7 @@ final class MovieDetailHostingController: UIViewController {
         observationTask = Task { [weak self] in
             guard let self else { return }
             for await _ in Observations({
-                (self.viewModel.state, self.favoritesIndex.movieIDs)
+                (self.viewModel.state, self.favoritesIndex.personIDs)
             }) {
                 self.syncFavoriteButton(state: self.viewModel.state)
                 self.syncLightbox(state: self.viewModel.state)
@@ -86,7 +86,7 @@ final class MovieDetailHostingController: UIViewController {
         }
     }
 
-    private func syncFavoriteButton(state: LoadState<MovieDetailContent>) {
+    private func syncFavoriteButton(state: LoadState<PersonDetailContent>) {
         guard case .loaded(let content, _) = state else {
             navigationItem.rightBarButtonItem = nil
             starHost = nil
@@ -94,8 +94,8 @@ final class MovieDetailHostingController: UIViewController {
         }
 
         let root = CellFavoriteStar(
-            name: content.detail.title,
-            isFavorite: favoritesIndex.contains(content.detail.id, kind: .movie)
+            name: content.detail.name,
+            isFavorite: favoritesIndex.contains(content.detail.id, kind: .person)
         ) { [weak self] in
             Task { await self?.viewModel.toggleFavorite() }
         }
@@ -111,7 +111,7 @@ final class MovieDetailHostingController: UIViewController {
         }
     }
 
-    private func syncLightbox(state: LoadState<MovieDetailContent>) {
+    private func syncLightbox(state: LoadState<PersonDetailContent>) {
         guard case .loaded(let content, _) = state,
               let fullscreen = content.fullscreenImages else {
             if lightboxHost != nil {

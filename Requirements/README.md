@@ -51,7 +51,7 @@ Update the `Completed / Total` column as you go.
 | [Now Playing Tab](now-playing-tab.md)             | 0 / 2             |
 | [Upcoming Tab](upcoming-tab.md)                   | 0 / 2             |
 | [Search Tab](search-tab.md)                       | 0 / 4             |
-| [People View](people-view.md)                     | 0 / 4             |
+| [People View](people-view.md)                     | 4 / 4             |
 | [Collections View](collections-view.md)           | 0 / 3             |
 | [TV Series View](tv-series-view.md)               | 0 / 7             |
 | [TV Series Season View](tv-series-season-view.md) | 0 / 5             |

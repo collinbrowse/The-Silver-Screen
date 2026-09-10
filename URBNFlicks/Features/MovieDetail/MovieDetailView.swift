@@ -8,6 +8,7 @@ import UIKit
 
 struct MovieDetailView: View {
     @State var viewModel: MovieDetailViewModel
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     var router: NavigationRouter?
     var showsToolbarFavorite: Bool = true
@@ -60,7 +61,7 @@ struct MovieDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     CellFavoriteStar(
                         name: content.detail.title,
-                        isFavorite: content.isFavorite
+                        isFavorite: favoritesIndex.contains(content.detail.id, kind: .movie)
                     ) {
                         Task { await viewModel.toggleFavorite() }
                     }
@@ -94,16 +95,16 @@ struct MovieDetailView: View {
                     imagesCarousel(images)
                 }
                 if let cast = content.cast {
-                    castCarousel(cast, favoritePersonIDs: content.favoritePersonIDs)
+                    castCarousel(cast)
                 }
                 if let crew = content.crew {
-                    crewCarousel(crew, favoritePersonIDs: content.favoritePersonIDs)
+                    crewCarousel(crew)
                 }
                 if let similar = content.similar {
-                    similarCarousel(similar, favoriteMovieIDs: content.favoriteMovieIDs)
+                    similarCarousel(similar)
                 }
                 if let collection = content.collection {
-                    collectionCarousel(collection, favoriteMovieIDs: content.favoriteMovieIDs)
+                    collectionCarousel(collection)
                 }
                 if let reviews = content.reviews {
                     reviewsSection(reviews)
@@ -176,161 +177,165 @@ struct MovieDetailView: View {
     }
 
     private func castCarousel(
-        _ section: MovieDetailContent.CastSection,
-        favoritePersonIDs: Set<Int>
+        _ section: MovieDetailContent.CastSection
     ) -> some View {
         DetailCarousel(title: "Top Billed Cast") {
             ForEach(section.members) { member in
-                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                    RemoteImageView(
-                        path: member.profilePath,
-                        kind: .profile,
-                        width: portraitCardWidth,
-                        aspectRatio: 2 / 3,
-                        imageLoader: imageLoader,
-                        placeholderSystemImage: "person.fill"
-                    )
-                    .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
-                    .overlay(alignment: .topTrailing) {
-                        PersonFavoriteStar(
-                            name: member.name,
-                            isFavorite: favoritePersonIDs.contains(member.personID)
-                        ) {
-                            Task {
-                                await viewModel.toggleFavorite(
-                                    person: FavoritePerson(
-                                        id: member.personID,
-                                        name: member.name,
-                                        profilePath: member.profilePath,
-                                        knownForDepartment: member.knownForDepartment
-                                    )
-                                )
-                            }
-                        }
-                        .padding(DesignSpacing.xs)
-                    }
-
+                Button {
+                    router?.push(.person(id: member.personID))
+                } label: {
                     VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                        Text(member.name)
-                            .font(DesignTypography.metadata.weight(.semibold))
-                            .foregroundStyle(DesignTheme.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(member.character.isEmpty ? " " : member.character)
-                            .font(DesignTypography.chip)
-                            .foregroundStyle(DesignTheme.textSecondary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                        RemoteImageView(
+                            path: member.profilePath,
+                            kind: .profile,
+                            width: portraitCardWidth,
+                            aspectRatio: 2 / 3,
+                            imageLoader: imageLoader,
+                            placeholderSystemImage: "person.fill"
+                        )
+                        .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+                        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                            Text(member.name)
+                                .font(DesignTypography.metadata.weight(.semibold))
+                                .foregroundStyle(DesignTheme.textPrimary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(member.character.isEmpty ? " " : member.character)
+                                .font(DesignTypography.chip)
+                                .foregroundStyle(DesignTheme.textSecondary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(castAccessibilityLabel(member))
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(castAccessibilityLabel(member))
+                    .frame(width: portraitCardWidth, alignment: .leading)
                 }
-                .frame(width: portraitCardWidth, alignment: .leading)
+                .buttonStyle(.plain)
+                .disabled(router == nil)
+                .overlay(alignment: .topTrailing) {
+                    PersonFavoriteStar(
+                        name: member.name,
+                        isFavorite: favoritesIndex.contains(member.personID, kind: .person)
+                    ) {
+                        Task {
+                            await viewModel.toggleFavorite(
+                                person: FavoritePerson(
+                                    id: member.personID,
+                                    name: member.name,
+                                    profilePath: member.profilePath,
+                                    knownForDepartment: member.knownForDepartment
+                                )
+                            )
+                        }
+                    }
+                    .padding(DesignSpacing.xs)
+                }
                 .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
             }
         }
     }
 
     private func crewCarousel(
-        _ section: MovieDetailContent.CrewSection,
-        favoritePersonIDs: Set<Int>
+        _ section: MovieDetailContent.CrewSection
     ) -> some View {
         DetailCarousel(title: "Directors & Writers") {
             ForEach(section.people) { person in
-                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                    RemoteImageView(
-                        path: person.profilePath,
-                        kind: .profile,
-                        width: portraitCardWidth,
-                        aspectRatio: 2 / 3,
-                        imageLoader: imageLoader,
-                        placeholderSystemImage: "person.fill"
-                    )
-                    .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
-                    .overlay(alignment: .topTrailing) {
-                        PersonFavoriteStar(
-                            name: person.name,
-                            isFavorite: favoritePersonIDs.contains(person.id)
-                        ) {
-                            Task {
-                                await viewModel.toggleFavorite(
-                                    person: FavoritePerson(
-                                        id: person.id,
-                                        name: person.name,
-                                        profilePath: person.profilePath,
-                                        knownForDepartment: person.knownForDepartment
-                                    )
-                                )
-                            }
-                        }
-                        .padding(DesignSpacing.xs)
-                    }
-
+                Button {
+                    router?.push(.person(id: person.id))
+                } label: {
                     VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                        Text(person.name)
-                            .font(DesignTypography.metadata.weight(.semibold))
-                            .foregroundStyle(DesignTheme.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(person.rolesLabel)
-                            .font(DesignTypography.chip)
-                            .foregroundStyle(DesignTheme.textSecondary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                        RemoteImageView(
+                            path: person.profilePath,
+                            kind: .profile,
+                            width: portraitCardWidth,
+                            aspectRatio: 2 / 3,
+                            imageLoader: imageLoader,
+                            placeholderSystemImage: "person.fill"
+                        )
+                        .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+
+                        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                            Text(person.name)
+                                .font(DesignTypography.metadata.weight(.semibold))
+                                .foregroundStyle(DesignTheme.textPrimary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(person.rolesLabel)
+                                .font(DesignTypography.chip)
+                                .foregroundStyle(DesignTheme.textSecondary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(person.name), \(person.rolesLabel)")
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(person.name), \(person.rolesLabel)")
+                    .frame(width: portraitCardWidth, alignment: .leading)
                 }
-                .frame(width: portraitCardWidth, alignment: .leading)
+                .buttonStyle(.plain)
+                .disabled(router == nil)
+                .overlay(alignment: .topTrailing) {
+                    PersonFavoriteStar(
+                        name: person.name,
+                        isFavorite: favoritesIndex.contains(person.id, kind: .person)
+                    ) {
+                        Task {
+                            await viewModel.toggleFavorite(
+                                person: FavoritePerson(
+                                    id: person.id,
+                                    name: person.name,
+                                    profilePath: person.profilePath,
+                                    knownForDepartment: person.knownForDepartment
+                                )
+                            )
+                        }
+                    }
+                    .padding(DesignSpacing.xs)
+                }
                 .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
             }
         }
     }
 
     private func similarCarousel(
-        _ section: MovieDetailContent.SimilarSection,
-        favoriteMovieIDs: Set<Int>
+        _ section: MovieDetailContent.SimilarSection
     ) -> some View {
         DetailCarousel(title: "More Like This") {
             ForEach(section.items) { item in
-                similarMovieCell(item, favoriteMovieIDs: favoriteMovieIDs)
+                similarMovieCell(item)
             }
         }
     }
 
     private func collectionCarousel(
-        _ section: MovieDetailContent.CollectionSection,
-        favoriteMovieIDs: Set<Int>
+        _ section: MovieDetailContent.CollectionSection
     ) -> some View {
         DetailCarousel(title: section.title) {
             ForEach(section.movies) { movie in
                 moviePosterCell(
                     movie: movie,
-                    subtitle: nil,
-                    favoriteMovieIDs: favoriteMovieIDs
+                    subtitle: nil
                 )
             }
         }
     }
 
     private func similarMovieCell(
-        _ item: MovieDetailContent.SimilarSection.Item,
-        favoriteMovieIDs: Set<Int>
+        _ item: MovieDetailContent.SimilarSection.Item
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-            RemoteImageView(
-                path: item.movie.posterPath,
-                kind: .poster,
-                width: portraitCardWidth,
-                aspectRatio: 2 / 3,
+            MoviePosterView(
+                posterPath: item.movie.posterPath,
                 imageLoader: imageLoader,
-                placeholderSystemImage: "film"
+                width: portraitCardWidth
             )
-            .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
             .overlay(alignment: .topTrailing) {
                 CellFavoriteStar(
                     name: item.movie.title,
-                    isFavorite: favoriteMovieIDs.contains(item.movie.id)
+                    isFavorite: favoritesIndex.contains(item.movie.id, kind: .movie)
                 ) {
                     Task { await viewModel.toggleFavorite(movie: item.movie) }
                 }
@@ -371,23 +376,18 @@ struct MovieDetailView: View {
 
     private func moviePosterCell(
         movie: Movie,
-        subtitle: String?,
-        favoriteMovieIDs: Set<Int>
+        subtitle: String?
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-            RemoteImageView(
-                path: movie.posterPath,
-                kind: .poster,
-                width: portraitCardWidth,
-                aspectRatio: 2 / 3,
+            MoviePosterView(
+                posterPath: movie.posterPath,
                 imageLoader: imageLoader,
-                placeholderSystemImage: "film"
+                width: portraitCardWidth
             )
-            .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
             .overlay(alignment: .topTrailing) {
                 CellFavoriteStar(
                     name: movie.title,
-                    isFavorite: favoriteMovieIDs.contains(movie.id)
+                    isFavorite: favoritesIndex.contains(movie.id, kind: .movie)
                 ) {
                     Task { await viewModel.toggleFavorite(movie: movie) }
                 }

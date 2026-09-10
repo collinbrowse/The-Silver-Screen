@@ -140,6 +140,7 @@ private struct FullscreenImagePage: View {
         switch imageKind {
         case .poster: return .poster
         case .backdrop: return .backdrop
+        case .profile: return .profile
         }
     }
 
@@ -166,8 +167,16 @@ private struct FullscreenImagePage: View {
 
     private func load() async {
         image = nil
-        let targetWidth: CGFloat = imageKind == .poster ? 780 : 1280
-        let aspect: CGFloat = imageKind == .poster ? (2 / 3) : (9 / 16)
+        let targetWidth: CGFloat
+        let aspect: CGFloat
+        switch imageKind {
+        case .poster, .profile:
+            targetWidth = 780
+            aspect = 2 / 3
+        case .backdrop:
+            targetWidth = 1280
+            aspect = 9 / 16
+        }
         guard let url = ImageLoader.imageURL(
             path: item.filePath,
             kind: loaderKind,
