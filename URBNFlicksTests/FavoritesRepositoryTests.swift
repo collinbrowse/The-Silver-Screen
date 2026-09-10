@@ -320,6 +320,71 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(index.movieIDs, [278])
     }
 
+    func test_refresh_updatesSnapshotOfFavoritedMovie_preservingFavoritedAt() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let favoritedAt = TestMovies.date("2024-06-01")
+        _ = try await repository.toggle(
+            movie: TestMovies.make(
+                id: 278,
+                title: "Old Title",
+                posterPath: "/old.jpg",
+                releaseDate: TestMovies.date("1994-01-01"),
+                genreIDs: [18]
+            ),
+            favoritedAt: favoritedAt
+        )
+
+        let changed = try await repository.refresh(
+            movie: TestMovies.make(
+                id: 278,
+                title: "The Shawshank Redemption",
+                posterPath: "/new.jpg",
+                releaseDate: TestMovies.date("1994-09-23"),
+                genreIDs: [18, 80]
+            )
+        )
+
+        XCTAssertTrue(changed)
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, 1)
+        XCTAssertEqual(favorites[0].title, "The Shawshank Redemption")
+        XCTAssertEqual(favorites[0].posterPath, "/new.jpg")
+        XCTAssertEqual(favorites[0].releaseDate, TestMovies.date("1994-09-23"))
+        XCTAssertEqual(favorites[0].genreNames, ["Drama", "Crime"])
+        XCTAssertEqual(favorites[0].favoritedAt, favoritedAt)
+    }
+
+    func test_refresh_whenMovieNotFavorited_isNoOp() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+
+        let changed = try await repository.refresh(
+            movie: TestMovies.make(id: 999, title: "Ghost", genreIDs: [18])
+        )
+
+        XCTAssertFalse(changed)
+        let favorites = try await repository.favorites()
+        XCTAssertTrue(favorites.isEmpty)
+    }
+
+    func test_refresh_whenSnapshotUnchanged_isNoOp() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let movie = TestMovies.make(
+            id: 1,
+            title: "Same",
+            posterPath: "/same.jpg",
+            releaseDate: TestMovies.date("2020-01-01"),
+            genreIDs: [18]
+        )
+        _ = try await repository.toggle(movie: movie, favoritedAt: TestMovies.date("2024-01-01"))
+
+        let changed = try await repository.refresh(movie: movie)
+
+        XCTAssertFalse(changed)
+    }
+
     func test_toggle_concurrentTogglesOfDistinctMovies_allPersist() async throws {
         let store = InMemoryFavoritesStore()
         let repository = FavoritesRepository(store: store, logger: SilentLogger())

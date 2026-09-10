@@ -121,6 +121,10 @@ final class MovieDetailViewModel {
                 reviews: await reviewsSection
             )
             state = .loaded(content)
+            // Keep a persisted favorite's snapshot from going stale against fresh TMDB data.
+            // No-op unless this movie is already favorited; failures here don't affect the screen.
+            let refreshed = detail.asMovie()
+            Task { try? await favorites.refresh(movie: refreshed) }
         } catch is CancellationError {
             return
         } catch let error as AppError {

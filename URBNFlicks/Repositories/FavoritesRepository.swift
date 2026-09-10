@@ -102,6 +102,17 @@ actor FavoritesRepository {
         }
     }
 
+    /// Refreshes the stored snapshot of an already-favorited movie with fresh metadata
+    /// (title, poster, genres, release date) so a favorite doesn't show data frozen at
+    /// favorite-time forever. `favoritedAt` — and therefore list order — is preserved.
+    /// No-op (returns `false`) if the movie is not currently favorited or nothing changed.
+    @discardableResult
+    func refresh(movie: Movie) async throws -> Bool {
+        try await serializeWrite { [self] in
+            try await performRefresh(movie: movie)
+        }
+    }
+
     // MARK: - Write serialization
 
     /// Runs `work` strictly after any previously enqueued mutation. This is the guard against
@@ -200,6 +211,27 @@ actor FavoritesRepository {
         records.removeAll { $0.id == id && $0.kind == kind }
         guard records.count != before else { return }
         try await persist(records)
+    }
+
+    private func performRefresh(movie: Movie) async throws -> Bool {
+        var records = try await loadCache()
+        guard let index = records.firstIndex(where: { $0.id == movie.id && $0.kind == .movie }) else {
+            return false
+        }
+        let existing = records[index]
+        let updated = FavoriteRecord(
+            id: existing.id,
+            kind: .movie,
+            favoritedAt: existing.favoritedAt,
+            title: movie.title,
+            posterPath: movie.posterPath,
+            releaseDate: movie.releaseDate,
+            genreNames: MovieGenreCatalog.names(for: movie.genreIDs)
+        )
+        guard updated != existing else { return false }
+        records[index] = updated
+        try await persist(records)
+        return true
     }
 
     // MARK: - Private
