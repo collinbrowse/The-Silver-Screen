@@ -21,7 +21,6 @@ struct PersonDetailContent: Sendable, Equatable {
     }
 
     let detail: PersonDetail
-    let isFavorite: Bool
     let formattedBirthday: String?
     let formattedDeathday: String?
     let placeOfBirth: String?
@@ -53,8 +52,8 @@ final class PersonDetailViewModel {
 
         do {
             let detail = try await people.personDetail(id: personID)
-            let isFavorite = (try? await favorites.isFavorite(id: personID, kind: .person)) ?? false
-            let content = Self.makeContent(detail: detail, isFavorite: isFavorite)
+            _ = try? await favorites.favorites()
+            let content = Self.makeContent(detail: detail)
             state = .loaded(content)
         } catch is CancellationError {
             return
@@ -73,11 +72,8 @@ final class PersonDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            let isFavorite = try await favorites.toggle(person: content.detail.asFavoritePerson())
-            state = .loaded(
-                content.replacing(isFavorite: isFavorite),
-                activity: .none
-            )
+            _ = try await favorites.toggle(person: content.detail.asFavoritePerson())
+            state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -116,7 +112,7 @@ final class PersonDetailViewModel {
         state = .loaded(content.withFullscreen(nil), activity: activity)
     }
 
-    static func makeContent(detail: PersonDetail, isFavorite: Bool) -> PersonDetailContent {
+    static func makeContent(detail: PersonDetail) -> PersonDetailContent {
         let images = detail.images.isEmpty
             ? nil
             : PersonDetailContent.ImagesSection(items: detail.images)
@@ -125,7 +121,6 @@ final class PersonDetailViewModel {
 
         return PersonDetailContent(
             detail: detail,
-            isFavorite: isFavorite,
             formattedBirthday: formatDay(detail.birthday),
             formattedDeathday: formatDay(detail.deathday),
             placeOfBirth: detail.placeOfBirth,
@@ -180,12 +175,10 @@ final class PersonDetailViewModel {
 
 private extension PersonDetailContent {
     func copy(
-        isFavorite: Bool? = nil,
         fullscreenImages: FullscreenImages?? = nil
     ) -> PersonDetailContent {
         PersonDetailContent(
             detail: detail,
-            isFavorite: isFavorite ?? self.isFavorite,
             formattedBirthday: formattedBirthday,
             formattedDeathday: formattedDeathday,
             placeOfBirth: placeOfBirth,
@@ -198,9 +191,5 @@ private extension PersonDetailContent {
 
     func withFullscreen(_ fullscreen: FullscreenImages?) -> PersonDetailContent {
         copy(fullscreenImages: .some(fullscreen))
-    }
-
-    func replacing(isFavorite: Bool) -> PersonDetailContent {
-        copy(isFavorite: isFavorite)
     }
 }

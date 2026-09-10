@@ -10,6 +10,7 @@ struct AppDependencies {
     let movies: MovieRepository
     let people: PersonRepository
     let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let router: AppRouter
     let logger: any AppLogging
@@ -30,13 +31,19 @@ struct AppDependencies {
         )
         let favoritesStoreURL = try FileFavoritesStore.applicationSupportURL()
         let favoritesStore = FileFavoritesStore(fileURL: favoritesStoreURL)
-        let favorites = FavoritesRepository(store: favoritesStore, logger: logger)
+        let favoritesIndex = FavoritesIndex()
+        let favorites = FavoritesRepository(
+            store: favoritesStore,
+            logger: logger,
+            index: favoritesIndex
+        )
         let imageLoader = ImageLoader(client: httpClient, logger: logger)
         let router = AppRouter()
         return AppDependencies(
             movies: movies,
             people: people,
             favorites: favorites,
+            favoritesIndex: favoritesIndex,
             imageLoader: imageLoader,
             router: router,
             logger: logger

@@ -114,35 +114,45 @@ final class PersonDetailViewModelTests: XCTestCase {
         XCTAssertEqual(content.fullscreenImages?.images.count, 1)
     }
 
-    func test_toggleFavorite_updatesFavoriteFlag() async {
-        let viewModel = makeViewModel(stub: .success(TMDBFixtures.personDetailMorganFreeman))
-        await viewModel.load()
-
-        await viewModel.toggleFavorite()
-
-        guard case .loaded(let content, let activity) = viewModel.state else {
-            return XCTFail("Expected loaded")
-        }
-        XCTAssertTrue(content.isFavorite)
-        XCTAssertEqual(activity, .none)
-    }
-
-    func test_toggleFavorite_whenPersistenceFails_keepsContentWithFailedActivity() async {
-        let store = InMemoryFavoritesStore()
-        await store.setSaveError(CocoaError(.fileWriteUnknown))
+    func test_toggleFavorite_updatesSharedIndex() async {
+        let index = FavoritesIndex()
         let people = PersonRepository.test(
             client: FakeHTTPClient(stub: .success(TMDBFixtures.personDetailMorganFreeman))
         )
-        let favorites = FavoritesRepository(store: store, logger: SilentLogger())
+        let favorites = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
         let viewModel = PersonDetailViewModel(personID: 1922, people: people, favorites: favorites)
         await viewModel.load()
 
         await viewModel.toggleFavorite()
 
-        guard case .loaded(let content, let activity) = viewModel.state else {
+        guard case .loaded(_, let activity) = viewModel.state else {
             return XCTFail("Expected loaded")
         }
-        XCTAssertFalse(content.isFavorite)
+        XCTAssertTrue(index.contains(1922, kind: .person))
+        XCTAssertEqual(activity, .none)
+    }
+
+    func test_toggleFavorite_whenPersistenceFails_keepsIndexAndSetsFailedActivity() async {
+        let index = FavoritesIndex()
+        let store = InMemoryFavoritesStore()
+        await store.setSaveError(CocoaError(.fileWriteUnknown))
+        let people = PersonRepository.test(
+            client: FakeHTTPClient(stub: .success(TMDBFixtures.personDetailMorganFreeman))
+        )
+        let favorites = FavoritesRepository(store: store, logger: SilentLogger(), index: index)
+        let viewModel = PersonDetailViewModel(personID: 1922, people: people, favorites: favorites)
+        await viewModel.load()
+
+        await viewModel.toggleFavorite()
+
+        guard case .loaded(_, let activity) = viewModel.state else {
+            return XCTFail("Expected loaded")
+        }
+        XCTAssertFalse(index.contains(1922, kind: .person))
         XCTAssertEqual(activity, .failed(.persistence))
     }
 

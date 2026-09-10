@@ -10,6 +10,7 @@ struct AppRouteDestination: View {
     let movies: MovieRepository
     let people: PersonRepository
     let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let router: NavigationRouter
 
@@ -20,6 +21,7 @@ struct AppRouteDestination: View {
                 movieID: id,
                 movies: movies,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -28,6 +30,7 @@ struct AppRouteDestination: View {
                 personID: id,
                 people: people,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -46,6 +49,7 @@ struct AppRouteDestination: View {
 
 struct MovieDetailRouteView: View {
     @State private var viewModel: MovieDetailViewModel
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let router: NavigationRouter
 
@@ -53,6 +57,7 @@ struct MovieDetailRouteView: View {
         movieID: Int,
         movies: MovieRepository,
         favorites: FavoritesRepository,
+        favoritesIndex: FavoritesIndex,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -63,17 +68,24 @@ struct MovieDetailRouteView: View {
                 favorites: favorites
             )
         )
+        self.favoritesIndex = favoritesIndex
         self.imageLoader = imageLoader
         self.router = router
     }
 
     var body: some View {
-        MovieDetailView(viewModel: viewModel, imageLoader: imageLoader, router: router)
+        MovieDetailView(
+            viewModel: viewModel,
+            favoritesIndex: favoritesIndex,
+            imageLoader: imageLoader,
+            router: router
+        )
     }
 }
 
 struct PersonDetailRouteView: View {
     @State private var viewModel: PersonDetailViewModel
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let router: NavigationRouter
 
@@ -81,6 +93,7 @@ struct PersonDetailRouteView: View {
         personID: Int,
         people: PersonRepository,
         favorites: FavoritesRepository,
+        favoritesIndex: FavoritesIndex,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -91,11 +104,17 @@ struct PersonDetailRouteView: View {
                 favorites: favorites
             )
         )
+        self.favoritesIndex = favoritesIndex
         self.imageLoader = imageLoader
         self.router = router
     }
 
     var body: some View {
-        PersonDetailView(viewModel: viewModel, imageLoader: imageLoader, router: router)
+        PersonDetailView(
+            viewModel: viewModel,
+            favoritesIndex: favoritesIndex,
+            imageLoader: imageLoader,
+            router: router
+        )
     }
 }

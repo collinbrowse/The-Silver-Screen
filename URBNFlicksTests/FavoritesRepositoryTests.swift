@@ -6,6 +6,7 @@
 import XCTest
 @testable import URBNFlicks
 
+@MainActor
 final class FavoritesRepositoryTests: XCTestCase {
 
     func test_toggle_addsFavoriteWithGenreNamesSnapshot() async throws {
@@ -221,5 +222,31 @@ final class FavoritesRepositoryTests: XCTestCase {
 
         let movieIDs = try await repository.favoriteMovieIDs()
         XCTAssertEqual(movieIDs, [1])
+    }
+
+    func test_toggle_publishesIdsToSharedIndex() async throws {
+        let index = FavoritesIndex()
+        let repository = FavoritesRepository(
+            store: InMemoryFavoritesStore(),
+            logger: SilentLogger(),
+            index: index
+        )
+        let movie = TestMovies.make(id: 278, title: "Shawshank", genreIDs: [18])
+        let person = FavoritePerson(
+            id: 504,
+            name: "Tim Robbins",
+            profilePath: nil,
+            knownForDepartment: "Acting"
+        )
+
+        _ = try await repository.toggle(movie: movie, favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(person: person, favoritedAt: TestMovies.date("2024-01-02"))
+
+        XCTAssertEqual(index.movieIDs, [278])
+        XCTAssertEqual(index.personIDs, [504])
+
+        _ = try await repository.toggle(person: person, favoritedAt: TestMovies.date("2024-01-03"))
+        XCTAssertTrue(index.personIDs.isEmpty)
+        XCTAssertEqual(index.movieIDs, [278])
     }
 }

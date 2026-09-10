@@ -11,6 +11,7 @@ struct RootTabView: View {
     let movies: MovieRepository
     let people: PersonRepository
     let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let favoritesListViewModel: FavoritesListViewModel
 
@@ -21,6 +22,7 @@ struct RootTabView: View {
         movies: MovieRepository,
         people: PersonRepository,
         favorites: FavoritesRepository,
+        favoritesIndex: FavoritesIndex,
         imageLoader: ImageLoader,
         favoritesListViewModel: FavoritesListViewModel
     ) {
@@ -28,6 +30,7 @@ struct RootTabView: View {
         self.movies = movies
         self.people = people
         self.favorites = favorites
+        self.favoritesIndex = favoritesIndex
         self.imageLoader = imageLoader
         self.favoritesListViewModel = favoritesListViewModel
         _topMoviesViewModel = State(initialValue: MovieListViewModel(movies: movies))
@@ -39,6 +42,7 @@ struct RootTabView: View {
                 viewModel: topMoviesViewModel,
                 imageLoader: imageLoader,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 router: router.topMovies,
                 makeDestination: makeUIKitDestination
             )
@@ -53,6 +57,7 @@ struct RootTabView: View {
                 viewModel: favoritesListViewModel,
                 imageLoader: imageLoader,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 movies: movies,
                 people: people
             )
@@ -71,6 +76,7 @@ struct RootTabView: View {
                 movieID: id,
                 movies: movies,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 imageLoader: imageLoader,
                 router: router.topMovies
             )
@@ -79,6 +85,7 @@ struct RootTabView: View {
                 personID: id,
                 people: people,
                 favorites: favorites,
+                favoritesIndex: favoritesIndex,
                 imageLoader: imageLoader,
                 router: router.topMovies
             )
@@ -107,6 +114,7 @@ private struct FavoritesTabRoot: View {
     @Bindable var viewModel: FavoritesListViewModel
     let imageLoader: ImageLoader
     let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
     let movies: MovieRepository
     let people: PersonRepository
 
@@ -123,6 +131,7 @@ private struct FavoritesTabRoot: View {
                     movies: movies,
                     people: people,
                     favorites: favorites,
+                    favoritesIndex: favoritesIndex,
                     imageLoader: imageLoader,
                     router: router
                 )

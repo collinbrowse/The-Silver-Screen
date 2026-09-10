@@ -29,6 +29,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 movies: dependencies.movies,
                 people: dependencies.people,
                 favorites: dependencies.favorites,
+                favoritesIndex: dependencies.favoritesIndex,
                 imageLoader: dependencies.imageLoader,
                 favoritesListViewModel: favoritesListViewModel
             )

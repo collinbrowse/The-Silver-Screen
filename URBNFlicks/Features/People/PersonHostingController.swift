@@ -14,6 +14,7 @@ import UIKit
 @MainActor
 final class PersonHostingController: UIViewController {
     private let viewModel: PersonDetailViewModel
+    private let favoritesIndex: FavoritesIndex
     private let imageLoader: ImageLoader
     private let router: NavigationRouter
     private var hostingController: UIHostingController<PersonDetailView>!
@@ -26,6 +27,7 @@ final class PersonHostingController: UIViewController {
         personID: Int,
         people: PersonRepository,
         favorites: FavoritesRepository,
+        favoritesIndex: FavoritesIndex,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -34,6 +36,7 @@ final class PersonHostingController: UIViewController {
             people: people,
             favorites: favorites
         )
+        self.favoritesIndex = favoritesIndex
         self.imageLoader = imageLoader
         self.router = router
         super.init(nibName: nil, bundle: nil)
@@ -54,6 +57,7 @@ final class PersonHostingController: UIViewController {
 
         let root = PersonDetailView(
             viewModel: viewModel,
+            favoritesIndex: favoritesIndex,
             imageLoader: imageLoader,
             router: router,
             showsToolbarFavorite: false
@@ -73,9 +77,11 @@ final class PersonHostingController: UIViewController {
 
         observationTask = Task { [weak self] in
             guard let self else { return }
-            for await state in Observations({ self.viewModel.state }) {
-                self.syncFavoriteButton(state: state)
-                self.syncLightbox(state: state)
+            for await _ in Observations({
+                (self.viewModel.state, self.favoritesIndex.personIDs)
+            }) {
+                self.syncFavoriteButton(state: self.viewModel.state)
+                self.syncLightbox(state: self.viewModel.state)
             }
         }
     }
@@ -89,7 +95,7 @@ final class PersonHostingController: UIViewController {
 
         let root = CellFavoriteStar(
             name: content.detail.name,
-            isFavorite: content.isFavorite
+            isFavorite: favoritesIndex.contains(content.detail.id, kind: .person)
         ) { [weak self] in
             Task { await self?.viewModel.toggleFavorite() }
         }

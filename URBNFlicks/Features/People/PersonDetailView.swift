@@ -7,6 +7,7 @@ import SwiftUI
 
 struct PersonDetailView: View {
     @Bindable var viewModel: PersonDetailViewModel
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     var router: NavigationRouter?
     var showsToolbarFavorite: Bool = true
@@ -45,7 +46,7 @@ struct PersonDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     CellFavoriteStar(
                         name: content.detail.name,
-                        isFavorite: content.isFavorite
+                        isFavorite: favoritesIndex.contains(content.detail.id, kind: .person)
                     ) {
                         Task { await viewModel.toggleFavorite() }
                     }

@@ -34,6 +34,7 @@
 		B10001042788B823003D8011 /* FavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001052788B823003D8011 /* FavoritesStore.swift */; };
 		B10001062788B823003D8011 /* FileFavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001072788B823003D8011 /* FileFavoritesStore.swift */; };
 		B10001082788B823003D8011 /* FavoritesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001092788B823003D8011 /* FavoritesRepository.swift */; };
+		B10004082788B823003D8011 /* FavoritesIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004092788B823003D8011 /* FavoritesIndex.swift */; };
 		B100010A2788B823003D8011 /* InMemoryFavoritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100010B2788B823003D8011 /* InMemoryFavoritesStore.swift */; };
 		B100010C2788B823003D8011 /* FavoritesRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100010D2788B823003D8011 /* FavoritesRepositoryTests.swift */; };
 		B10001602788B823003D8011 /* PersonFavoriteStar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001612788B823003D8011 /* PersonFavoriteStar.swift */; };
@@ -143,6 +144,7 @@
 		B10001052788B823003D8011 /* FavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesStore.swift; sourceTree = "<group>"; };
 		B10001072788B823003D8011 /* FileFavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileFavoritesStore.swift; sourceTree = "<group>"; };
 		B10001092788B823003D8011 /* FavoritesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesRepository.swift; sourceTree = "<group>"; };
+		B10004092788B823003D8011 /* FavoritesIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesIndex.swift; sourceTree = "<group>"; };
 		B100010B2788B823003D8011 /* InMemoryFavoritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryFavoritesStore.swift; sourceTree = "<group>"; };
 		B100010D2788B823003D8011 /* FavoritesRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesRepositoryTests.swift; sourceTree = "<group>"; };
 		B10001612788B823003D8011 /* PersonFavoriteStar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonFavoriteStar.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 				B100001F2788B823003D8011 /* MovieRepository.swift */,
 				B10003072788B823003D8011 /* PersonRepository.swift */,
 				B10001092788B823003D8011 /* FavoritesRepository.swift */,
+				B10004092788B823003D8011 /* FavoritesIndex.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -661,6 +664,7 @@
 				B100001C2788B823003D8011 /* TMDBAPIKey.swift in Sources */,
 				B100001E2788B823003D8011 /* MovieRepository.swift in Sources */,
 				B10001082788B823003D8011 /* FavoritesRepository.swift in Sources */,
+				B10004082788B823003D8011 /* FavoritesIndex.swift in Sources */,
 				B10001042788B823003D8011 /* FavoritesStore.swift in Sources */,
 				B10001062788B823003D8011 /* FileFavoritesStore.swift in Sources */,
 				B10000102788B823003D8011 /* AppError.swift in Sources */,

@@ -8,6 +8,7 @@ import UIKit
 
 struct MovieDetailView: View {
     @State var viewModel: MovieDetailViewModel
+    let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     var router: NavigationRouter?
     var showsToolbarFavorite: Bool = true
@@ -60,7 +61,7 @@ struct MovieDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     CellFavoriteStar(
                         name: content.detail.title,
-                        isFavorite: content.isFavorite
+                        isFavorite: favoritesIndex.contains(content.detail.id, kind: .movie)
                     ) {
                         Task { await viewModel.toggleFavorite() }
                     }
@@ -94,16 +95,16 @@ struct MovieDetailView: View {
                     imagesCarousel(images)
                 }
                 if let cast = content.cast {
-                    castCarousel(cast, favoritePersonIDs: content.favoritePersonIDs)
+                    castCarousel(cast)
                 }
                 if let crew = content.crew {
-                    crewCarousel(crew, favoritePersonIDs: content.favoritePersonIDs)
+                    crewCarousel(crew)
                 }
                 if let similar = content.similar {
-                    similarCarousel(similar, favoriteMovieIDs: content.favoriteMovieIDs)
+                    similarCarousel(similar)
                 }
                 if let collection = content.collection {
-                    collectionCarousel(collection, favoriteMovieIDs: content.favoriteMovieIDs)
+                    collectionCarousel(collection)
                 }
                 if let reviews = content.reviews {
                     reviewsSection(reviews)
@@ -176,8 +177,7 @@ struct MovieDetailView: View {
     }
 
     private func castCarousel(
-        _ section: MovieDetailContent.CastSection,
-        favoritePersonIDs: Set<Int>
+        _ section: MovieDetailContent.CastSection
     ) -> some View {
         DetailCarousel(title: "Top Billed Cast") {
             ForEach(section.members) { member in
@@ -217,7 +217,7 @@ struct MovieDetailView: View {
                 .overlay(alignment: .topTrailing) {
                     PersonFavoriteStar(
                         name: member.name,
-                        isFavorite: favoritePersonIDs.contains(member.personID)
+                        isFavorite: favoritesIndex.contains(member.personID, kind: .person)
                     ) {
                         Task {
                             await viewModel.toggleFavorite(
@@ -239,8 +239,7 @@ struct MovieDetailView: View {
     }
 
     private func crewCarousel(
-        _ section: MovieDetailContent.CrewSection,
-        favoritePersonIDs: Set<Int>
+        _ section: MovieDetailContent.CrewSection
     ) -> some View {
         DetailCarousel(title: "Directors & Writers") {
             ForEach(section.people) { person in
@@ -280,7 +279,7 @@ struct MovieDetailView: View {
                 .overlay(alignment: .topTrailing) {
                     PersonFavoriteStar(
                         name: person.name,
-                        isFavorite: favoritePersonIDs.contains(person.id)
+                        isFavorite: favoritesIndex.contains(person.id, kind: .person)
                     ) {
                         Task {
                             await viewModel.toggleFavorite(
@@ -302,34 +301,30 @@ struct MovieDetailView: View {
     }
 
     private func similarCarousel(
-        _ section: MovieDetailContent.SimilarSection,
-        favoriteMovieIDs: Set<Int>
+        _ section: MovieDetailContent.SimilarSection
     ) -> some View {
         DetailCarousel(title: "More Like This") {
             ForEach(section.items) { item in
-                similarMovieCell(item, favoriteMovieIDs: favoriteMovieIDs)
+                similarMovieCell(item)
             }
         }
     }
 
     private func collectionCarousel(
-        _ section: MovieDetailContent.CollectionSection,
-        favoriteMovieIDs: Set<Int>
+        _ section: MovieDetailContent.CollectionSection
     ) -> some View {
         DetailCarousel(title: section.title) {
             ForEach(section.movies) { movie in
                 moviePosterCell(
                     movie: movie,
-                    subtitle: nil,
-                    favoriteMovieIDs: favoriteMovieIDs
+                    subtitle: nil
                 )
             }
         }
     }
 
     private func similarMovieCell(
-        _ item: MovieDetailContent.SimilarSection.Item,
-        favoriteMovieIDs: Set<Int>
+        _ item: MovieDetailContent.SimilarSection.Item
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             MoviePosterView(
@@ -340,7 +335,7 @@ struct MovieDetailView: View {
             .overlay(alignment: .topTrailing) {
                 CellFavoriteStar(
                     name: item.movie.title,
-                    isFavorite: favoriteMovieIDs.contains(item.movie.id)
+                    isFavorite: favoritesIndex.contains(item.movie.id, kind: .movie)
                 ) {
                     Task { await viewModel.toggleFavorite(movie: item.movie) }
                 }
@@ -381,8 +376,7 @@ struct MovieDetailView: View {
 
     private func moviePosterCell(
         movie: Movie,
-        subtitle: String?,
-        favoriteMovieIDs: Set<Int>
+        subtitle: String?
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             MoviePosterView(
@@ -393,7 +387,7 @@ struct MovieDetailView: View {
             .overlay(alignment: .topTrailing) {
                 CellFavoriteStar(
                     name: movie.title,
-                    isFavorite: favoriteMovieIDs.contains(movie.id)
+                    isFavorite: favoritesIndex.contains(movie.id, kind: .movie)
                 ) {
                     Task { await viewModel.toggleFavorite(movie: movie) }
                 }
