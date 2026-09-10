@@ -57,6 +57,16 @@ final class FakeHTTPClientTests: XCTestCase {
         XCTAssertEqual(list.results[0].releaseDate, "")
     }
 
+    func test_sessionConfiguration_boundsWaitAndTimeouts() {
+        let configuration = URLSessionHTTPClient.makeConfiguration()
+
+        // waitsForConnectivity must stay on, but bounded so an offline cold load can't spin forever.
+        XCTAssertTrue(configuration.waitsForConnectivity)
+        XCTAssertEqual(configuration.timeoutIntervalForRequest, 20)
+        XCTAssertEqual(configuration.timeoutIntervalForResource, 30)
+        XCTAssertLessThan(configuration.timeoutIntervalForResource, 60)
+    }
+
     func test_routingClient_prefersLongestPathMatch() async throws {
         let client = RoutingHTTPClient(routes: [
             "/movie/278": .success(TMDBFixtures.movieDetailShawshank),
