@@ -94,7 +94,7 @@ struct PersonDetailView: View {
                 }
                 if let cast = content.cast {
                     creditsCarousel(
-                        title: "As Cast",
+                        title: "Acting",
                         section: cast,
                         personID: content.detail.id,
                         personName: content.detail.name
@@ -102,7 +102,7 @@ struct PersonDetailView: View {
                 }
                 if let crew = content.crew {
                     creditsCarousel(
-                        title: "As Crew",
+                        title: "Crew",
                         section: crew,
                         personID: content.detail.id,
                         personName: content.detail.name
@@ -129,9 +129,6 @@ struct PersonDetailView: View {
     private func metadataBlock(_ content: PersonDetailContent) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.xl) {
             header(content)
-            if let imdbID = content.detail.imdbID {
-                imdbButton(imdbID: imdbID)
-            }
             biographySection(content.detail.biography)
             if hasFacts(content) {
                 factsCard(content)
@@ -145,27 +142,29 @@ struct PersonDetailView: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: DesignSpacing.md) {
                     profileThumbnail(path: content.detail.profilePath, width: profileCardWidth)
-                    Text(content.detail.name)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    nameAndIMDb(content)
                 }
             } else {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {
                     profileThumbnail(path: content.detail.profilePath, width: profileCardWidth)
-                    Text(content.detail.name)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    nameAndIMDb(content)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(content.detail.name)
-        .accessibilityHint(content.detail.profilePath == nil ? "" : "Shows the profile photo full screen")
-        .accessibilityAction(named: "Show profile photo") {
-            viewModel.openProfile()
+        .accessibilityElement(children: .contain)
+    }
+
+    private func nameAndIMDb(_ content: PersonDetailContent) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+            Text(content.detail.name)
+                .font(DesignTypography.title)
+                .foregroundStyle(DesignTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            if let imdbID = content.detail.imdbID {
+                imdbButton(imdbID: imdbID)
+            }
         }
     }
 
@@ -188,6 +187,8 @@ struct PersonDetailView: View {
                 .onTapGesture {
                     viewModel.openProfile()
                 }
+                .accessibilityLabel("Profile photo")
+                .accessibilityHint("Shows the profile photo full screen")
                 .accessibilityAddTraits(.isButton)
         } else {
             image
@@ -199,30 +200,26 @@ struct PersonDetailView: View {
             guard let url = URL(string: "https://www.imdb.com/name/\(imdbID)/") else { return }
             openURL(url)
         } label: {
-            Image("IMDb")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 28)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+            HStack(spacing: DesignSpacing.sm) {
+                Image("IMDb")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 28)
+                Image(systemName: "arrow.up.right.square")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Open IMDb page")
+        .accessibilityLabel("Open IMDb page in Safari")
         .accessibilityAddTraits(.isLink)
     }
 
     private func biographySection(_ biography: String) -> some View {
-        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-            Text("Biography")
-                .font(DesignTypography.section)
-                .foregroundStyle(DesignTheme.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-            Text(biography.isEmpty ? "No biography available." : biography)
-                .font(DesignTypography.body)
-                .foregroundStyle(DesignTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
+        BiographySection(biography: biography)
     }
 
     private func hasFacts(_ content: PersonDetailContent) -> Bool {
@@ -385,5 +382,52 @@ struct PersonDetailView: View {
             parts.append(credit.roleLabel)
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// Collapsed biography that expands in place via Show More / Show Less.
+private struct BiographySection: View {
+    let biography: String
+
+    @State private var expanded = false
+
+    private let previewLineLimit = 10
+    /// Rough threshold where ~10 body lines are typically exceeded.
+    private let expandsWhenCharacterCountExceeds = 500
+
+    private var displayText: String {
+        biography.isEmpty ? "No biography available." : biography
+    }
+
+    private var canExpand: Bool {
+        !biography.isEmpty && biography.count > expandsWhenCharacterCountExceeds
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+            Text("Biography")
+                .font(DesignTypography.section)
+                .foregroundStyle(DesignTheme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(displayText)
+                .font(DesignTypography.body)
+                .foregroundStyle(DesignTheme.textSecondary)
+                .lineLimit(canExpand && !expanded ? previewLineLimit : nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if canExpand {
+                Button(expanded ? "Show Less" : "Show More") {
+                    expanded.toggle()
+                }
+                .font(DesignTypography.chip.weight(.semibold))
+                .foregroundStyle(DesignTheme.accent)
+                .frame(minHeight: 44)
+                .accessibilityHint(
+                    expanded ? "Collapses the biography" : "Expands the full biography"
+                )
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 }

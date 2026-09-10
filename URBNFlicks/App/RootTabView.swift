@@ -93,8 +93,8 @@ struct RootTabView: View {
             )
             let host = UIHostingController(rootView: root)
             switch department {
-            case .cast: host.title = "Cast Credits"
-            case .crew: host.title = "Crew Credits"
+            case .cast: host.title = "Acting Roles"
+            case .crew: host.title = "Crew Roles"
             }
             host.navigationItem.largeTitleDisplayMode = .never
             return host

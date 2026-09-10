@@ -30,7 +30,7 @@ final class CreditsListViewModelTests: XCTestCase {
         XCTAssertEqual(content.items[0].genreNames, ["Drama", "Crime"])
         XCTAssertEqual(content.items[1].credit.mediaType, .tv)
         XCTAssertEqual(content.items[1].genreNames, ["Drama", "Crime"])
-        XCTAssertEqual(viewModel.navigationTitle, "Cast Credits")
+        XCTAssertEqual(viewModel.navigationTitle, "Acting Roles")
     }
 
     func test_load_crew_returnsMergedCrewCredits() async {
@@ -50,7 +50,7 @@ final class CreditsListViewModelTests: XCTestCase {
         }
         XCTAssertEqual(content.items.count, 1)
         XCTAssertEqual(content.items[0].credit.title, "Fight Club")
-        XCTAssertEqual(viewModel.navigationTitle, "Crew Credits")
+        XCTAssertEqual(viewModel.navigationTitle, "Crew Roles")
     }
 
     func test_load_whenNoCredits_setsEmpty() async {

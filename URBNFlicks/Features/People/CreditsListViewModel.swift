@@ -43,8 +43,8 @@ final class CreditsListViewModel {
 
     var navigationTitle: String {
         switch department {
-        case .cast: return "Cast Credits"
-        case .crew: return "Crew Credits"
+        case .cast: return "Acting Roles"
+        case .crew: return "Crew Roles"
         }
     }
 
