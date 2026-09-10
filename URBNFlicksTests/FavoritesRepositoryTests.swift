@@ -249,4 +249,34 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertTrue(index.personIDs.isEmpty)
         XCTAssertEqual(index.movieIDs, [278])
     }
+
+    func test_loadIndex_publishesPersistedRecords() async throws {
+        let index = FavoritesIndex()
+        let store = InMemoryFavoritesStore(records: [
+            FavoriteRecord(
+                id: 278,
+                kind: .movie,
+                favoritedAt: TestMovies.date("2024-01-01"),
+                title: "Shawshank",
+                posterPath: nil,
+                releaseDate: nil,
+                genreNames: ["Drama"]
+            ),
+            FavoriteRecord(
+                id: 504,
+                kind: .person,
+                favoritedAt: TestMovies.date("2024-01-02"),
+                title: "Tim Robbins",
+                posterPath: nil,
+                releaseDate: nil,
+                genreNames: ["Acting"]
+            ),
+        ])
+        let repository = FavoritesRepository(store: store, logger: SilentLogger(), index: index)
+
+        try await repository.loadIndex()
+
+        XCTAssertEqual(index.movieIDs, [278])
+        XCTAssertEqual(index.personIDs, [504])
+    }
 }

@@ -35,6 +35,11 @@ actor FavoritesRepository {
         return Self.sorted(records)
     }
 
+    /// Reads persistence into the shared index. Call once at launch; later calls hit the cache.
+    func loadIndex() async throws {
+        try await loadCache()
+    }
+
     func isFavorite(id: Int, kind: FavoriteKind) async throws -> Bool {
         let records = try await loadCache()
         return records.contains { $0.id == id && $0.kind == kind }
@@ -119,6 +124,8 @@ actor FavoritesRepository {
 
     // MARK: - Private
 
+    /// Loads from disk once, then serves memory. Publishes ids into `FavoritesIndex`.
+    @discardableResult
     private func loadCache() async throws -> [FavoriteRecord] {
         if let cached {
             return cached

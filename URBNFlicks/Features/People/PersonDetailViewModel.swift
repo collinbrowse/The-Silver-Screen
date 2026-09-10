@@ -52,7 +52,6 @@ final class PersonDetailViewModel {
 
         do {
             let detail = try await people.personDetail(id: personID)
-            _ = try? await favorites.favorites()
             let content = Self.makeContent(detail: detail)
             state = .loaded(content)
         } catch is CancellationError {
@@ -72,7 +71,7 @@ final class PersonDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            _ = try await favorites.toggle(person: content.detail.asFavoritePerson())
+            try await favorites.toggle(person: content.detail.asFavoritePerson())
             state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return

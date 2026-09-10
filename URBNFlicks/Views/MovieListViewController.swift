@@ -102,7 +102,6 @@ final class MovieListViewController: UIViewController {
         }
 
         Task { await viewModel.load() }
-        Task { await hydrateFavoritesIndex() }
     }
 
     // MARK: - Setup
@@ -224,14 +223,6 @@ final class MovieListViewController: UIViewController {
     }
 
     // MARK: - Favorites
-
-    private func hydrateFavoritesIndex() async {
-        do {
-            _ = try await favorites.favorites()
-        } catch {
-            // Keep last known favorite state; persistence errors surface on toggle.
-        }
-    }
 
     private func toggleFavorite(_ movie: Movie) {
         Task { @MainActor in

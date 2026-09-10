@@ -115,8 +115,6 @@ final class MovieDetailViewModel {
                 movieID: movieID,
                 movies: movies
             )
-            async let favoritesHydrate = favorites.favorites()
-            _ = try? await favoritesHydrate
             let content = Self.makeContent(
                 detail: detail,
                 collection: await collectionSection,
@@ -140,7 +138,7 @@ final class MovieDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            _ = try await favorites.toggle(movie: content.detail.asMovie())
+            try await favorites.toggle(movie: content.detail.asMovie())
             state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
@@ -156,7 +154,7 @@ final class MovieDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            _ = try await favorites.toggle(person: person)
+            try await favorites.toggle(person: person)
             state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
@@ -172,7 +170,7 @@ final class MovieDetailViewModel {
         guard case .loaded(let content, _) = state else { return }
 
         do {
-            _ = try await favorites.toggle(movie: movie)
+            try await favorites.toggle(movie: movie)
             state = .loaded(content, activity: .none)
         } catch is CancellationError {
             return
