@@ -355,12 +355,19 @@ struct PersonDetailView: View {
                 placeholderSystemImage: credit.mediaType == .tv ? "tv" : "film"
             )
             .carouselCard(width: portraitCardWidth, aspectRatio: 2 / 3)
+            .overlay(alignment: .topTrailing) {
+                creditFavoriteStar(credit)
+                    .padding(DesignSpacing.xs)
+            }
 
             Text(credit.title)
                 .font(DesignTypography.metadata.weight(.semibold))
                 .foregroundStyle(DesignTheme.textPrimary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(creditAccessibilityLabel(credit))
+                .accessibilityAddTraits(navigable ? .isButton : [])
         }
         .frame(width: portraitCardWidth, alignment: .leading)
         .contentShape(Rectangle())
@@ -368,9 +375,28 @@ struct PersonDetailView: View {
             guard credit.mediaType == .movie else { return }
             router?.push(.movieDetail(id: credit.mediaID))
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(creditAccessibilityLabel(credit))
-        .accessibilityAddTraits(navigable ? .isButton : [])
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Favorite star for a credit card, mapping the credit to the matching favorite kind.
+    @ViewBuilder
+    private func creditFavoriteStar(_ credit: PersonCredit) -> some View {
+        switch credit.mediaType {
+        case .movie:
+            CellFavoriteStar(
+                name: credit.title,
+                isFavorite: favoritesIndex.contains(credit.mediaID, kind: .movie)
+            ) {
+                Task { await viewModel.toggleFavorite(movie: credit.asMovie()) }
+            }
+        case .tv:
+            CellFavoriteStar(
+                name: credit.title,
+                isFavorite: favoritesIndex.contains(credit.mediaID, kind: .tv)
+            ) {
+                Task { await viewModel.toggleFavorite(tv: credit.asFavoriteTVSeries()) }
+            }
+        }
     }
 
     private func creditAccessibilityLabel(_ credit: PersonCredit) -> String {

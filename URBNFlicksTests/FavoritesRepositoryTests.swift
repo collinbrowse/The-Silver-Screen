@@ -188,6 +188,76 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(personIDs, [500])
     }
 
+    func test_toggleTV_addsFavoriteWithTVGenreNames() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let tv = FavoriteTVSeries(
+            id: 1396,
+            name: "Breaking Bad",
+            posterPath: "/bb.jpg",
+            releaseDate: TestMovies.date("2008-01-20"),
+            genreIDs: [18, 10765]
+        )
+        let favoritedAt = TestMovies.date("2024-07-01")
+
+        let isFavorite = try await repository.toggle(tv: tv, favoritedAt: favoritedAt)
+
+        XCTAssertTrue(isFavorite)
+        let isTVFavorite = try await repository.isFavorite(id: 1396, kind: .tv)
+        XCTAssertTrue(isTVFavorite)
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, 1)
+        XCTAssertEqual(favorites[0].kind, .tv)
+        XCTAssertEqual(favorites[0].title, "Breaking Bad")
+        XCTAssertEqual(favorites[0].posterPath, "/bb.jpg")
+        XCTAssertEqual(favorites[0].releaseDate, TestMovies.date("2008-01-20"))
+        XCTAssertEqual(favorites[0].genreNames, ["Drama", "Sci-Fi & Fantasy"])
+        XCTAssertEqual(favorites[0].listID, "tv-1396")
+    }
+
+    func test_toggleTV_removesExistingFavorite() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let tv = FavoriteTVSeries(id: 1, name: "One", posterPath: nil, releaseDate: nil, genreIDs: [])
+
+        _ = try await repository.toggle(tv: tv, favoritedAt: TestMovies.date("2024-01-01"))
+        let isFavorite = try await repository.toggle(tv: tv, favoritedAt: TestMovies.date("2024-01-02"))
+
+        XCTAssertFalse(isFavorite)
+        let stillFavorited = try await repository.isFavorite(id: 1, kind: .tv)
+        XCTAssertFalse(stillFavorited)
+        let favorites = try await repository.favorites()
+        XCTAssertTrue(favorites.isEmpty)
+    }
+
+    func test_movieAndTV_sameID_coexistIndependentlyInStoreAndIndex() async throws {
+        let index = FavoritesIndex()
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger(), index: index)
+        let movie = TestMovies.make(id: 1396, title: "Movie 1396", genreIDs: [80])
+        let tv = FavoriteTVSeries(
+            id: 1396,
+            name: "Breaking Bad",
+            posterPath: nil,
+            releaseDate: nil,
+            genreIDs: [18]
+        )
+
+        _ = try await repository.toggle(movie: movie, favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(tv: tv, favoritedAt: TestMovies.date("2024-02-01"))
+
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, 2)
+        XCTAssertEqual(Set(favorites.map(\.listID)), Set(["movie-1396", "tv-1396"]))
+        XCTAssertEqual(index.movieIDs, [1396])
+        XCTAssertEqual(index.tvIDs, [1396])
+
+        // Removing the TV favorite must leave the movie favorite intact.
+        _ = try await repository.toggle(tv: tv, favoritedAt: TestMovies.date("2024-03-01"))
+        XCTAssertEqual(index.movieIDs, [1396])
+        XCTAssertTrue(index.tvIDs.isEmpty)
+    }
+
     func test_favoritePersonIDs_returnsOnlyPersonRecords() async throws {
         let store = InMemoryFavoritesStore()
         let repository = FavoritesRepository(store: store, logger: SilentLogger())

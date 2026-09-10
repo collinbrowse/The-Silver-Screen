@@ -5,16 +5,18 @@
 
 import Foundation
 
-/// Which favorite kinds the list shows. No TV case: TV favorites cannot be created (stories 4-5 are open).
+/// Which favorite kinds the list shows.
 enum FavoritesFilter: String, CaseIterable, Sendable, Equatable {
     case all
     case movies
+    case tvSeries
     case people
 
     var title: String {
         switch self {
         case .all: return "All"
         case .movies: return "Movies"
+        case .tvSeries: return "TV"
         case .people: return "People"
         }
     }
@@ -46,6 +48,8 @@ final class FavoritesListViewModel {
             filtered = records
         case .movies:
             filtered = records.filter { $0.kind == .movie }
+        case .tvSeries:
+            filtered = records.filter { $0.kind == .tv }
         case .people:
             filtered = records.filter { $0.kind == .person }
         }

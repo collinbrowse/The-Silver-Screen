@@ -31,6 +31,33 @@ struct PersonCredit: Sendable, Identifiable, Equatable, Hashable {
     let roleLabel: String
     /// TMDB popularity used to order credits (most notable first).
     let popularity: Double
+
+    /// Domain movie used when favoriting from an Acting/Crew carousel cell.
+    /// Only valid for `.movie` credits.
+    func asMovie(voteAverage: Double = 0) -> Movie {
+        precondition(mediaType == .movie, "asMovie() requires a movie credit")
+        return Movie(
+            id: mediaID,
+            title: title,
+            posterPath: posterPath,
+            releaseDate: releaseDate,
+            voteAverage: voteAverage,
+            genreIDs: genreIDs
+        )
+    }
+
+    /// Snapshot used when favoriting a TV series from an Acting/Crew carousel cell.
+    /// Only valid for `.tv` credits.
+    func asFavoriteTVSeries() -> FavoriteTVSeries {
+        precondition(mediaType == .tv, "asFavoriteTVSeries() requires a TV credit")
+        return FavoriteTVSeries(
+            id: mediaID,
+            name: title,
+            posterPath: posterPath,
+            releaseDate: releaseDate,
+            genreIDs: genreIDs
+        )
+    }
 }
 
 /// Person detail returned by TMDB `person/{id}` with appended credits, images, and external ids.

@@ -7,6 +7,7 @@ import Foundation
 
 enum FavoriteKind: String, Codable, Sendable, Equatable {
     case movie
+    case tv
     case person
 }
 

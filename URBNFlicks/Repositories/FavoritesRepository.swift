@@ -13,6 +13,16 @@ struct FavoritePerson: Sendable, Equatable {
     let knownForDepartment: String?
 }
 
+/// Snapshot of a TV series captured from an Acting/Crew credits cell at favorite time.
+/// `releaseDate` holds the series' first air date.
+struct FavoriteTVSeries: Sendable, Equatable {
+    let id: Int
+    let name: String
+    let posterPath: String?
+    let releaseDate: Date?
+    let genreIDs: [Int]
+}
+
 actor FavoritesRepository {
     private let store: any FavoritesStore
     private let logger: any AppLogging
@@ -75,6 +85,30 @@ actor FavoritesRepository {
             posterPath: movie.posterPath,
             releaseDate: movie.releaseDate,
             genreNames: MovieGenreCatalog.names(for: movie.genreIDs)
+        )
+        records.append(record)
+        try await persist(records)
+        return true
+    }
+
+    /// Returns whether the TV series is favorited after the toggle.
+    @discardableResult
+    func toggle(tv: FavoriteTVSeries, favoritedAt: Date = Date()) async throws -> Bool {
+        var records = try await loadCache()
+        if let index = records.firstIndex(where: { $0.id == tv.id && $0.kind == .tv }) {
+            records.remove(at: index)
+            try await persist(records)
+            return false
+        }
+
+        let record = FavoriteRecord(
+            id: tv.id,
+            kind: .tv,
+            favoritedAt: favoritedAt,
+            title: tv.name,
+            posterPath: tv.posterPath,
+            releaseDate: tv.releaseDate,
+            genreNames: TVGenreCatalog.names(for: tv.genreIDs)
         )
         records.append(record)
         try await persist(records)
