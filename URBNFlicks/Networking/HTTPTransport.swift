@@ -67,15 +67,18 @@ enum HTTPTransport {
         throw lastError
     }
 
-    /// Automatic retries are narrower than UI `isRetryable`: timeouts, connection
-    /// loss, and 5xx only — never 4xx.
+    /// Automatic retries are narrower than UI `isRetryable`: timeouts, 5xx, and unknown transport
+    /// errors only — never 4xx, and never `.offline`. A truly offline request will not succeed by
+    /// retrying, and the session now fails fast (see `URLSessionHTTPClient.makeConfiguration`), so
+    /// retrying it just delays the offline message. The UI still offers a manual retry for
+    /// `.offline` via `AppError.isRetryable`.
     static func shouldAutomaticallyRetry(_ error: AppError) -> Bool {
         switch error {
-        case .offline, .timedOut, .unknown:
+        case .timedOut, .unknown:
             return true
         case .server(let status):
             return (500..<600).contains(status)
-        case .unauthorized, .decoding, .persistence, .missingAPIKey:
+        case .offline, .unauthorized, .decoding, .persistence, .missingAPIKey:
             return false
         }
     }

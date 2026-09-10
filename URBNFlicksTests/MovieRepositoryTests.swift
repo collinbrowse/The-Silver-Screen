@@ -114,18 +114,27 @@ final class MovieRepositoryTests: XCTestCase {
         XCTAssertEqual(count, 3)
     }
 
-    func test_topMovies_whenOfflineThenSuccess_retriesAndReturns() async throws {
+    func test_topMovies_whenOffline_failsFastWithoutRetrying() async {
+        // Offline must not be auto-retried: retrying a request with no connectivity only delays the
+        // offline message. Even though a success stub follows, the repository must stop at the first
+        // offline failure and surface .offline. Regression for the "spinner forever" report.
         let client = SequencingHTTPClient(stubs: [
             .failure(URLError(.notConnectedToInternet)),
             .success(TMDBFixtures.topMoviesPage1),
         ])
         let repository = MovieRepository.test(client: client)
 
-        let page = try await repository.topMovies(page: 1)
+        do {
+            _ = try await repository.topMovies(page: 1)
+            XCTFail("Expected offline error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .offline)
+        } catch {
+            XCTFail("Expected AppError, got \(error)")
+        }
 
-        XCTAssertEqual(page.movies.count, 2)
         let count = await client.requestCount
-        XCTAssertEqual(count, 2)
+        XCTAssertEqual(count, 1)
     }
 
     func test_topMovies_whenGarbageJSON_throwsDecoding() async {

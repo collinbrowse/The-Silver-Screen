@@ -52,16 +52,19 @@ struct URLSessionHTTPClient: HTTPClient, Sendable {
         return base?.appendingPathComponent("URBNFlicksImageCache", isDirectory: true)
     }
 
-    /// Shared transport configuration. `waitsForConnectivity` lets a request made in a dead zone
-    /// wait for a network rather than failing instantly — but on its own that means a cold load in
-    /// airplane mode spins forever behind a full-screen spinner, because the offline error never
-    /// arrives. `timeoutIntervalForResource` bounds that wait so the request eventually fails and
-    /// the UI can offer retry.
+    /// Shared transport configuration. We deliberately **fail fast** rather than wait for
+    /// connectivity. With `waitsForConnectivity = true`, a cold load in airplane mode does not
+    /// return `.notConnectedToInternet`; it parks until `timeoutIntervalForResource` and then fails
+    /// as a *timeout* — so the user watches a spinner for the whole interval and then sees the wrong
+    /// message ("Request Timed Out") instead of "You're Offline". Turning it off makes the request
+    /// fail immediately with `.notConnectedToInternet`, which the transport maps to
+    /// `AppError.offline`. Re-introducing dead-zone waiting should ride on an `NWPathMonitor` that
+    /// can still fail fast when the device is genuinely offline (the reachability follow-up).
     static func makeConfiguration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 20
-        configuration.timeoutIntervalForResource = 30
-        configuration.waitsForConnectivity = true
+        configuration.timeoutIntervalForRequest = 15
+        configuration.timeoutIntervalForResource = 25
+        configuration.waitsForConnectivity = false
         return configuration
     }
 }

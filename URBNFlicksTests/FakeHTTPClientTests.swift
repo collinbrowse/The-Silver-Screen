@@ -57,13 +57,15 @@ final class FakeHTTPClientTests: XCTestCase {
         XCTAssertEqual(list.results[0].releaseDate, "")
     }
 
-    func test_sessionConfiguration_boundsWaitAndTimeouts() {
+    func test_sessionConfiguration_failsFastWhenOffline() {
         let configuration = URLSessionHTTPClient.makeConfiguration()
 
-        // waitsForConnectivity must stay on, but bounded so an offline cold load can't spin forever.
-        XCTAssertTrue(configuration.waitsForConnectivity)
-        XCTAssertEqual(configuration.timeoutIntervalForRequest, 20)
-        XCTAssertEqual(configuration.timeoutIntervalForResource, 30)
+        // Fail fast: with waitsForConnectivity on, an airplane-mode cold load parks until the
+        // resource timeout and then reports the wrong ("timed out") error. Off, it fails
+        // immediately with .notConnectedToInternet so the UI shows "You're Offline" right away.
+        XCTAssertFalse(configuration.waitsForConnectivity)
+        XCTAssertEqual(configuration.timeoutIntervalForRequest, 15)
+        XCTAssertEqual(configuration.timeoutIntervalForResource, 25)
         XCTAssertLessThan(configuration.timeoutIntervalForResource, 60)
     }
 
@@ -74,9 +76,9 @@ final class FakeHTTPClientTests: XCTestCase {
         XCTAssertGreaterThan(imageConfig.urlCache?.memoryCapacity ?? 0, 0)
         // A distinct cache instance from the shared JSON session's, so images don't compete with it.
         XCTAssertFalse(imageConfig.urlCache === URLSessionHTTPClient.makeConfiguration().urlCache)
-        // Still inherits the bounded transport settings.
-        XCTAssertTrue(imageConfig.waitsForConnectivity)
-        XCTAssertEqual(imageConfig.timeoutIntervalForResource, 30)
+        // Still inherits the fail-fast transport settings.
+        XCTAssertFalse(imageConfig.waitsForConnectivity)
+        XCTAssertEqual(imageConfig.timeoutIntervalForResource, 25)
     }
 
     func test_routingClient_prefersLongestPathMatch() async throws {
