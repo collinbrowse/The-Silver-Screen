@@ -8,11 +8,19 @@ import UIKit
 import ImageIO
 
 actor ImageLoader {
+    /// A coalesced fetch shared by every caller for one URL.
+    private struct InFlightEntry {
+        let task: Task<UIImage, Error>
+        /// Count of real (non-prefetch) callers awaiting this task. Prefetch does not count, so
+        /// cancelling a prefetch can never tear down a fetch a now-visible cell still needs.
+        var realWaiters: Int
+    }
+
     private let client: any HTTPClient
     private let logger: any AppLogging
     private let sleeper: any Sleeper
     private let memoryCache = NSCache<NSURL, UIImage>()
-    private var inFlight: [URL: Task<UIImage, Error>] = [:]
+    private var inFlight: [URL: InFlightEntry] = [:]
 
     init(
         client: any HTTPClient,
@@ -26,48 +34,75 @@ actor ImageLoader {
     }
 
     func image(for url: URL, targetSize: CGSize, scale: CGFloat) async throws -> UIImage {
+        try await image(for: url, targetSize: targetSize, scale: scale, isPrefetch: false)
+    }
+
+    /// Shared fetch path. `isPrefetch` callers do not register as real waiters, which is what
+    /// lets `cancelPrefetch` leave a coalesced fetch running for a visible cell.
+    private func image(
+        for url: URL,
+        targetSize: CGSize,
+        scale: CGFloat,
+        isPrefetch: Bool
+    ) async throws -> UIImage {
         let cacheKey = url as NSURL
         if let cached = memoryCache.object(forKey: cacheKey) {
             return cached
         }
 
+        let task: Task<UIImage, Error>
         if let existing = inFlight[url] {
-            return try await existing.value
+            task = existing.task
+        } else {
+            task = Task<UIImage, Error> {
+                let request = URLRequest(url: url)
+                let data = try await HTTPTransport.data(
+                    for: request,
+                    client: client,
+                    logger: logger,
+                    context: "Image",
+                    sleeper: sleeper
+                )
+                return try Self.downsample(data: data, targetSize: targetSize, scale: scale)
+            }
+            inFlight[url] = InFlightEntry(task: task, realWaiters: 0)
         }
 
-        let task = Task<UIImage, Error> {
-            let request = URLRequest(url: url)
-            let data = try await HTTPTransport.data(
-                for: request,
-                client: client,
-                logger: logger,
-                context: "Image",
-                sleeper: sleeper
-            )
-            return try Self.downsample(data: data, targetSize: targetSize, scale: scale)
+        if !isPrefetch {
+            inFlight[url]?.realWaiters += 1
         }
-
-        inFlight[url] = task
-        defer { inFlight[url] = nil }
 
         do {
             let image = try await task.value
             memoryCache.setObject(image, forKey: cacheKey)
+            inFlight[url] = nil
             return image
-        } catch is CancellationError {
-            throw CancellationError()
+        } catch {
+            // Drop our interest and only clear the shared entry once nobody is left waiting,
+            // so a concurrent real caller's await is never invalidated by our failure.
+            if !isPrefetch {
+                inFlight[url]?.realWaiters -= 1
+            }
+            if let entry = inFlight[url], entry.realWaiters <= 0 {
+                inFlight[url] = nil
+            }
+            throw error
         }
     }
 
     func prefetch(urls: [URL], targetSize: CGSize, scale: CGFloat) {
         for url in urls {
-            Task { try? await image(for: url, targetSize: targetSize, scale: scale) }
+            Task { try? await image(for: url, targetSize: targetSize, scale: scale, isPrefetch: true) }
         }
     }
 
     func cancelPrefetch(urls: [URL]) {
         for url in urls {
-            inFlight[url]?.cancel()
+            guard let entry = inFlight[url] else { continue }
+            // A now-visible cell may be awaiting this same coalesced task. Only cancel a fetch
+            // that no real caller depends on; otherwise leave it running.
+            guard entry.realWaiters == 0 else { continue }
+            entry.task.cancel()
             inFlight[url] = nil
         }
     }

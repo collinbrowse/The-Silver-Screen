@@ -4,7 +4,21 @@
 //
 
 import Foundation
+import UIKit
 @testable import URBNFlicks
+
+/// Encoded PNG bytes for a solid square — valid input for the ImageLoader downsample path.
+enum TestImages {
+    static func pngData(size: CGFloat = 8) -> Data {
+        let dimension = CGSize(width: size, height: size)
+        let renderer = UIGraphicsImageRenderer(size: dimension)
+        let image = renderer.image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(origin: .zero, size: dimension))
+        }
+        return image.pngData()!
+    }
+}
 
 struct SilentLogger: AppLogging {
     func debug(_ message: String, category: LogCategory) {}

@@ -76,4 +76,33 @@ final class ImageLoaderTests: XCTestCase {
             XCTFail("Expected AppError, got \(error)")
         }
     }
+
+    func test_image_decodesResponseToImage() async throws {
+        let loader = ImageLoader.test(client: FakeHTTPClient(stub: .success(TestImages.pngData())))
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        let image = try await loader.image(for: url, targetSize: CGSize(width: 8, height: 8), scale: 1)
+
+        XCTAssertGreaterThan(image.size.width, 0)
+        XCTAssertGreaterThan(image.size.height, 0)
+    }
+
+    func test_cancelPrefetch_whileRealRequestInFlight_doesNotCancelIt() async throws {
+        let client = BlockingHTTPClient(responseData: TestImages.pngData())
+        let loader = ImageLoader.test(client: client)
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        // A visible cell's fetch, held open at the network boundary.
+        let realFetch = Task {
+            try await loader.image(for: url, targetSize: CGSize(width: 8, height: 8), scale: 1)
+        }
+        await client.waitUntilEntered()
+
+        // Scrolling reverses; the prefetcher cancels this URL. It must not kill the cell's fetch.
+        await loader.cancelPrefetch(urls: [url])
+        await client.release()
+
+        let image = try await realFetch.value
+        XCTAssertGreaterThan(image.size.width, 0)
+    }
 }

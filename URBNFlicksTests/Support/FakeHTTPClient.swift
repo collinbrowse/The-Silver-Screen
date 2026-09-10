@@ -97,6 +97,56 @@ actor SequencingHTTPClient: HTTPClient {
     }
 }
 
+/// Suspends inside `data(for:)` until `release()` is called, exposing `waitUntilEntered()`
+/// so a test can act while a request is provably in flight — used to exercise coalescing and
+/// prefetch-cancellation timing without sleeps.
+actor BlockingHTTPClient: HTTPClient {
+    private let responseData: Data
+    private let status: Int
+    private var hasEntered = false
+    private var isReleased = false
+    private var enteredContinuation: CheckedContinuation<Void, Never>?
+    private var releaseContinuation: CheckedContinuation<Void, Never>?
+    private(set) var requestCount = 0
+
+    init(responseData: Data, status: Int = 200) {
+        self.responseData = responseData
+        self.status = status
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        requestCount += 1
+        hasEntered = true
+        enteredContinuation?.resume()
+        enteredContinuation = nil
+
+        if !isReleased {
+            await withCheckedContinuation { releaseContinuation = $0 }
+        }
+
+        let url = request.url ?? URL(string: "https://example.invalid")!
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: status,
+            httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "image/png"]
+        )!
+        return (responseData, response)
+    }
+
+    /// Returns once `data(for:)` has started, i.e. the request is registered and awaiting release.
+    func waitUntilEntered() async {
+        if hasEntered { return }
+        await withCheckedContinuation { enteredContinuation = $0 }
+    }
+
+    func release() {
+        isReleased = true
+        releaseContinuation?.resume()
+        releaseContinuation = nil
+    }
+}
+
 /// Routes stubs by URL path fragment — use when one screen hits multiple endpoints.
 actor RoutingHTTPClient: HTTPClient {
     private var routes: [String: FakeHTTPClient.Stub]
