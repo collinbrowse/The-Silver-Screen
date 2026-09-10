@@ -72,6 +72,7 @@ struct FullscreenImages: Sendable, Equatable, Identifiable {
     enum Kind: Sendable, Equatable {
         case poster
         case backdrop
+        case profile
     }
 
     var id: String { initialID }

@@ -8,15 +8,29 @@ import SwiftUI
 /// Apple TV–style horizontal carousel: section title, peek of the next card, continuous corners.
 struct DetailCarousel<Content: View>: View {
     let title: String
+    var viewAllTitle: String? = nil
+    var onViewAll: (() -> Void)? = nil
     @ViewBuilder let content: () -> Content
+
+    init(
+        title: String,
+        viewAllTitle: String? = nil,
+        onViewAll: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.title = title
+        self.viewAllTitle = viewAllTitle
+        self.onViewAll = onViewAll
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            Text(title)
-                .font(DesignTypography.section)
-                .foregroundStyle(DesignTheme.textPrimary)
-                .padding(.horizontal, DesignSpacing.lg)
-                .accessibilityAddTraits(.isHeader)
+            SectionHeader(
+                title: title,
+                actionTitle: viewAllTitle,
+                action: onViewAll
+            )
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {

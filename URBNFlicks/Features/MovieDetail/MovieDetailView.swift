@@ -226,7 +226,12 @@ struct MovieDetailView: View {
                     .accessibilityLabel(castAccessibilityLabel(member))
                 }
                 .frame(width: portraitCardWidth, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    router?.push(.person(id: member.personID))
+                }
                 .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
             }
         }
     }
@@ -282,7 +287,12 @@ struct MovieDetailView: View {
                     .accessibilityLabel("\(person.name), \(person.rolesLabel)")
                 }
                 .frame(width: portraitCardWidth, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    router?.push(.person(id: person.id))
+                }
                 .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(router == nil ? [] : .isButton)
             }
         }
     }

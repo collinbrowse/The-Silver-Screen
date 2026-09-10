@@ -9,6 +9,7 @@ import UIKit
 struct RootTabView: View {
     @Bindable var router: AppRouter
     let movies: MovieRepository
+    let people: PersonRepository
     let favorites: FavoritesRepository
     let imageLoader: ImageLoader
     let favoritesListViewModel: FavoritesListViewModel
@@ -18,12 +19,14 @@ struct RootTabView: View {
     init(
         router: AppRouter,
         movies: MovieRepository,
+        people: PersonRepository,
         favorites: FavoritesRepository,
         imageLoader: ImageLoader,
         favoritesListViewModel: FavoritesListViewModel
     ) {
         self.router = router
         self.movies = movies
+        self.people = people
         self.favorites = favorites
         self.imageLoader = imageLoader
         self.favoritesListViewModel = favoritesListViewModel
@@ -50,7 +53,8 @@ struct RootTabView: View {
                 viewModel: favoritesListViewModel,
                 imageLoader: imageLoader,
                 favorites: favorites,
-                movies: movies
+                movies: movies,
+                people: people
             )
             .tabItem {
                 Label("Favorites", systemImage: "heart")
@@ -70,6 +74,30 @@ struct RootTabView: View {
                 imageLoader: imageLoader,
                 router: router.topMovies
             )
+        case .person(let id):
+            return PersonHostingController(
+                personID: id,
+                people: people,
+                favorites: favorites,
+                imageLoader: imageLoader,
+                router: router.topMovies
+            )
+        case .personCredits(let personID, let personName, let department):
+            let root = CreditsListView(
+                personID: personID,
+                personName: personName,
+                department: department,
+                people: people,
+                imageLoader: imageLoader,
+                router: router.topMovies
+            )
+            let host = UIHostingController(rootView: root)
+            switch department {
+            case .cast: host.title = "Cast Credits"
+            case .crew: host.title = "Crew Credits"
+            }
+            host.navigationItem.largeTitleDisplayMode = .never
+            return host
         }
     }
 }
@@ -80,6 +108,7 @@ private struct FavoritesTabRoot: View {
     let imageLoader: ImageLoader
     let favorites: FavoritesRepository
     let movies: MovieRepository
+    let people: PersonRepository
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -92,6 +121,7 @@ private struct FavoritesTabRoot: View {
                 AppRouteDestination(
                     route: route,
                     movies: movies,
+                    people: people,
                     favorites: favorites,
                     imageLoader: imageLoader,
                     router: router
