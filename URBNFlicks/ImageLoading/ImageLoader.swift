@@ -55,15 +55,14 @@ actor ImageLoader {
             task = existing.task
         } else {
             task = Task<UIImage, Error> {
-                let request = URLRequest(url: url)
-                let data = try await HTTPTransport.data(
-                    for: request,
+                try await Self.fetchAndDecode(
+                    url: url,
+                    targetSize: targetSize,
+                    scale: scale,
                     client: client,
                     logger: logger,
-                    context: "Image",
                     sleeper: sleeper
                 )
-                return try Self.downsample(data: data, targetSize: targetSize, scale: scale)
             }
             inFlight[url] = InFlightEntry(task: task, realWaiters: 0)
         }
@@ -173,6 +172,31 @@ actor ImageLoader {
             default: return "h632"
             }
         }
+    }
+
+    // MARK: - Fetch + decode
+
+    /// Fetches the bytes and downsamples them **off** the actor. Being `nonisolated async`, this
+    /// runs on the generic executor, so the CPU-heavy `CGImageSource` decode no longer serializes
+    /// on ImageLoader's actor — where it would block cache hits and coalescing for every other
+    /// caller during a fast scroll.
+    private nonisolated static func fetchAndDecode(
+        url: URL,
+        targetSize: CGSize,
+        scale: CGFloat,
+        client: any HTTPClient,
+        logger: any AppLogging,
+        sleeper: any Sleeper
+    ) async throws -> UIImage {
+        let request = URLRequest(url: url)
+        let data = try await HTTPTransport.data(
+            for: request,
+            client: client,
+            logger: logger,
+            context: "Image",
+            sleeper: sleeper
+        )
+        return try downsample(data: data, targetSize: targetSize, scale: scale)
     }
 
     // MARK: - Downsampling
