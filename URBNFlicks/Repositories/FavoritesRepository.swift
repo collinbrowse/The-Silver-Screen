@@ -29,6 +29,11 @@ actor FavoritesRepository {
     private let index: FavoritesIndex
     private var cached: [FavoriteRecord]?
 
+    /// Tail of the serialized write chain. Actors are reentrant across `await`, so two toggles
+    /// could otherwise both read the cache before either persisted, and the second write would
+    /// clobber the first (a lost update). Every mutation runs behind the previous one instead.
+    private var writeBarrier: Task<Void, Never>?
+
     @MainActor
     init(
         store: any FavoritesStore,
@@ -70,6 +75,51 @@ actor FavoritesRepository {
     /// Returns whether the movie is favorited after the toggle.
     @discardableResult
     func toggle(movie: Movie, favoritedAt: Date = Date()) async throws -> Bool {
+        try await serializeWrite { [self] in
+            try await performToggle(movie: movie, favoritedAt: favoritedAt)
+        }
+    }
+
+    /// Returns whether the TV series is favorited after the toggle.
+    @discardableResult
+    func toggle(tv: FavoriteTVSeries, favoritedAt: Date = Date()) async throws -> Bool {
+        try await serializeWrite { [self] in
+            try await performToggle(tv: tv, favoritedAt: favoritedAt)
+        }
+    }
+
+    /// Returns whether the person is favorited after the toggle.
+    @discardableResult
+    func toggle(person: FavoritePerson, favoritedAt: Date = Date()) async throws -> Bool {
+        try await serializeWrite { [self] in
+            try await performToggle(person: person, favoritedAt: favoritedAt)
+        }
+    }
+
+    func remove(id: Int, kind: FavoriteKind = .movie) async throws {
+        try await serializeWrite { [self] in
+            try await performRemove(id: id, kind: kind)
+        }
+    }
+
+    // MARK: - Write serialization
+
+    /// Runs `work` strictly after any previously enqueued mutation. This is the guard against
+    /// the lost-update race described on `writeBarrier`: read-modify-persist can no longer
+    /// interleave with another mutation at the `store.save` suspension point.
+    private func serializeWrite<T: Sendable>(
+        _ work: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
+        let previous = writeBarrier
+        let task = Task<T, Error> {
+            _ = await previous?.value
+            return try await work()
+        }
+        writeBarrier = Task { _ = try? await task.value }
+        return try await task.value
+    }
+
+    private func performToggle(movie: Movie, favoritedAt: Date) async throws -> Bool {
         var records = try await loadCache()
         if let index = records.firstIndex(where: { $0.id == movie.id && $0.kind == .movie }) {
             records.remove(at: index)
@@ -91,9 +141,7 @@ actor FavoritesRepository {
         return true
     }
 
-    /// Returns whether the TV series is favorited after the toggle.
-    @discardableResult
-    func toggle(tv: FavoriteTVSeries, favoritedAt: Date = Date()) async throws -> Bool {
+    private func performToggle(tv: FavoriteTVSeries, favoritedAt: Date) async throws -> Bool {
         var records = try await loadCache()
         if let index = records.firstIndex(where: { $0.id == tv.id && $0.kind == .tv }) {
             records.remove(at: index)
@@ -115,9 +163,7 @@ actor FavoritesRepository {
         return true
     }
 
-    /// Returns whether the person is favorited after the toggle.
-    @discardableResult
-    func toggle(person: FavoritePerson, favoritedAt: Date = Date()) async throws -> Bool {
+    private func performToggle(person: FavoritePerson, favoritedAt: Date) async throws -> Bool {
         var records = try await loadCache()
         if let index = records.firstIndex(where: { $0.id == person.id && $0.kind == .person }) {
             records.remove(at: index)
@@ -148,7 +194,7 @@ actor FavoritesRepository {
         return true
     }
 
-    func remove(id: Int, kind: FavoriteKind = .movie) async throws {
+    private func performRemove(id: Int, kind: FavoriteKind) async throws {
         var records = try await loadCache()
         let before = records.count
         records.removeAll { $0.id == id && $0.kind == kind }

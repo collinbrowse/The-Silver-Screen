@@ -320,6 +320,29 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(index.movieIDs, [278])
     }
 
+    func test_toggle_concurrentTogglesOfDistinctMovies_allPersist() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        let count = 50
+
+        // Fire all toggles at once. Without write serialization, actor reentrancy at
+        // `store.save` lets these interleave and clobber one another (a lost update).
+        await withTaskGroup(of: Void.self) { group in
+            for id in 0..<count {
+                group.addTask {
+                    _ = try? await repository.toggle(
+                        movie: TestMovies.make(id: id, title: "Movie \(id)", genreIDs: [18]),
+                        favoritedAt: TestMovies.date("2024-01-01")
+                    )
+                }
+            }
+        }
+
+        let favorites = try await repository.favorites()
+        XCTAssertEqual(favorites.count, count)
+        XCTAssertEqual(Set(favorites.map(\.id)), Set(0..<count))
+    }
+
     func test_loadIndex_publishesPersistedRecords() async throws {
         let index = FavoritesIndex()
         let store = InMemoryFavoritesStore(records: [
