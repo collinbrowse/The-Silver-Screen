@@ -67,6 +67,18 @@ final class FakeHTTPClientTests: XCTestCase {
         XCTAssertLessThan(configuration.timeoutIntervalForResource, 60)
     }
 
+    func test_imageConfiguration_hasDedicatedDiskCacheSeparateFromJSON() {
+        let imageConfig = URLSessionHTTPClient.makeImageConfiguration()
+
+        XCTAssertGreaterThan(imageConfig.urlCache?.diskCapacity ?? 0, 0)
+        XCTAssertGreaterThan(imageConfig.urlCache?.memoryCapacity ?? 0, 0)
+        // A distinct cache instance from the shared JSON session's, so images don't compete with it.
+        XCTAssertFalse(imageConfig.urlCache === URLSessionHTTPClient.makeConfiguration().urlCache)
+        // Still inherits the bounded transport settings.
+        XCTAssertTrue(imageConfig.waitsForConnectivity)
+        XCTAssertEqual(imageConfig.timeoutIntervalForResource, 30)
+    }
+
     func test_routingClient_prefersLongestPathMatch() async throws {
         let client = RoutingHTTPClient(routes: [
             "/movie/278": .success(TMDBFixtures.movieDetailShawshank),

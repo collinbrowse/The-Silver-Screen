@@ -37,7 +37,7 @@ struct AppDependencies {
             logger: logger,
             index: favoritesIndex
         )
-        let imageLoader = ImageLoader(client: httpClient, logger: logger)
+        let imageLoader = ImageLoader(client: URLSessionHTTPClient.images(), logger: logger)
         let router = AppRouter()
         return AppDependencies(
             movies: movies,
