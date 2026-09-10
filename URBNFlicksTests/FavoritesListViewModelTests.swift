@@ -194,6 +194,10 @@ final class FavoritesListViewModelTests: XCTestCase {
             favoritedAt: TestMovies.date("2024-01-01")
         )
         _ = try await repository.toggle(
+            tv: FavoriteTVSeries(id: 3, name: "Series", posterPath: nil, releaseDate: nil, genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-03-01")
+        )
+        _ = try await repository.toggle(
             person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
@@ -201,13 +205,60 @@ final class FavoritesListViewModelTests: XCTestCase {
         await viewModel.load()
 
         viewModel.filter = .all
-        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2", "movie-1"])
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2", "tv-3", "movie-1"])
 
         viewModel.filter = .movies
         XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["movie-1"])
 
+        viewModel.filter = .tvSeries
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["tv-3"])
+
         viewModel.filter = .people
         XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["person-2"])
+    }
+
+    func test_displayedFavorites_searchRespectsTVFilter() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            tv: FavoriteTVSeries(id: 1, name: "Breaking Bad", posterPath: nil, releaseDate: nil, genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 2, title: "Breaking Point", genreIDs: [28]),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .tvSeries
+        viewModel.searchText = "breaking"
+
+        XCTAssertEqual(viewModel.displayedFavorites.map(\.listID), ["tv-1"])
+    }
+
+    func test_removeFavorites_underTVFilter_deletesDisplayedSeries() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(
+            movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-01-01")
+        )
+        _ = try await repository.toggle(
+            tv: FavoriteTVSeries(id: 2, name: "Series", posterPath: nil, releaseDate: nil, genreIDs: [18]),
+            favoritedAt: TestMovies.date("2024-06-01")
+        )
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+        viewModel.filter = .tvSeries
+
+        await viewModel.removeFavorites(at: IndexSet(integer: 0))
+
+        guard case .loaded(let favorites, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(favorites.map(\.listID), ["movie-1"])
+        let tvGone = try await repository.isFavorite(id: 2, kind: .tv)
+        XCTAssertFalse(tvGone)
     }
 
     func test_displayedFavorites_whenFilterYieldsEmpty_keepsLoadedState() async throws {

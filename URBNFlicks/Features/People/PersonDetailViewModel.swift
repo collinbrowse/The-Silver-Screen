@@ -82,6 +82,38 @@ final class PersonDetailViewModel {
         }
     }
 
+    /// Favorites or unfavorites a movie from an Acting/Crew card without changing person favorite state.
+    func toggleFavorite(movie: Movie) async {
+        guard case .loaded(let content, _) = state else { return }
+
+        do {
+            try await favorites.toggle(movie: movie)
+            state = .loaded(content, activity: .none)
+        } catch is CancellationError {
+            return
+        } catch let error as AppError {
+            state = .loaded(content, activity: .failed(error))
+        } catch {
+            state = .loaded(content, activity: .failed(.unknown))
+        }
+    }
+
+    /// Favorites or unfavorites a TV series from an Acting/Crew card without changing person favorite state.
+    func toggleFavorite(tv: FavoriteTVSeries) async {
+        guard case .loaded(let content, _) = state else { return }
+
+        do {
+            try await favorites.toggle(tv: tv)
+            state = .loaded(content, activity: .none)
+        } catch is CancellationError {
+            return
+        } catch let error as AppError {
+            state = .loaded(content, activity: .failed(error))
+        } catch {
+            state = .loaded(content, activity: .failed(.unknown))
+        }
+    }
+
     func openImages(initialID: String) {
         guard case .loaded(let content, let activity) = state,
               let images = content.images else { return }

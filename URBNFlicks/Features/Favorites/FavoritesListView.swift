@@ -19,7 +19,7 @@ struct FavoritesListView: View {
             case .empty:
                 EmptyStateView(
                     title: "No Favorites Yet",
-                    message: "Favorite a movie or person to save it here.",
+                    message: "Favorite a movie, TV series, or person to save it here.",
                     systemImage: "heart"
                 )
             case .loaded(_, let activity):
@@ -102,6 +102,7 @@ struct FavoritesListView: View {
         switch viewModel.filter {
         case .all: return "No Matches"
         case .movies: return "No Movie Favorites"
+        case .tvSeries: return "No TV Favorites"
         case .people: return "No People Favorites"
         }
     }
@@ -114,6 +115,8 @@ struct FavoritesListView: View {
                 return "Nothing matches \"\(query)\"."
             case .movies:
                 return "No movies match \"\(query)\"."
+            case .tvSeries:
+                return "No TV series match \"\(query)\"."
             case .people:
                 return "No people match \"\(query)\"."
             }
@@ -121,6 +124,7 @@ struct FavoritesListView: View {
         switch viewModel.filter {
         case .all: return "Nothing matches the current filter."
         case .movies: return "Favorite a movie to see it here."
+        case .tvSeries: return "Favorite a TV series from a cast or crew card to see it here."
         case .people: return "Favorite a person from a cast or crew card to see them here."
         }
     }
@@ -130,8 +134,11 @@ struct FavoritesListView: View {
         switch favorite.kind {
         case .movie:
             NavigationLink(value: Route.movieDetail(id: favorite.id)) {
-                FavoriteMovieRow(favorite: favorite, imageLoader: imageLoader)
+                FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
             }
+        case .tv:
+            // No TV detail screen exists yet, so the row is static (swipe-to-remove only).
+            FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
         case .person:
             NavigationLink(value: Route.person(id: favorite.id)) {
                 FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
@@ -140,7 +147,8 @@ struct FavoritesListView: View {
     }
 }
 
-private struct FavoriteMovieRow: View {
+/// Favorites row for a bookmarked movie or TV series: poster, title, genres, and date.
+private struct FavoriteTitleRow: View {
     let favorite: FavoriteRecord
     let imageLoader: ImageLoader
 
@@ -228,7 +236,7 @@ private struct FavoriteMovieRow: View {
     }()
 
     static func releaseDateText(for date: Date?) -> String {
-        guard let date else { return "Release date unavailable" }
+        guard let date else { return "Date unavailable" }
         return dateFormatter.string(from: date)
     }
 }
