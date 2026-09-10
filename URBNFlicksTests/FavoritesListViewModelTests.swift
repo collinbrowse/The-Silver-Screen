@@ -124,6 +124,25 @@ final class FavoritesListViewModelTests: XCTestCase {
         XCTAssertEqual(favorites.map(\.id), [1])
     }
 
+    func test_removeFavorites_multipleRows_deletesAllSelected() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(movie: TestMovies.make(id: 1, title: "A", genreIDs: [18]), favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(movie: TestMovies.make(id: 2, title: "B", genreIDs: [18]), favoritedAt: TestMovies.date("2024-02-01"))
+        _ = try await repository.toggle(movie: TestMovies.make(id: 3, title: "C", genreIDs: [18]), favoritedAt: TestMovies.date("2024-03-01"))
+        let viewModel = FavoritesListViewModel(favorites: repository)
+        await viewModel.load()
+
+        // Displayed newest-first: [3, 2, 1] — remove the first and last.
+        await viewModel.removeFavorites(at: IndexSet([0, 2]))
+
+        XCTAssertNil(viewModel.toggleError)
+        guard case .loaded(let favorites, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(favorites.map(\.id), [2])
+    }
+
     func test_load_mixedMovieAndPerson_sortsNewestFirst() async throws {
         let store = InMemoryFavoritesStore()
         let repository = FavoritesRepository(store: store, logger: SilentLogger())

@@ -116,15 +116,30 @@ final class FavoritesListViewModel {
     }
 
     /// Deletes rows by index into `displayedFavorites` (not the unfiltered `state` array).
+    /// Removes them in a single atomic write so a multi-row swipe can't leave the list
+    /// half-deleted, and a failure leaves the list untouched.
     func removeFavorites(at offsets: IndexSet) async {
+        guard case .loaded(let current, _) = state else { return }
         let displayed = displayedFavorites
         let toRemove = offsets.compactMap { index -> FavoriteRecord? in
             guard displayed.indices.contains(index) else { return nil }
             return displayed[index]
         }
-        for record in toRemove {
-            await toggleFavorite(record)
-            if toggleError != nil { return }
+        guard !toRemove.isEmpty else { return }
+        toggleError = nil
+
+        do {
+            try await favorites.remove(toRemove)
+            let records = try await favorites.favorites()
+            apply(records)
+        } catch is CancellationError {
+            return
+        } catch let error as AppError {
+            toggleError = error
+            state = .loaded(current, activity: .failed(error))
+        } catch {
+            toggleError = .unknown
+            state = .loaded(current, activity: .failed(.unknown))
         }
     }
 

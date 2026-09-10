@@ -355,6 +355,41 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(favorites[0].favoritedAt, favoritedAt)
     }
 
+    func test_removeBatch_removesAllProvidedRecords() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(movie: TestMovies.make(id: 1, title: "A", genreIDs: [18]), favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(movie: TestMovies.make(id: 2, title: "B", genreIDs: [18]), favoritedAt: TestMovies.date("2024-02-01"))
+        _ = try await repository.toggle(person: FavoritePerson(id: 3, name: "C", profilePath: nil, knownForDepartment: "Acting"), favoritedAt: TestMovies.date("2024-03-01"))
+        let all = try await repository.favorites()
+        let toRemove = all.filter { $0.id == 1 || $0.id == 3 }
+
+        try await repository.remove(toRemove)
+
+        let remaining = try await repository.favorites()
+        XCTAssertEqual(remaining.map(\.listID), ["movie-2"])
+    }
+
+    func test_removeBatch_whenSaveFails_removesNothing() async throws {
+        let store = InMemoryFavoritesStore()
+        let repository = FavoritesRepository(store: store, logger: SilentLogger())
+        _ = try await repository.toggle(movie: TestMovies.make(id: 1, title: "A", genreIDs: [18]), favoritedAt: TestMovies.date("2024-01-01"))
+        _ = try await repository.toggle(movie: TestMovies.make(id: 2, title: "B", genreIDs: [18]), favoritedAt: TestMovies.date("2024-02-01"))
+        let all = try await repository.favorites()
+        await store.setSaveError(CocoaError(.fileWriteUnknown))
+
+        do {
+            try await repository.remove(all)
+            XCTFail("Expected persistence error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .persistence)
+        }
+
+        // The write failed, so nothing was removed — the list is intact, not half-deleted.
+        let remaining = try await repository.favorites()
+        XCTAssertEqual(Set(remaining.map(\.id)), [1, 2])
+    }
+
     func test_refresh_whenMovieNotFavorited_isNoOp() async throws {
         let store = InMemoryFavoritesStore()
         let repository = FavoritesRepository(store: store, logger: SilentLogger())

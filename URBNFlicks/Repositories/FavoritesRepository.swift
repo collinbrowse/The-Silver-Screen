@@ -102,6 +102,14 @@ actor FavoritesRepository {
         }
     }
 
+    /// Removes several favorites in a single persisted write. Either all of them are removed or
+    /// none are (the file write is atomic), so a multi-row delete can't leave the list half-deleted.
+    func remove(_ records: [FavoriteRecord]) async throws {
+        try await serializeWrite { [self] in
+            try await performRemove(records: records)
+        }
+    }
+
     /// Refreshes the stored snapshot of an already-favorited movie with fresh metadata
     /// (title, poster, genres, release date) so a favorite doesn't show data frozen at
     /// favorite-time forever. `favoritedAt` — and therefore list order — is preserved.
@@ -209,6 +217,16 @@ actor FavoritesRepository {
         var records = try await loadCache()
         let before = records.count
         records.removeAll { $0.id == id && $0.kind == kind }
+        guard records.count != before else { return }
+        try await persist(records)
+    }
+
+    private func performRemove(records toRemove: [FavoriteRecord]) async throws {
+        guard !toRemove.isEmpty else { return }
+        var records = try await loadCache()
+        let keys = Set(toRemove.map(\.listID))
+        let before = records.count
+        records.removeAll { keys.contains($0.listID) }
         guard records.count != before else { return }
         try await persist(records)
     }
