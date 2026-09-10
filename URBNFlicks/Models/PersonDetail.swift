@@ -6,7 +6,7 @@
 import Foundation
 
 /// Cast vs crew credit list used by person detail carousels and View All.
-enum CreditDepartment: String, Sendable, Hashable {
+enum CreditDepartment: String, Sendable, Hashable, Codable {
     case cast
     case crew
 }

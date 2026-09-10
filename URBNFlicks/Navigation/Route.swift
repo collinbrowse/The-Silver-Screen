@@ -5,12 +5,12 @@
 
 import Foundation
 
-enum AppTab: Hashable, Sendable {
+enum AppTab: Hashable, Sendable, Codable {
     case topMovies
     case favorites
 }
 
-enum Route: Hashable, Sendable {
+enum Route: Hashable, Sendable, Codable {
     case movieDetail(id: Int)
     case person(id: Int)
     case personCredits(personID: Int, personName: String, department: CreditDepartment)
