@@ -473,3 +473,99 @@ final class FavoritesRepositoryTests: XCTestCase {
         XCTAssertEqual(index.personIDs, [504])
     }
 }
+
+final class FileFavoritesStoreTests: XCTestCase {
+    private var tempDirectory: URL!
+
+    override func setUpWithError() throws {
+        tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("URBNFlicksFavoritesTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: tempDirectory)
+    }
+
+    private func fileURL() -> URL {
+        tempDirectory.appendingPathComponent("favorites.json")
+    }
+
+    private func makeRecord(id: Int, kind: FavoriteKind = .movie, title: String = "Title") -> FavoriteRecord {
+        FavoriteRecord(
+            id: id,
+            kind: kind,
+            favoritedAt: TestMovies.date("2024-01-01"),
+            title: title,
+            posterPath: "/p.jpg",
+            releaseDate: TestMovies.date("2020-01-01"),
+            genreNames: ["Drama"]
+        )
+    }
+
+    /// Encoder that produces the legacy (version 0) bare-array format on disk.
+    private func legacyEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }
+
+    func test_saveThenLoad_roundTripsRecords() async throws {
+        let store = FileFavoritesStore(fileURL: fileURL())
+        let records = [
+            makeRecord(id: 1, title: "A"),
+            makeRecord(id: 2, kind: .person, title: "B"),
+        ]
+
+        try await store.save(records)
+        let loaded = try await store.load()
+
+        XCTAssertEqual(loaded, records)
+    }
+
+    func test_save_writesVersionedEnvelope() async throws {
+        let store = FileFavoritesStore(fileURL: fileURL())
+
+        try await store.save([makeRecord(id: 1)])
+
+        let data = try Data(contentsOf: fileURL())
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(object?["version"] as? Int, 1)
+        XCTAssertNotNil(object?["records"])
+    }
+
+    func test_load_legacyBareArray_migratesRecords() async throws {
+        // Version 0: a bare `[FavoriteRecord]` with no envelope.
+        let data = try legacyEncoder().encode([makeRecord(id: 1, title: "A"), makeRecord(id: 2, title: "B")])
+        try data.write(to: fileURL(), options: .atomic)
+        let store = FileFavoritesStore(fileURL: fileURL())
+
+        let loaded = try await store.load()
+
+        XCTAssertEqual(Set(loaded.map(\.id)), [1, 2])
+    }
+
+    func test_load_legacyArrayWithCorruptElement_keepsGoodRecords() async throws {
+        let goodData = try legacyEncoder().encode([makeRecord(id: 1, title: "Good")])
+        var elements = try JSONSerialization.jsonObject(with: goodData) as! [Any]
+        elements.append(["garbage": true])   // not a FavoriteRecord
+        let data = try JSONSerialization.data(withJSONObject: elements)
+        try data.write(to: fileURL(), options: .atomic)
+        let store = FileFavoritesStore(fileURL: fileURL())
+
+        let loaded = try await store.load()
+
+        XCTAssertEqual(loaded.map(\.id), [1])
+    }
+
+    func test_load_unreadableFile_quarantinesAndReturnsEmpty() async throws {
+        try Data("not json at all".utf8).write(to: fileURL(), options: .atomic)
+        let store = FileFavoritesStore(fileURL: fileURL())
+
+        let loaded = try await store.load()
+
+        XCTAssertTrue(loaded.isEmpty)
+        let quarantine = fileURL().appendingPathExtension("corrupt")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: quarantine.path))
+    }
+}
