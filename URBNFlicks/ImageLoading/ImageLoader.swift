@@ -9,11 +9,15 @@ import ImageIO
 
 actor ImageLoader {
     /// A coalesced fetch shared by every caller for one URL.
+    ///
+    /// The fetch is an unstructured task so a second caller can await the same work. That task
+    /// does not inherit a caller's cancellation, so each real caller is tracked by id and the
+    /// shared task is cancelled only when the last real caller goes away.
     private struct InFlightEntry {
         let task: Task<UIImage, Error>
-        /// Count of real (non-prefetch) callers awaiting this task. Prefetch does not count, so
+        /// Real (non-prefetch) callers still awaiting this task. Prefetch does not count, so
         /// cancelling a prefetch can never tear down a fetch a now-visible cell still needs.
-        var realWaiters: Int
+        var realWaiterIDs: Set<UUID>
     }
 
     private let client: any HTTPClient
@@ -50,6 +54,7 @@ actor ImageLoader {
             return cached
         }
 
+        let waiterID = UUID()
         let task: Task<UIImage, Error>
         if let existing = inFlight[url] {
             task = existing.task
@@ -64,29 +69,49 @@ actor ImageLoader {
                     sleeper: sleeper
                 )
             }
-            inFlight[url] = InFlightEntry(task: task, realWaiters: 0)
+            inFlight[url] = InFlightEntry(task: task, realWaiterIDs: [])
         }
 
         if !isPrefetch {
-            inFlight[url]?.realWaiters += 1
+            inFlight[url]?.realWaiterIDs.insert(waiterID)
         }
 
         do {
-            let image = try await task.value
+            let image = try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                Task { await self.releaseWaiter(url: url, waiterID: isPrefetch ? nil : waiterID) }
+            }
             memoryCache.setObject(image, forKey: cacheKey)
             inFlight[url] = nil
+            try Task.checkCancellation()
             return image
         } catch {
-            // Drop our interest and only clear the shared entry once nobody is left waiting,
-            // so a concurrent real caller's await is never invalidated by our failure.
             if !isPrefetch {
-                inFlight[url]?.realWaiters -= 1
-            }
-            if let entry = inFlight[url], entry.realWaiters <= 0 {
-                inFlight[url] = nil
+                releaseWaiter(url: url, waiterID: waiterID)
             }
             throw error
         }
+    }
+
+    /// Drops one real caller. Cancels the shared fetch once nobody visible still needs it.
+    /// A second call for the same id is a no-op, so the cancellation handler and the `catch`
+    /// can both run without tearing down a fetch another cell is still awaiting.
+    private func releaseWaiter(url: URL, waiterID: UUID?) {
+        guard var entry = inFlight[url] else { return }
+        if let waiterID {
+            guard entry.realWaiterIDs.remove(waiterID) != nil else { return }
+            inFlight[url] = entry
+        }
+        guard entry.realWaiterIDs.isEmpty else { return }
+        entry.task.cancel()
+        inFlight[url] = nil
+    }
+
+    /// Visible callers sharing the fetch for `url`. Tests wait on this so a second caller has
+    /// joined before the first is cancelled.
+    func realWaiterCount(for url: URL) -> Int {
+        inFlight[url]?.realWaiterIDs.count ?? 0
     }
 
     func prefetch(urls: [URL], targetSize: CGSize, scale: CGFloat) {
@@ -100,7 +125,7 @@ actor ImageLoader {
             guard let entry = inFlight[url] else { continue }
             // A now-visible cell may be awaiting this same coalesced task. Only cancel a fetch
             // that no real caller depends on; otherwise leave it running.
-            guard entry.realWaiters == 0 else { continue }
+            guard entry.realWaiterIDs.isEmpty else { continue }
             entry.task.cancel()
             inFlight[url] = nil
         }

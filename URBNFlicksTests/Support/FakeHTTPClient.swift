@@ -105,8 +105,10 @@ actor BlockingHTTPClient: HTTPClient {
     private let status: Int
     private var hasEntered = false
     private var isReleased = false
+    private var didResumeGate = false
+    private var cancelRequested = false
     private var enteredContinuation: CheckedContinuation<Void, Never>?
-    private var releaseContinuation: CheckedContinuation<Void, Never>?
+    private var releaseContinuation: CheckedContinuation<Void, Error>?
     private(set) var requestCount = 0
 
     init(responseData: Data, status: Int = 200) {
@@ -116,12 +118,26 @@ actor BlockingHTTPClient: HTTPClient {
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         requestCount += 1
-        hasEntered = true
-        enteredContinuation?.resume()
-        enteredContinuation = nil
 
-        if !isReleased {
-            await withCheckedContinuation { releaseContinuation = $0 }
+        try await withTaskCancellationHandler {
+            if !isReleased {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    if isReleased || didResumeGate {
+                        continuation.resume()
+                        markEntered()
+                        return
+                    }
+                    if cancelRequested {
+                        continuation.resume(throwing: CancellationError())
+                        markEntered()
+                        return
+                    }
+                    releaseContinuation = continuation
+                    markEntered()
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelWait() }
         }
 
         let url = request.url ?? URL(string: "https://example.invalid")!
@@ -142,8 +158,28 @@ actor BlockingHTTPClient: HTTPClient {
 
     func release() {
         isReleased = true
-        releaseContinuation?.resume()
-        releaseContinuation = nil
+        resumeGate { $0.resume() }
+    }
+
+    /// Unblocks a request whose task was cancelled. `withCheckedContinuation` would otherwise
+    /// ignore cancellation and hang the test.
+    private func cancelWait() {
+        cancelRequested = true
+        resumeGate { $0.resume(throwing: CancellationError()) }
+    }
+
+    private func markEntered() {
+        guard !hasEntered else { return }
+        hasEntered = true
+        enteredContinuation?.resume()
+        enteredContinuation = nil
+    }
+
+    private func resumeGate(_ resume: (CheckedContinuation<Void, Error>) -> Void) {
+        guard !didResumeGate, let releaseContinuation else { return }
+        didResumeGate = true
+        self.releaseContinuation = nil
+        resume(releaseContinuation)
     }
 }
 

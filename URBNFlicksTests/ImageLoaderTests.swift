@@ -105,4 +105,65 @@ final class ImageLoaderTests: XCTestCase {
         let image = try await realFetch.value
         XCTAssertGreaterThan(image.size.width, 0)
     }
+
+    func test_cancellingTheOnlyRealCaller_cancelsTheFetch() async {
+        let client = BlockingHTTPClient(responseData: TestImages.pngData())
+        let loader = ImageLoader.test(client: client)
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        let fetch = Task {
+            try await loader.image(for: url, targetSize: CGSize(width: 8, height: 8), scale: 1)
+        }
+        await client.waitUntilEntered()
+        fetch.cancel()
+
+        do {
+            _ = try await fetch.value
+            XCTFail("Expected the cancelled fetch to throw")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Expected CancellationError, got \(error)")
+        }
+    }
+
+    func test_cancellingOneOfTwoRealCallers_keepsTheSharedFetch() async throws {
+        let client = BlockingHTTPClient(responseData: TestImages.pngData())
+        let loader = ImageLoader.test(client: client)
+        let url = URL(string: "https://image.tmdb.org/t/p/w92/poster.jpg")!
+
+        let first = Task {
+            try await loader.image(for: url, targetSize: CGSize(width: 8, height: 8), scale: 1)
+        }
+        await client.waitUntilEntered()
+
+        let second = Task {
+            try await loader.image(for: url, targetSize: CGSize(width: 8, height: 8), scale: 1)
+        }
+        for _ in 0..<50 {
+            if await loader.realWaiterCount(for: url) >= 2 { break }
+            await Task.yield()
+        }
+        let joined = await loader.realWaiterCount(for: url)
+        XCTAssertGreaterThanOrEqual(joined, 2)
+
+        first.cancel()
+        for _ in 0..<50 {
+            if await loader.realWaiterCount(for: url) <= 1 { break }
+            await Task.yield()
+        }
+
+        await client.release()
+        let image = try await second.value
+        XCTAssertGreaterThan(image.size.width, 0)
+
+        do {
+            _ = try await first.value
+            XCTFail("Expected the cancelled caller to throw")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Expected CancellationError, got \(error)")
+        }
+        let requests = await client.requestCount
+        XCTAssertEqual(requests, 1)
+    }
 }
