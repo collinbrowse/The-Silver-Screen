@@ -143,7 +143,12 @@ final class TVSeriesViewModel {
                 activity: latestActivity
             )
         } catch is CancellationError {
-            return
+            guard case .loaded(let latest, let latestActivity) = state,
+                  let current = latest.reviews else { return }
+            state = .loaded(
+                latest.replacing(reviews: current.copy(isLoadingPage: false, pageError: nil)),
+                activity: latestActivity
+            )
         } catch let error as AppError {
             guard case .loaded(let latest, let latestActivity) = state,
                   let current = latest.reviews else { return }
@@ -161,20 +166,44 @@ final class TVSeriesViewModel {
         }
     }
 
-    private static func loadReviews(seriesID: Int, shows: TVRepository) async -> MovieReviewPage? {
+    private static func loadReviews(seriesID: Int, shows: TVRepository) async -> TVSeriesContent.ReviewsSection? {
         do {
             let page = try await shows.reviews(seriesID: seriesID, page: 1)
-            return page.reviews.isEmpty ? nil : page
+            guard !page.reviews.isEmpty else { return nil }
+            return TVSeriesContent.ReviewsSection(
+                items: page.reviews,
+                nextPage: page.page + 1,
+                hasMore: page.hasMore,
+                totalCount: page.totalCount,
+                isLoadingPage: false,
+                pageError: nil
+            )
         } catch is CancellationError {
             return nil
+        } catch let error as AppError {
+            return TVSeriesContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: error
+            )
         } catch {
-            return nil
+            return TVSeriesContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: .unknown
+            )
         }
     }
 
     private static func makeContent(
         detail: TVSeriesDetail,
-        reviews: MovieReviewPage?
+        reviews: TVSeriesContent.ReviewsSection?
     ) -> TVSeriesContent {
         let creators = detail.creators.isEmpty ? "Creator unknown" : detail.creators.joined(separator: ", ")
         let lastAirDate = detail.lastAirDate.map { "Last Air Date: \(DisplayDate.day($0))" } ?? "Last Air Date: Unknown"
@@ -191,16 +220,7 @@ final class TVSeriesViewModel {
         let recommendations = detail.recommendations.map {
             TVSeriesContent.RecommendationRow(id: $0.id, name: $0.name, posterPath: $0.posterPath)
         }
-        let reviewsSection = reviews.map {
-            TVSeriesContent.ReviewsSection(
-                items: $0.reviews,
-                nextPage: $0.page + 1,
-                hasMore: $0.hasMore,
-                totalCount: $0.totalCount,
-                isLoadingPage: false,
-                pageError: nil
-            )
-        }
+        let reviewsSection = reviews
         return TVSeriesContent(
             detail: detail,
             formattedFirstAirDate: DisplayDate.day(detail.firstAirDate),

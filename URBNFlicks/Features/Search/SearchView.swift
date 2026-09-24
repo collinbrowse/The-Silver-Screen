@@ -25,21 +25,17 @@ struct SearchView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .empty:
-                Button {
-                    isSearchPresented.wrappedValue = false
-                } label: {
-                    EmptyStateView(
-                        title: viewModel.emptyTitle,
-                        message: viewModel.emptyMessage,
-                        systemImage: "magnifyingglass"
-                    )
+                if viewModel.showsFocusedPlaceholder {
+                    Button {
+                        isSearchPresented.wrappedValue = false
+                    } label: {
+                        emptyState
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Dismisses search and restores the last results")
+                } else {
+                    emptyState
                 }
-                .buttonStyle(.plain)
-                .accessibilityHint(
-                    viewModel.showsFocusedPlaceholder
-                        ? "Dismisses search and restores the last results"
-                        : ""
-                )
             case .loaded(let listing, let activity):
                 results(listing, activity: activity)
             case .failed(let error):
@@ -48,7 +44,9 @@ struct SearchView: View {
                 }
             }
         }
-        .safeAreaBar(edge: .top, spacing: 0) {
+        .background(DesignTheme.canvas)
+        .refreshable { await viewModel.refresh() }
+        .safeAreaInset(edge: .top, spacing: 0) {
             Picker("Search", selection: $viewModel.scope) {
                 ForEach(SearchScope.allCases, id: \.self) { scope in
                     Text(scope.title).tag(scope)
@@ -57,12 +55,20 @@ struct SearchView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, DesignSpacing.lg)
             .padding(.vertical, DesignSpacing.sm)
+            .background(DesignTheme.canvas)
             .accessibilityLabel("Search category")
         }
-        .background(DesignTheme.canvas)
         .navigationTitle("Search")
+        .toolbarTitleDisplayMode(.inlineLarge)
+        .searchable(
+            text: $viewModel.query,
+            isPresented: isSearchPresented,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: searchPrompt
+        )
+        .scrollDismissesKeyboard(.immediately)
         .onChange(of: viewModel.query) { _, _ in
-            Task { await viewModel.commitQueryChange() }
+            viewModel.scheduleQueryChange()
         }
         .onChange(of: viewModel.scope) { _, _ in
             Task { await viewModel.reloadForScopeChange() }
@@ -73,11 +79,27 @@ struct SearchView: View {
         .onChange(of: viewModel.committedQuery) { _, _ in
             scrollIDs = [:]
         }
-        .refreshable { await viewModel.refresh() }
+        .onDisappear { viewModel.cancelDebounce() }
         .task {
             if case .idle = viewModel.state {
                 await viewModel.load()
             }
+        }
+    }
+
+    private var emptyState: some View {
+        EmptyStateView(
+            title: viewModel.emptyTitle,
+            message: viewModel.emptyMessage,
+            systemImage: "magnifyingglass"
+        )
+    }
+
+    private var searchPrompt: String {
+        switch viewModel.scope {
+        case .movies: "Search movies"
+        case .tv: "Search TV"
+        case .people: "Search people"
         }
     }
 
@@ -88,7 +110,7 @@ struct SearchView: View {
             case .movies(let rows):
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     resultButton(index: index, count: rows.count, rowID: row.id) {
-                        router?.push(.movieDetail(id: row.id))
+                        open(.movieDetail(id: row.id))
                     } label: {
                         CatalogRowView(
                             title: row.title,
@@ -101,14 +123,14 @@ struct SearchView: View {
                         )
                     } star: {
                         favoriteStar(name: row.title, id: row.id, kind: .movie) {
-                            try? await favorites.toggle(movie: row.asMovie())
+                            await toggleFavorite { try await favorites.toggle(movie: row.asMovie()) }
                         }
                     }
                 }
             case .tv(let rows):
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     resultButton(index: index, count: rows.count, rowID: row.id) {
-                        router?.push(.tvSeries(id: row.id))
+                        open(.tvSeries(id: row.id))
                     } label: {
                         CatalogRowView(
                             title: row.name,
@@ -121,14 +143,14 @@ struct SearchView: View {
                         )
                     } star: {
                         favoriteStar(name: row.name, id: row.id, kind: .tv) {
-                            try? await favorites.toggle(tv: row.asSeries())
+                            await toggleFavorite { try await favorites.toggle(tv: row.asSeries()) }
                         }
                     }
                 }
             case .people(let rows):
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     resultButton(index: index, count: rows.count, rowID: row.id) {
-                        router?.push(.person(id: row.id))
+                        open(.person(id: row.id))
                     } label: {
                         CatalogRowView(
                             title: row.name,
@@ -141,7 +163,7 @@ struct SearchView: View {
                         )
                     } star: {
                         favoriteStar(name: row.name, id: row.id, kind: .person) {
-                            try? await favorites.toggle(person: row.asPerson())
+                            await toggleFavorite { try await favorites.toggle(person: row.asPerson()) }
                         }
                     }
                 }
@@ -161,6 +183,12 @@ struct SearchView: View {
         .overlay(alignment: .top) {
             LoadActivityBanner(activity: activity)
         }
+    }
+
+    /// Leaves the field so Back returns to the results instead of a focused search.
+    private func open(_ route: Route) {
+        isSearchPresented.wrappedValue = false
+        router?.push(route)
     }
 
     private func resultButton<Label: View, Star: View>(
@@ -184,6 +212,14 @@ struct SearchView: View {
             if index == count - 1 {
                 Task { await viewModel.loadMore() }
             }
+        }
+    }
+
+    private func toggleFavorite(_ save: () async throws -> Void) async {
+        do {
+            try await save()
+        } catch {
+            viewModel.noteFavoriteSaveFailed()
         }
     }
 

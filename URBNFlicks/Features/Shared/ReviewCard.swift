@@ -152,35 +152,44 @@ struct ReviewPageList: View {
         ReviewWindow.pageCount(totalCount: max(totalCount, items.count))
     }
 
+    /// The row is only useful when another page exists in one direction.
     private var showsPager: Bool {
+        canMoveBack || canMoveForward
+    }
+
+    private var canMoveBack: Bool {
         ReviewWindow.canMoveBack(index: page)
-            || ReviewWindow.canMoveForward(index: page, itemCount: items.count, hasMore: hasMore)
+    }
+
+    private var canMoveForward: Bool {
+        ReviewWindow.canMoveForward(index: page, itemCount: items.count, hasMore: hasMore)
     }
 
     private var pager: some View {
-        HStack(spacing: 0) {
-            Button("Previous") {
-                guard ReviewWindow.canMoveBack(index: page) else { return }
-                withAnimation(.smooth(duration: 0.3)) {
-                    page -= 1
-                }
-            }
-            .disabled(!ReviewWindow.canMoveBack(index: page))
-            .frame(maxWidth: .infinity, alignment: .leading)
-
+        ZStack {
             Text("Page \(page + 1) / \(pageCount)")
                 .font(DesignTypography.chip)
                 .foregroundStyle(DesignTheme.textSecondary)
                 .accessibilityLabel("Page \(page + 1) of \(pageCount)")
 
-            Button("Next") {
-                Task { await goForward() }
+            HStack(spacing: 0) {
+                if canMoveBack {
+                    Button("Previous page") {
+                        withAnimation(.smooth(duration: 0.3)) {
+                            page -= 1
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if canMoveForward {
+                    Button("Next page") {
+                        Task { await goForward() }
+                    }
+                    .disabled(isLoadingPage)
+                }
             }
-            .disabled(
-                isLoadingPage
-                    || !ReviewWindow.canMoveForward(index: page, itemCount: items.count, hasMore: hasMore)
-            )
-            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .font(DesignTypography.chip.weight(.semibold))
         .foregroundStyle(DesignTheme.accent)

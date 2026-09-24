@@ -112,8 +112,9 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(rows.map(\.id), [278, 238, 240])
     }
 
-    func test_submit_ignoresQueriesShorterThanTwoCharacters() async {
+    func test_submit_oneCharacterReplacesThePopularList() async {
         let client = RoutingHTTPClient(routes: [
+            "movie/popular": .success(TMDBFixtures.topMoviesPage1),
             "search/movie": .success(TMDBFixtures.topMoviesPage2),
         ])
         let viewModel = SearchViewModel(
@@ -122,13 +123,17 @@ final class SearchViewModelTests: XCTestCase {
             people: PersonRepository.test(client: client),
             sleeper: NoopSleeper()
         )
+        await viewModel.load()
         viewModel.query = "a"
 
         await viewModel.submit()
 
-        let count = await client.requestCount
-        XCTAssertEqual(count, 0)
-        XCTAssertEqual(viewModel.state, .idle)
+        guard case .loaded(.movies(let rows), _) = viewModel.state else {
+            return XCTFail("Expected search results, got \(viewModel.state)")
+        }
+        XCTAssertEqual(rows.map(\.id), [240])
+        let searchCount = await client.requests.filter { $0.url?.path.contains("search/movie") == true }.count
+        XCTAssertEqual(searchCount, 1)
     }
 
     func test_scopeChange_reusesTheSegmentCache() async {
@@ -246,6 +251,60 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertTrue(personItems.contains(URLQueryItem(name: "include_adult", value: "false")))
         XCTAssertTrue(personItems.contains(URLQueryItem(name: "language", value: "en-US")))
         XCTAssertTrue(personItems.contains(URLQueryItem(name: "region", value: "US")))
+    }
+
+    func test_search_ordersNameMatchesByPopularity() async {
+        let payload = Data("""
+        {
+          "page": 1,
+          "results": [
+            {"id": 1, "title": "SPI", "genre_ids": [99], "vote_average": 5.0, "popularity": 1.0, "release_date": "2020-01-01"},
+            {"id": 2, "title": "Spider-Man: Brand New Day", "genre_ids": [28], "vote_average": 8.0, "popularity": 100.0, "release_date": "2026-07-29"}
+          ],
+          "total_pages": 1
+        }
+        """.utf8)
+        let viewModel = makeViewModel(routes: ["search/movie": .success(payload)])
+        viewModel.query = "Spi"
+        await viewModel.submit()
+        guard case .loaded(.movies(let rows), _) = viewModel.state else {
+            return XCTFail("Expected movies, got \(viewModel.state)")
+        }
+        XCTAssertEqual(rows.map(\.title), ["Spider-Man: Brand New Day", "SPI"])
+    }
+
+    func test_search_genreUsesDiscoverSortedByPopularity() async throws {
+        let client = RoutingHTTPClient(routes: [
+            "discover/movie": .success(TMDBFixtures.topMoviesPage1),
+            "discover/tv": .success(TMDBFixtures.popularTVPage),
+        ])
+        let viewModel = SearchViewModel(
+            movies: MovieRepository.test(client: client),
+            shows: TVRepository.test(client: client),
+            people: PersonRepository.test(client: client),
+            sleeper: NoopSleeper()
+        )
+        viewModel.query = "Horror"
+        await viewModel.submit()
+        let movieURL = await client.requests.last?.url
+        let movieItems = URLComponents(url: movieURL!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(movieURL?.path, "/3/discover/movie")
+        XCTAssertTrue(movieItems.contains(URLQueryItem(name: "with_genres", value: "27")))
+        XCTAssertTrue(movieItems.contains(URLQueryItem(name: "sort_by", value: "popularity.desc")))
+
+        viewModel.scope = .tv
+        viewModel.query = "Drama"
+        await viewModel.submit()
+        let tvURL = await client.requests.last?.url
+        let tvItems = URLComponents(url: tvURL!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(tvURL?.path, "/3/discover/tv")
+        XCTAssertTrue(tvItems.contains(URLQueryItem(name: "with_genres", value: "18")))
+    }
+
+    func test_focusedPlaceholder_asksForANameOrGenre() {
+        let viewModel = makeViewModel(routes: [:])
+        viewModel.setFieldFocused(true)
+        XCTAssertEqual(viewModel.emptyMessage, "Type a name or genre")
     }
 
     private func queryItems(_ client: RecordingHTTPClient) async -> [URLQueryItem] {

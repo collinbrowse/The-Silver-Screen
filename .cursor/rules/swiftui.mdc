@@ -7,8 +7,7 @@ alwaysApply: false
 # SwiftUI views
 
 - All new screens are SwiftUI with Observation. Do not add new `UIViewController` subclasses.
-- New screens live in `URBNFlicks/Features/<Feature>/` — the view, its subviews, and its view model together. `URBNFlicks/Views/` is the legacy UIKit surface and is governed by [`uikit.mdc`](.cursor/rules/uikit.mdc) instead.
-- The existing Top Movies list stays UIKit. Bridge it with `UIViewControllerRepresentable` when it has to live inside SwiftUI navigation.
+- New screens live in `URBNFlicks/Features/<Feature>/` — the view, its subviews, and its view model together. Do not add UIKit view controllers.
 - Observe with `@State private var viewModel` (injected at construction) or `@Environment`. Do not use `ObservableObject`, `@Published`, `@StateObject`, or `@ObservedObject`.
 - A view is a function of state: `switch viewModel.state` and handle every case, including empty and failed.
 

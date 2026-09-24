@@ -25,6 +25,7 @@ final class BrowseListViewModel {
     private let movies: MovieRepository
     private let shows: TVRepository
     private let locale: Locale
+    private let timeZone: TimeZone
     private let today: @Sendable () -> Date
 
     private var generation = 0
@@ -42,11 +43,13 @@ final class BrowseListViewModel {
         movies: MovieRepository,
         shows: TVRepository,
         locale: Locale = .current,
+        timeZone: TimeZone = .current,
         today: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.movies = movies
         self.shows = shows
         self.locale = locale
+        self.timeZone = timeZone
         self.today = today
     }
 
@@ -68,8 +71,6 @@ final class BrowseListViewModel {
     func setMedia(_ media: BrowseMedia) async {
         guard media != self.media else { return }
         self.media = media
-        window = .all
-        sort = .popular
         selectionToken += 1
         await reload(keepVisible: false)
     }
@@ -86,6 +87,11 @@ final class BrowseListViewModel {
         self.sort = sort
         selectionToken += 1
         await reload(keepVisible: false)
+    }
+
+    func noteFavoriteSaveFailed() {
+        guard case .loaded(let rows, _) = state else { return }
+        state = .loaded(rows, activity: .failed(.persistence))
     }
 
     /// Fetches the next page while keeping the current list on screen.
@@ -196,16 +202,16 @@ final class BrowseListViewModel {
             guard movieHasMore else { return }
             let page = try await movieList(page: moviePage)
             guard !Task.isCancelled else { throw CancellationError() }
-            merge.appendMovies(page.movies.map(BrowseCandidate.movie))
+            let added = merge.appendMovies(page.movies.map(BrowseCandidate.movie))
             moviePage = page.page + 1
-            movieHasMore = page.hasMore
+            movieHasMore = page.hasMore && added > 0
         case .tv:
             guard showHasMore else { return }
             let page = try await showList(page: showPage)
             guard !Task.isCancelled else { throw CancellationError() }
-            merge.appendShows(page.series.map(BrowseCandidate.series))
+            let added = merge.appendShows(page.series.map(BrowseCandidate.series))
             showPage = page.page + 1
-            showHasMore = page.hasMore
+            showHasMore = page.hasMore && added > 0
         case .all:
             let fetchMovies = merge.needsMoviePage && movieHasMore
             let fetchShows = merge.needsShowPage && showHasMore
@@ -214,72 +220,91 @@ final class BrowseListViewModel {
                 async let showRequest = showList(page: showPage)
                 let (movieResult, showResult) = try await (movieRequest, showRequest)
                 guard !Task.isCancelled else { throw CancellationError() }
-                merge.appendMovies(movieResult.movies.map(BrowseCandidate.movie))
+                let moviesAdded = merge.appendMovies(movieResult.movies.map(BrowseCandidate.movie))
                 moviePage = movieResult.page + 1
-                movieHasMore = movieResult.hasMore
-                merge.appendShows(showResult.series.map(BrowseCandidate.series))
+                movieHasMore = movieResult.hasMore && moviesAdded > 0
+                let showsAdded = merge.appendShows(showResult.series.map(BrowseCandidate.series))
                 showPage = showResult.page + 1
-                showHasMore = showResult.hasMore
+                showHasMore = showResult.hasMore && showsAdded > 0
             } else if fetchMovies {
                 let page = try await movieList(page: moviePage)
                 guard !Task.isCancelled else { throw CancellationError() }
-                merge.appendMovies(page.movies.map(BrowseCandidate.movie))
+                let added = merge.appendMovies(page.movies.map(BrowseCandidate.movie))
                 moviePage = page.page + 1
-                movieHasMore = page.hasMore
+                movieHasMore = page.hasMore && added > 0
             } else if fetchShows {
                 let page = try await showList(page: showPage)
                 guard !Task.isCancelled else { throw CancellationError() }
-                merge.appendShows(page.series.map(BrowseCandidate.series))
+                let added = merge.appendShows(page.series.map(BrowseCandidate.series))
                 showPage = page.page + 1
-                showHasMore = page.hasMore
+                showHasMore = page.hasMore && added > 0
             }
             merge.consume(sort: sort, moviesHaveMore: movieHasMore, showsHaveMore: showHasMore)
         }
     }
 
-    /// Popular with the All window is the Search landing list. Other filters stay on Discover.
-    private var usesPopularList: Bool {
-        sort == .popular && window == .all
-    }
+    /// Popular with the All window is the Search landing list.
+    /// Now Playing and Upcoming are TMDB's own lists and ignore sort.
 
     private func movieList(page: Int) async throws -> MoviePage {
-        if usesPopularList {
-            return try await movies.popular(page: page, locale: locale)
+        switch window {
+        case .nowPlaying:
+            return try await movies.nowPlaying(page: page, locale: locale)
+        case .upcoming:
+            return try await movies.upcoming(page: page, locale: locale)
+        case .all:
+            if sort == .popular {
+                return try await movies.popular(page: page, locale: locale)
+            }
+            return try await movies.discover(
+                sort: sort,
+                window: .all,
+                page: page,
+                locale: locale,
+                today: today(),
+                timeZone: timeZone
+            )
         }
-        return try await movies.discover(
-            sort: sort,
-            window: window,
-            page: page,
-            locale: locale,
-            today: today()
-        )
     }
 
     private func showList(page: Int) async throws -> TVSeriesPage {
-        if usesPopularList {
-            return try await shows.popular(page: page, locale: locale)
+        switch window {
+        case .nowPlaying:
+            return try await shows.onTheAir(page: page, locale: locale)
+        case .upcoming:
+            return try await shows.upcoming(
+                page: page,
+                locale: locale,
+                today: today(),
+                timeZone: timeZone
+            )
+        case .all:
+            if sort == .popular {
+                return try await shows.popular(page: page, locale: locale)
+            }
+            return try await shows.discover(
+                sort: sort,
+                window: .all,
+                page: page,
+                locale: locale,
+                today: today(),
+                timeZone: timeZone
+            )
         }
-        return try await shows.discover(
-            sort: sort,
-            window: window,
-            page: page,
-            locale: locale,
-            today: today()
-        )
     }
 
     private func apply(_ fresh: FreshPages) {
         if let movies = fresh.movies {
-            merge.appendMovies(movies.movies.map(BrowseCandidate.movie))
+            let added = merge.appendMovies(movies.movies.map(BrowseCandidate.movie))
             moviePage = movies.page + 1
-            movieHasMore = movies.hasMore
+            movieHasMore = movies.hasMore && added > 0
         } else {
             movieHasMore = false
         }
         if let shows = fresh.shows {
-            merge.appendShows(shows.series.map(BrowseCandidate.series))
+            let added = merge.appendShows(shows.series.map(BrowseCandidate.series))
             showPage = shows.page + 1
-            showHasMore = shows.hasMore
+            showHasMore = shows.hasMore && added > 0
         } else {
             showHasMore = false
         }

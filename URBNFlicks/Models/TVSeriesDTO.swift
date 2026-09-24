@@ -111,10 +111,70 @@ struct TVAggregateCrewDTO: Decodable, Sendable {
 struct TVAggregateCreditsDTO: Decodable, Sendable {
     let cast: [TVAggregateCastDTO]?
     let crew: [TVAggregateCrewDTO]?
+
+    enum CodingKeys: String, CodingKey {
+        case cast
+        case crew
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        cast = try Self.lossy(TVAggregateCastDTO.self, from: container, key: .cast)
+        crew = try Self.lossy(TVAggregateCrewDTO.self, from: container, key: .crew)
+    }
+
+    /// A bad person is skipped. A value that is not a list still fails this section.
+    private static func lossy<T: Decodable>(
+        _ type: T.Type,
+        from container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys
+    ) throws -> [T]? {
+        guard container.contains(key), try !container.decodeNil(forKey: key) else { return nil }
+        var unkeyed = try container.nestedUnkeyedContainer(forKey: key)
+        var items: [T] = []
+        while !unkeyed.isAtEnd {
+            let element = try unkeyed.decode(OptionalElement<T>.self)
+            if let value = element.value {
+                items.append(value)
+            }
+        }
+        return items
+    }
 }
 
 struct TVSeriesResultsDTO: Decodable, Sendable {
     let results: [TVSeriesSummaryDTO]?
+
+    enum CodingKeys: String, CodingKey {
+        case results
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard container.contains(.results), try !container.decodeNil(forKey: .results) else {
+            results = nil
+            return
+        }
+        var unkeyed = try container.nestedUnkeyedContainer(forKey: .results)
+        var items: [TVSeriesSummaryDTO] = []
+        while !unkeyed.isAtEnd {
+            let element = try unkeyed.decode(OptionalElement<TVSeriesSummaryDTO>.self)
+            if let value = element.value {
+                items.append(value)
+            }
+        }
+        results = items
+    }
+}
+
+/// One array element. A malformed element becomes nil so the rest of the list survives.
+private struct OptionalElement<T: Decodable>: Decodable {
+    let value: T?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        value = try? container.decode(T.self)
+    }
 }
 
 struct TVSeriesDetailDTO: Decodable, Sendable {
@@ -130,6 +190,8 @@ struct TVSeriesDetailDTO: Decodable, Sendable {
     let images: MovieImagesDTO?
     let aggregateCredits: TVAggregateCreditsDTO?
     let recommendations: TVSeriesResultsDTO?
+    /// Appended sections that were present but could not be decoded.
+    let sectionFailures: [String]
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -144,6 +206,39 @@ struct TVSeriesDetailDTO: Decodable, Sendable {
         case images
         case aggregateCredits = "aggregate_credits"
         case recommendations
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        overview = try container.decodeIfPresent(String.self, forKey: .overview)
+        posterPath = try container.decodeIfPresent(String.self, forKey: .posterPath)
+        firstAirDate = try container.decodeIfPresent(String.self, forKey: .firstAirDate)
+        lastAirDate = try container.decodeIfPresent(String.self, forKey: .lastAirDate)
+        genres = try container.decodeIfPresent([MovieGenreDTO].self, forKey: .genres)
+        createdBy = try container.decodeIfPresent([TVCreatorDTO].self, forKey: .createdBy)
+        seasons = try container.decodeIfPresent([TVSeasonSummaryDTO].self, forKey: .seasons)
+        var failures: [String] = []
+        images = Self.optionalSection(MovieImagesDTO.self, from: container, key: .images, failures: &failures)
+        aggregateCredits = Self.optionalSection(TVAggregateCreditsDTO.self, from: container, key: .aggregateCredits, failures: &failures)
+        recommendations = Self.optionalSection(TVSeriesResultsDTO.self, from: container, key: .recommendations, failures: &failures)
+        sectionFailures = failures
+    }
+
+    private static func optionalSection<T: Decodable>(
+        _ type: T.Type,
+        from container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys,
+        failures: inout [String]
+    ) -> T? {
+        guard container.contains(key) else { return nil }
+        do {
+            return try container.decode(T.self, forKey: key)
+        } catch {
+            failures.append(key.stringValue)
+            return nil
+        }
     }
 }
 
@@ -177,6 +272,7 @@ struct TVSeasonDetailDTO: Decodable, Sendable {
     let episodes: [TVEpisodeSummaryDTO]?
     let images: MovieImagesDTO?
     let aggregateCredits: TVAggregateCreditsDTO?
+    let sectionFailures: [String]
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -188,6 +284,36 @@ struct TVSeasonDetailDTO: Decodable, Sendable {
         case episodes
         case images
         case aggregateCredits = "aggregate_credits"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        overview = try container.decodeIfPresent(String.self, forKey: .overview)
+        seasonNumber = try container.decode(Int.self, forKey: .seasonNumber)
+        airDate = try container.decodeIfPresent(String.self, forKey: .airDate)
+        posterPath = try container.decodeIfPresent(String.self, forKey: .posterPath)
+        episodes = try container.decodeIfPresent([TVEpisodeSummaryDTO].self, forKey: .episodes)
+        var failures: [String] = []
+        images = Self.optionalSection(MovieImagesDTO.self, from: container, key: .images, failures: &failures)
+        aggregateCredits = Self.optionalSection(TVAggregateCreditsDTO.self, from: container, key: .aggregateCredits, failures: &failures)
+        sectionFailures = failures
+    }
+
+    private static func optionalSection<T: Decodable>(
+        _ type: T.Type,
+        from container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys,
+        failures: inout [String]
+    ) -> T? {
+        guard container.contains(key) else { return nil }
+        do {
+            return try container.decode(T.self, forKey: key)
+        } catch {
+            failures.append(key.stringValue)
+            return nil
+        }
     }
 }
 
@@ -214,6 +340,7 @@ struct TVEpisodeDetailDTO: Decodable, Sendable {
     let guestStars: [CastMemberDTO]?
     let credits: TVEpisodeCreditsDTO?
     let images: MovieImagesDTO?
+    let sectionFailures: [String]
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -227,6 +354,37 @@ struct TVEpisodeDetailDTO: Decodable, Sendable {
         case credits
         case images
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        overview = try container.decodeIfPresent(String.self, forKey: .overview)
+        episodeNumber = try container.decode(Int.self, forKey: .episodeNumber)
+        airDate = try container.decodeIfPresent(String.self, forKey: .airDate)
+        stillPath = try container.decodeIfPresent(String.self, forKey: .stillPath)
+        crew = try container.decodeIfPresent([CrewMemberDTO].self, forKey: .crew)
+        guestStars = try container.decodeIfPresent([CastMemberDTO].self, forKey: .guestStars)
+        var failures: [String] = []
+        credits = Self.optionalSection(TVEpisodeCreditsDTO.self, from: container, key: .credits, failures: &failures)
+        images = Self.optionalSection(MovieImagesDTO.self, from: container, key: .images, failures: &failures)
+        sectionFailures = failures
+    }
+
+    private static func optionalSection<T: Decodable>(
+        _ type: T.Type,
+        from container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys,
+        failures: inout [String]
+    ) -> T? {
+        guard container.contains(key) else { return nil }
+        do {
+            return try container.decode(T.self, forKey: key)
+        } catch {
+            failures.append(key.stringValue)
+            return nil
+        }
+    }
 }
 
 struct PersonSummaryDTO: Decodable, Sendable {
@@ -234,11 +392,13 @@ struct PersonSummaryDTO: Decodable, Sendable {
     let name: String?
     let profilePath: String?
     let knownForDepartment: String?
+    let popularity: Double?
 
     enum CodingKeys: String, CodingKey {
         case id
         case name
         case profilePath = "profile_path"
         case knownForDepartment = "known_for_department"
+        case popularity
     }
 }

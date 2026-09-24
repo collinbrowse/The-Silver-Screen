@@ -40,9 +40,7 @@ enum SearchListing: Sendable, Equatable {
 @Observable
 @MainActor
 final class SearchViewModel {
-    /// Queries shorter than this never hit the network.
-    static let minimumQueryLength = 2
-
+    /// Queries are sent after the debounce, including a single character.
     var query: String = ""
     var scope: SearchScope = .movies
     private(set) var state: LoadState<SearchListing> = .idle
@@ -64,6 +62,7 @@ final class SearchViewModel {
     private var queryGeneration = 0
     private var requestGeneration = 0
     private var requestTask: Task<Void, Never>?
+    private var debounceTask: Task<Void, Never>?
     private var stashed: LoadState<SearchListing>?
 
     init(
@@ -87,7 +86,7 @@ final class SearchViewModel {
 
     var emptyMessage: String {
         if showsFocusedPlaceholder {
-            return "Type at least 2 characters, or tap to go back."
+            return "Type a name or genre"
         }
         if trimmedQuery.isEmpty {
             return "Nothing popular is listed for \(scope.title) right now."
@@ -98,6 +97,18 @@ final class SearchViewModel {
     func load() async {
         guard case .idle = state else { return }
         await showCachedOrFetch(scope: scope, query: "")
+    }
+
+    /// Debounced type-ahead. A newer change cancels the wait already in flight.
+    func scheduleQueryChange() {
+        debounceTask?.cancel()
+        debounceTask = Task { await self.commitQueryChange() }
+    }
+
+    func cancelDebounce() {
+        debounceTask?.cancel()
+        debounceTask = nil
+        queryGeneration += 1
     }
 
     /// Debounced type-ahead. Tests inject `NoopSleeper` so this returns without waiting.
@@ -127,23 +138,13 @@ final class SearchViewModel {
             await showCachedOrFetch(scope: scope, query: "")
             return
         }
-        guard requested.count >= Self.minimumQueryLength else { return }
         await showCachedOrFetch(scope: scope, query: requested)
     }
 
     /// Segment changes keep the query and show that segment's pages for this text.
     func reloadForScopeChange() async {
         queryGeneration += 1
-        let requested = trimmedQuery
-        if !requested.isEmpty, requested.count < Self.minimumQueryLength {
-            cancelRequest()
-            committedQuery = requested
-            activeKey = requested
-            hasMore = false
-            state = .empty
-            return
-        }
-        await showCachedOrFetch(scope: scope, query: requested)
+        await showCachedOrFetch(scope: scope, query: trimmedQuery)
     }
 
     /// Focusing an empty field hides the list. Dismissing it puts the last results back.
@@ -182,6 +183,11 @@ final class SearchViewModel {
         await showCachedOrFetch(scope: scope, query: activeKey, keepingVisible: true)
     }
 
+    func noteFavoriteSaveFailed() {
+        guard case .loaded(let listing, _) = state else { return }
+        state = .loaded(listing, activity: .failed(.persistence))
+    }
+
     /// Fetches the next page for the query and segment already on screen.
     /// Concurrent calls are ignored; failures stay on `.loaded`.
     func loadMore() async {
@@ -200,9 +206,10 @@ final class SearchViewModel {
         do {
             let fetched = try await fetch(scope: scope, query: key, page: page)
             guard token == requestGeneration else { return }
-            bucket.listing = appending(fetched.listing, to: bucket.listing)
+            bucket.listing = appending(fetched.listing, to: bucket.listing, byPopularity: !key.isEmpty)
             bucket.nextPage = fetched.page + 1
-            bucket.hasMore = fetched.hasMore
+            let grew = listingCount(bucket.listing) > listingCount(current)
+            bucket.hasMore = fetched.hasMore && grew
             caches[scope]?[key] = bucket
             hasMore = bucket.hasMore
             state = bucket.listing.isEmpty ? .empty : .loaded(bucket.listing)
@@ -321,20 +328,28 @@ final class SearchViewModel {
     private func fetch(scope: SearchScope, query: String, page: Int) async throws -> FetchedPage {
         switch scope {
         case .movies:
+            let genres = SearchGenreMatch.movieGenreIDs(matching: query)
             let result = query.isEmpty
                 ? try await movies.popular(page: page, locale: locale)
-                : try await movies.searchMovies(query: query, page: page, locale: locale)
+                : genres.isEmpty
+                    ? try await movies.searchMovies(query: query, page: page, locale: locale)
+                    : try await movies.movies(inGenres: genres, page: page, locale: locale)
+            let ordered = query.isEmpty ? result.movies : result.movies.sorted { $0.popularity > $1.popularity }
             return FetchedPage(
-                listing: .movies(result.movies.map(CatalogMovieRow.init)),
+                listing: .movies(ordered.map(CatalogMovieRow.init)),
                 page: result.page,
                 hasMore: result.hasMore
             )
         case .tv:
+            let genres = SearchGenreMatch.tvGenreIDs(matching: query)
             let result = query.isEmpty
                 ? try await shows.popular(page: page, locale: locale)
-                : try await shows.search(query: query, page: page, locale: locale)
+                : genres.isEmpty
+                    ? try await shows.search(query: query, page: page, locale: locale)
+                    : try await shows.series(inGenres: genres, page: page, locale: locale)
+            let ordered = query.isEmpty ? result.series : result.series.sorted { $0.popularity > $1.popularity }
             return FetchedPage(
-                listing: .tv(result.series.map(CatalogTVRow.init)),
+                listing: .tv(ordered.map(CatalogTVRow.init)),
                 page: result.page,
                 hasMore: result.hasMore
             )
@@ -342,24 +357,55 @@ final class SearchViewModel {
             let result = query.isEmpty
                 ? try await people.popular(page: page, locale: locale)
                 : try await people.search(query: query, page: page, locale: locale)
+            let ordered = query.isEmpty ? result.people : result.people.sorted { $0.popularity > $1.popularity }
             return FetchedPage(
-                listing: .people(result.people.map(CatalogPersonRow.init)),
+                listing: .people(ordered.map(CatalogPersonRow.init)),
                 page: result.page,
                 hasMore: result.hasMore
             )
         }
     }
 
-    private func appending(_ next: SearchListing, to current: SearchListing) -> SearchListing {
+    private func listingCount(_ listing: SearchListing) -> Int {
+        switch listing {
+        case .movies(let rows): rows.count
+        case .tv(let rows): rows.count
+        case .people(let rows): rows.count
+        }
+    }
+
+    private func appending(_ next: SearchListing, to current: SearchListing, byPopularity: Bool) -> SearchListing {
         switch (current, next) {
         case (.movies(let existing), .movies(let incoming)):
-            return .movies(existing + incoming.filter { row in !existing.contains { $0.id == row.id } })
+            let merged = existing + incoming.filter { row in !existing.contains { $0.id == row.id } }
+            return .movies(byPopularity ? merged.sorted { $0.popularity > $1.popularity } : merged)
         case (.tv(let existing), .tv(let incoming)):
-            return .tv(existing + incoming.filter { row in !existing.contains { $0.id == row.id } })
+            let merged = existing + incoming.filter { row in !existing.contains { $0.id == row.id } }
+            return .tv(byPopularity ? merged.sorted { $0.popularity > $1.popularity } : merged)
         case (.people(let existing), .people(let incoming)):
-            return .people(existing + incoming.filter { row in !existing.contains { $0.id == row.id } })
+            let merged = existing + incoming.filter { row in !existing.contains { $0.id == row.id } }
+            return .people(byPopularity ? merged.sorted { $0.popularity > $1.popularity } : merged)
         default:
             return next
         }
+    }
+}
+
+/// Genre names the query starts, so "hor" finds Horror and "sci" finds Science Fiction.
+enum SearchGenreMatch {
+    static func movieGenreIDs(matching query: String) -> [Int] {
+        ids(in: MovieGenreCatalog.namesByID, matching: query)
+    }
+
+    static func tvGenreIDs(matching query: String) -> [Int] {
+        ids(in: TVGenreCatalog.namesByID, matching: query)
+    }
+
+    private static func ids(in namesByID: [Int: String], matching query: String) -> [Int] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard needle.count >= 3 else { return [] }
+        return namesByID.compactMap { id, name in
+            name.range(of: needle, options: [.caseInsensitive, .anchored]) != nil ? id : nil
+        }.sorted()
     }
 }

@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct FavoritesListView: View {
     @Bindable var viewModel: FavoritesListViewModel
@@ -30,12 +29,17 @@ struct FavoritesListView: View {
                 }
             }
         }
-        .safeAreaBar(edge: .top, spacing: 0) {
+        .safeAreaInset(edge: .top, spacing: 0) {
             if case .loaded = viewModel.state {
                 filterPicker
+                    .background(DesignTheme.canvas)
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search Favorites")
+        .searchable(
+            text: $viewModel.searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search favorites"
+        )
         .onAppear {
             Task { await viewModel.load() }
         }
@@ -157,14 +161,18 @@ private struct FavoriteTitleRow: View {
     let favorite: FavoriteRecord
     let imageLoader: ImageLoader
 
-    @State private var poster: UIImage?
-    @Environment(\.displayScale) private var displayScale
-
-    private let posterSize = CGSize(width: 120, height: 180)
+    private let posterWidth: CGFloat = 120
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            posterView
+            RemoteImageView(
+                path: favorite.posterPath,
+                kind: .poster,
+                width: posterWidth,
+                aspectRatio: 2 / 3,
+                imageLoader: imageLoader,
+                placeholderSystemImage: favorite.kind == .tv ? "tv" : "film"
+            )
             VStack(alignment: .leading, spacing: 6) {
                 Text(favorite.title)
                     .font(.headline)
@@ -182,24 +190,6 @@ private struct FavoriteTitleRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
-        .task(id: favorite.listID) {
-            await loadPoster()
-        }
-    }
-
-    private var posterView: some View {
-        Group {
-            if let poster {
-                Image(uiImage: poster)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Color.secondary.opacity(0.15)
-            }
-        }
-        .frame(width: posterSize.width, height: posterSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
-        .accessibilityHidden(true)
     }
 
     private var accessibilitySummary: String {
@@ -211,38 +201,8 @@ private struct FavoriteTitleRow: View {
         return parts.joined(separator: ", ")
     }
 
-    private func loadPoster() async {
-        poster = nil
-        guard let path = favorite.posterPath,
-              let url = ImageLoader.posterURL(
-                path: path,
-                targetWidthPoints: posterSize.width,
-                scale: displayScale
-              ) else {
-            return
-        }
-        let expectedID = favorite.listID
-        let image = try? await imageLoader.image(
-            for: url,
-            targetSize: posterSize,
-            scale: displayScale
-        )
-        guard expectedID == favorite.listID else { return }
-        poster = image
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter
-    }()
-
     static func releaseDateText(for date: Date?) -> String {
-        guard let date else { return "Date unavailable" }
-        return dateFormatter.string(from: date)
+        DisplayDate.day(date)
     }
 }
 

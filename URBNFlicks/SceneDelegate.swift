@@ -52,7 +52,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             } else {
                 message = "The app could not start."
             }
-            window.rootViewController = StartupFailureViewController(message: message)
+            window.rootViewController = UIHostingController(
+                rootView: StartupFailureView(message: message)
+            )
         }
 
         self.window = window
@@ -65,32 +67,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
-private final class StartupFailureViewController: UIViewController {
-    private let message: String
+private struct StartupFailureView: View {
+    let message: String
 
-    init(message: String) {
-        self.message = message
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = message
-        label.numberOfLines = 0
-        label.textAlignment = .center
-        label.font = .preferredFont(forTextStyle: .body)
-        view.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        ])
+    var body: some View {
+        Text(message)
+            .font(.body)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(Color(.label))
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
     }
 }

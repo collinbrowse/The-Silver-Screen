@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct MovieDetailView: View {
     @State var viewModel: MovieDetailViewModel
@@ -472,6 +471,7 @@ struct MovieDetailView: View {
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .inlineTitleAnchor()
                 }
             } else {
                 HStack(alignment: .top, spacing: DesignSpacing.md) {
@@ -480,6 +480,7 @@ struct MovieDetailView: View {
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .inlineTitleAnchor()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

@@ -133,6 +133,7 @@ struct TVEpisodeView: View {
                 }
             }
             .padding(.vertical, DesignSpacing.lg)
+            .coordinateSpace(.named("detailScroll"))
         }
         .scrollingInlineTitle(navigationTitle)
     }
@@ -152,6 +153,7 @@ struct TVEpisodeView: View {
                 .font(DesignTypography.title)
                 .foregroundStyle(DesignTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+                .inlineTitleAnchor()
             Text(content.episodeNumberText)
                 .font(DesignTypography.metadata.weight(.semibold))
                 .foregroundStyle(DesignTheme.textSecondary)

@@ -115,6 +115,7 @@ struct TVSeasonView: View {
                 }
             }
             .padding(.vertical, DesignSpacing.lg)
+            .coordinateSpace(.named("detailScroll"))
         }
         .scrollingInlineTitle(navigationTitle)
     }
@@ -135,6 +136,7 @@ struct TVSeasonView: View {
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .inlineTitleAnchor()
                     Text(content.formattedAirDate)
                         .font(DesignTypography.metadata)
                         .foregroundStyle(DesignTheme.textSecondary)

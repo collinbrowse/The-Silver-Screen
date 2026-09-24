@@ -228,6 +228,17 @@ final class MovieRepositoryTests: XCTestCase {
         XCTAssertEqual(people[0].roles, ["Director", "Screenplay"])
     }
 
+    func test_creditedDirectorsAndWriters_keepsWriterJobsAndDropsAssistants() {
+        let crew = [
+            CrewMember(id: "1", personID: 1, name: "Ada", job: "Story", department: "Writing", profilePath: nil),
+            CrewMember(id: "2", personID: 2, name: "Bea", job: "Script Coordinator", department: "Writing", profilePath: nil),
+            CrewMember(id: "3", personID: 3, name: "Cam", job: "Director", department: "Directing", profilePath: nil),
+        ]
+        let people = MovieRepository.creditedDirectorsAndWriters(from: crew)
+        XCTAssertEqual(people.map(\.name), ["Cam", "Ada"])
+        XCTAssertEqual(people[1].roles, ["Story"])
+    }
+
     func test_collection_mapsParts() async throws {
         let client = FakeHTTPClient(stub: .success(TMDBFixtures.collectionGodfather))
         let repository = MovieRepository.test(client: client)

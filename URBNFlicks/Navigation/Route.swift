@@ -5,8 +5,7 @@
 
 import Foundation
 
-/// Tabs on the bar. Older snapshots used Now Playing, Upcoming, and Top Movies;
-/// those values decode as Browse so a restore does not fail.
+/// Tabs on the bar. An unrecognized stored value restores Browse.
 enum AppTab: Hashable, Sendable {
     case browse
     case favorites
@@ -22,7 +21,7 @@ extension AppTab: Codable {
             self = .favorites
         case "search":
             self = .search
-        case "browse", "nowPlaying", "upcoming", "topMovies":
+        case "browse":
             self = .browse
         default:
             self = .browse

@@ -67,8 +67,8 @@ final class TVRepositoryTests: XCTestCase {
         XCTAssertEqual(episode.title, "Pilot")
         XCTAssertEqual(episode.cast.map(\.name), ["Bryan Cranston"])
         XCTAssertEqual(episode.guestStars.map(\.name), ["John Koyama"])
-        XCTAssertEqual(episode.directorsAndWriters.map(\.name), ["Vince Gilligan", "Screen Person"])
-        XCTAssertFalse(episode.directorsAndWriters.contains { $0.name == "Story Person" })
+        XCTAssertEqual(episode.directorsAndWriters.map(\.name), ["Vince Gilligan", "Story Person", "Screen Person"])
+        XCTAssertFalse(episode.directorsAndWriters.contains { $0.name == "Script Coordinator" })
         XCTAssertTrue(episode.directorsAndWriters[0].role.contains("Director"))
         XCTAssertTrue(episode.directorsAndWriters[0].role.contains("Writer"))
         XCTAssertEqual(episode.images.map(\.filePath), ["/still.jpg"])
@@ -167,5 +167,22 @@ final class TVRepositoryTests: XCTestCase {
         XCTAssertEqual(path, "/3/tv/popular")
         XCTAssertEqual(page.series.map(\.name), ["Breaking Bad"])
         XCTAssertTrue(page.hasMore)
+    }
+
+    func test_series_skipsMalformedImagesAndKeepsTheSeries() async throws {
+        let payload = Data("""
+        {
+          "id": 1396,
+          "name": "Breaking Bad",
+          "images": { "backdrops": "not-an-array" },
+          "aggregate_credits": { "cast": [], "crew": [] },
+          "recommendations": { "results": [] }
+        }
+        """.utf8)
+        let series = try await TVRepository.test(client: FakeHTTPClient(stub: .success(payload)))
+            .series(id: 1396)
+        XCTAssertEqual(series.name, "Breaking Bad")
+        XCTAssertTrue(series.images.isEmpty)
+        XCTAssertTrue(series.cast.isEmpty)
     }
 }

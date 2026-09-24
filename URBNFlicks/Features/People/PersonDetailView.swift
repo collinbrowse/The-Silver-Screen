@@ -119,6 +119,7 @@ struct PersonDetailView: View {
             .padding(.vertical, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
+            .coordinateSpace(.named("detailScroll"))
         }
         .scrollingInlineTitle(navigationTitle)
         .overlay(alignment: .top) {
@@ -169,6 +170,7 @@ struct PersonDetailView: View {
                 .font(DesignTypography.title)
                 .foregroundStyle(DesignTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+                .inlineTitleAnchor()
                 .accessibilityAddTraits(.isHeader)
             if let imdbID = content.detail.imdbID {
                 imdbButton(imdbID: imdbID)

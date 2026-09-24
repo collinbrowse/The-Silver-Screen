@@ -100,16 +100,17 @@ struct MovieCollectionDTO: Decodable, Sendable {
     }
 }
 
-struct MovieReviewAuthorDTO: Decodable, Sendable {
+struct ReviewAuthorDTO: Decodable, Sendable {
     let username: String?
 }
 
-struct MovieReviewDTO: Decodable, Sendable {
+/// TMDB review object. Movie and TV review payloads share this shape.
+struct ReviewDTO: Decodable, Sendable {
     let id: String
     let author: String?
     let content: String?
     let updatedAt: String?
-    let authorDetails: MovieReviewAuthorDTO?
+    let authorDetails: ReviewAuthorDTO?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -120,17 +121,11 @@ struct MovieReviewDTO: Decodable, Sendable {
     }
 }
 
-struct MovieReviewsPageDTO: Decodable, Sendable {
-    let page: Int
-    let totalPages: Int
+struct ReviewPageMetaDTO: Decodable, Sendable {
     let totalResults: Int?
-    let results: [MovieReviewDTO]?
 
     enum CodingKeys: String, CodingKey {
-        case page
-        case totalPages = "total_pages"
         case totalResults = "total_results"
-        case results
     }
 }
 

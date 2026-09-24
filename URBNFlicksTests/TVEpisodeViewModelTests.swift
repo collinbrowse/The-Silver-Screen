@@ -29,8 +29,8 @@ final class TVEpisodeViewModelTests: XCTestCase {
         XCTAssertEqual(content.stillPath, "/pilot.jpg")
         XCTAssertEqual(content.cast.map(\.role), ["Walter White"])
         XCTAssertEqual(content.guestStars.map(\.name), ["John Koyama"])
-        XCTAssertEqual(content.directorsAndWriters.map(\.name), ["Vince Gilligan", "Screen Person"])
-        XCTAssertFalse(content.directorsAndWriters.contains { $0.name == "Story Person" })
+        XCTAssertEqual(content.directorsAndWriters.map(\.name), ["Vince Gilligan", "Story Person", "Screen Person"])
+        XCTAssertFalse(content.directorsAndWriters.contains { $0.name == "Script Coordinator" })
         XCTAssertFalse(content.images.isEmpty)
         XCTAssertTrue(content.otherEpisodes.isEmpty)
     }

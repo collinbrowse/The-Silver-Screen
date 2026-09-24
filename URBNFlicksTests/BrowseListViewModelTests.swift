@@ -52,11 +52,11 @@ final class BrowseListViewModelTests: XCTestCase {
         XCTAssertFalse(items.contains { $0.name == "vote_count.gte" })
     }
 
-    func test_eachSegmentStartsOnThePopularListSearchUses() async {
+    func test_mediaChange_keepsWindowAndSort() async {
         let client = RoutingHTTPClient(routes: [
             "movie/popular": .success(TMDBFixtures.topMoviesPage1),
             "discover/movie": .success(TMDBFixtures.topMoviesPage1),
-            "tv/popular": .success(Self.tvPage),
+            "discover/tv": .success(Self.tvPage),
         ])
         let viewModel = makeViewModel(
             movies: MovieRepository.test(client: client),
@@ -69,23 +69,24 @@ final class BrowseListViewModelTests: XCTestCase {
         await viewModel.setMedia(.all)
 
         let paths = await client.requests.compactMap { $0.url?.path }
-        XCTAssertEqual(Array(paths.prefix(3)), ["/3/movie/popular", "/3/discover/movie", "/3/tv/popular"])
-        XCTAssertEqual(Set(paths.suffix(2)), Set(["/3/movie/popular", "/3/tv/popular"]))
-        XCTAssertEqual(viewModel.sort, .popular)
+        XCTAssertEqual(paths.first, "/3/movie/popular")
+        XCTAssertEqual(paths.dropFirst().prefix(1).first, "/3/discover/movie")
+        XCTAssertTrue(paths.contains("/3/discover/tv"))
+        XCTAssertEqual(viewModel.sort, .topRated)
         XCTAssertEqual(viewModel.window, .all)
     }
 
-    func test_merge_popularInterleavesByPopularity() {
+    func test_merge_popularAlternatesMovieThenShow() {
         var merge = BrowseMerge()
         merge.appendMovies([
-            candidate(.movie, id: 1, title: "Middlemarch", popularity: 80),
-            candidate(.movie, id: 2, title: "Alpha", popularity: 20),
+            candidate(.movie, id: 1, title: "Alpha", popularity: 1),
+            candidate(.movie, id: 2, title: "Beta", popularity: 1),
         ])
         merge.appendShows([
-            candidate(.tv, id: 3, title: "Zebra", popularity: 50),
+            candidate(.tv, id: 3, title: "Zebra", popularity: 100),
         ])
         merge.consume(sort: .popular, moviesHaveMore: false, showsHaveMore: false)
-        XCTAssertEqual(merge.shown.map(\.title), ["Middlemarch", "Zebra", "Alpha"])
+        XCTAssertEqual(merge.shown.map(\.title), ["Alpha", "Zebra", "Beta"])
     }
 
     func test_discoverMovies_omitsRegionWhenLocaleHasNone() async throws {
@@ -101,40 +102,35 @@ final class BrowseListViewModelTests: XCTestCase {
         )
 
         let items = await queryItems(client)
-        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "original_title.asc")))
+        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "title.asc")))
         XCTAssertTrue(items.contains(URLQueryItem(name: "language", value: "en")))
         XCTAssertFalse(items.contains { $0.name == "region" })
         XCTAssertFalse(items.contains { $0.name == "vote_count.gte" })
     }
 
-    func test_discover_nowPlayingAndUpcomingWindows_moviesTVAndEmpty() async throws {
+    func test_nowPlayingAndUpcoming_useTheatricalLists() async throws {
         let client = RecordingHTTPClient(stub: .success(Self.emptyPage))
         let movies = MovieRepository.test(client: client)
         let shows = TVRepository.test(client: client)
+        let utc = TimeZone(secondsFromGMT: 0)!
 
-        _ = try await movies.discover(sort: .newest, window: .nowPlaying, page: 1, locale: locale, today: today)
-        var items = await queryItems(client)
-        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "primary_release_date.desc")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "primary_release_date.gte", value: "2024-06-08")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "primary_release_date.lte", value: "2024-06-15")))
+        _ = try await movies.nowPlaying(page: 1, locale: locale)
+        var path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/now_playing")
 
-        _ = try await movies.discover(sort: .oldest, window: .upcoming, page: 1, locale: locale, today: today)
-        items = await queryItems(client)
-        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "primary_release_date.asc")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "primary_release_date.gte", value: "2024-06-16")))
-        XCTAssertFalse(items.contains { $0.name == "primary_release_date.lte" })
+        _ = try await movies.upcoming(page: 1, locale: locale)
+        path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/upcoming")
 
-        _ = try await shows.discover(sort: .newest, window: .nowPlaying, page: 1, locale: locale, today: today)
-        items = await queryItems(client)
-        let tvPath = await client.lastPath
-        XCTAssertEqual(tvPath, "/3/discover/tv")
-        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "first_air_date.desc")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "air_date.gte", value: "2024-06-15")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "air_date.lte", value: "2024-06-22")))
+        _ = try await shows.onTheAir(page: 1, locale: locale)
+        path = await client.lastPath
+        XCTAssertEqual(path, "/3/tv/on_the_air")
 
-        _ = try await shows.discover(sort: .alphabetical, window: .upcoming, page: 1, locale: locale, today: today)
-        items = await queryItems(client)
-        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "name.asc")))
+        _ = try await shows.upcoming(page: 1, locale: locale, today: today, timeZone: utc)
+        let items = await queryItems(client)
+        path = await client.lastPath
+        XCTAssertEqual(path, "/3/discover/tv")
+        XCTAssertTrue(items.contains(URLQueryItem(name: "sort_by", value: "first_air_date.asc")))
         XCTAssertTrue(items.contains(URLQueryItem(name: "first_air_date.gte", value: "2024-06-16")))
 
         let viewModel = makeViewModel(movies: movies, shows: shows)
@@ -155,10 +151,20 @@ final class BrowseListViewModelTests: XCTestCase {
         XCTAssertTrue(rows[1].genreNames.isEmpty)
     }
 
+    func test_noteFavoriteSaveFailed_setsPersistenceActivity() async {
+        let viewModel = makeViewModel()
+        await viewModel.load()
+        viewModel.noteFavoriteSaveFailed()
+        guard case .loaded(_, activity: .failed(let error)) = viewModel.state else {
+            return XCTFail("Expected loaded rows with a persistence failure, got \(viewModel.state)")
+        }
+        XCTAssertEqual(error, .persistence)
+    }
+
     func test_displayDate_usesDeviceLocale() {
         XCTAssertEqual(
-            DisplayDate.day(TestMovies.date("2024-01-12"), locale: Locale(identifier: "en_US")),
-            "Jan 12, 2024"
+            DisplayDate.day(TestMovies.date("2024-06-15"), locale: Locale(identifier: "en_US")),
+            "Jun 15, 2024"
         )
     }
 
@@ -247,7 +253,7 @@ final class BrowseListViewModelTests: XCTestCase {
     }
 
     func test_loadMore_dropsDuplicateIDs() async {
-        let duplicate = Self.moviePage(id: 278, title: "The Shawshank Redemption", page: 2, totalPages: 2)
+        let duplicate = Self.moviePage(id: 278, title: "The Shawshank Redemption", page: 2, totalPages: 3)
         let client = SequencingHTTPClient(stubs: [
             .success(TMDBFixtures.topMoviesPage1),
             .success(duplicate),
@@ -260,6 +266,7 @@ final class BrowseListViewModelTests: XCTestCase {
             return XCTFail("Expected loaded rows")
         }
         XCTAssertEqual(rows.map(\.mediaID), [278, 238])
+        XCTAssertFalse(viewModel.hasMore)
     }
 
     func test_changingSort_discardsThePageAlreadyInFlight() async {
@@ -328,7 +335,13 @@ final class BrowseListViewModelTests: XCTestCase {
 
     private func makeViewModel(movies: MovieRepository, shows: TVRepository) -> BrowseListViewModel {
         let day = today
-        return BrowseListViewModel(movies: movies, shows: shows, locale: locale, today: { day })
+        return BrowseListViewModel(
+            movies: movies,
+            shows: shows,
+            locale: locale,
+            timeZone: TimeZone(secondsFromGMT: 0)!,
+            today: { day }
+        )
     }
 
     private func queryItems(_ client: RecordingHTTPClient) async -> [URLQueryItem] {

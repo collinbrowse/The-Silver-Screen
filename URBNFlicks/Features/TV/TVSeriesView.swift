@@ -172,6 +172,7 @@ struct TVSeriesView: View {
                         .font(DesignTypography.title)
                         .foregroundStyle(DesignTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .inlineTitleAnchor()
                     Text("First aired \(content.formattedFirstAirDate)")
                         .font(DesignTypography.metadata)
                         .foregroundStyle(DesignTheme.textSecondary)

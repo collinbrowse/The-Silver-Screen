@@ -172,12 +172,12 @@ final class PersonDetailViewModel {
 
     static func formatDay(_ date: Date?) -> String? {
         guard let date else { return nil }
-        return displayDateFormatter.string(from: date)
+        return DisplayDate.day(date)
     }
 
     static func formatReleaseDate(_ date: Date?) -> String {
-        guard let date else { return "Not available" }
-        return displayDateFormatter.string(from: date)
+        guard date != nil else { return "Not available" }
+        return DisplayDate.day(date)
     }
 
     // MARK: - Private
@@ -193,15 +193,6 @@ final class PersonDetailViewModel {
             totalCount: credits.count
         )
     }
-
-    private static let displayDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter
-    }()
 }
 
 private extension PersonDetailContent {

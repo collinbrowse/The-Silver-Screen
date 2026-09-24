@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct BrowseListView: View {
     @Bindable var viewModel: BrowseListViewModel
@@ -20,17 +19,19 @@ struct BrowseListView: View {
 
     var body: some View {
         content
-            .safeAreaBar(edge: .top, spacing: DesignSpacing.sm) {
-                mediaControl
-            }
             .background(DesignTheme.canvas)
-            .navigationTitle("Browse")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                filterMenu
+            .refreshable { await viewModel.refresh() }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                mediaControl
+                    .background(DesignTheme.canvas)
             }
-        }
-        .refreshable { await viewModel.refresh() }
+            .navigationTitle("Browse")
+            .toolbarTitleDisplayMode(.inlineLarge)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    filterMenu
+                }
+            }
         .task {
             if case .idle = viewModel.state {
                 await viewModel.load()
@@ -53,7 +54,7 @@ struct BrowseListView: View {
             symbol: { $0.symbol }
         )
         .padding(.horizontal, DesignSpacing.lg)
-        .padding(.top, DesignSpacing.sm)
+        .padding(.vertical, DesignSpacing.sm)
     }
 
     /// Window and sort, in the trailing navigation-bar slot.
@@ -72,6 +73,7 @@ struct BrowseListView: View {
                 }
             }
             .pickerStyle(.inline)
+            .disabled(viewModel.window != .all)
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
         }
@@ -175,11 +177,15 @@ struct BrowseListView: View {
     }
 
     private func toggleFavorite(_ row: BrowseRow) async {
-        switch row.media {
-        case .movie:
-            try? await favorites.toggle(movie: row.asMovie())
-        case .tv:
-            try? await favorites.toggle(tv: row.asSeries())
+        do {
+            switch row.media {
+            case .movie:
+                try await favorites.toggle(movie: row.asMovie())
+            case .tv:
+                try await favorites.toggle(tv: row.asSeries())
+            }
+        } catch {
+            viewModel.noteFavoriteSaveFailed()
         }
     }
 }
@@ -192,11 +198,16 @@ private struct FittingSegmentedControl<Option: Hashable>: View {
     let label: (Option) -> String
     let symbol: (Option) -> String
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var useIcons = false
-    @State private var width: CGFloat = 0
-
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            picker(useIcons: false)
+                .fixedSize(horizontal: true, vertical: false)
+            picker(useIcons: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func picker(useIcons: Bool) -> some View {
         Picker(title, selection: $selection) {
             ForEach(options, id: \.self) { option in
                 if useIcons {
@@ -211,29 +222,5 @@ private struct FittingSegmentedControl<Option: Hashable>: View {
         }
         .pickerStyle(.segmented)
         .accessibilityLabel(title)
-        .frame(maxWidth: .infinity)
-        .background {
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear { width = proxy.size.width }
-                    .onChange(of: proxy.size.width) { _, newWidth in
-                        width = newWidth
-                    }
-            }
-        }
-        .onChange(of: width) { _, _ in refit() }
-        .onChange(of: dynamicTypeSize) { _, _ in refit() }
-        .onAppear { refit() }
-    }
-
-    private func refit() {
-        guard width > 0 else { return }
-        let font = UIFont.preferredFont(forTextStyle: .caption1)
-        let textWidth = options.reduce(CGFloat(0)) { total, option in
-            let size = (label(option) as NSString).size(withAttributes: [.font: font])
-            return total + size.width
-        }
-        let padding = CGFloat(options.count) * 18
-        useIcons = textWidth + padding > width
     }
 }

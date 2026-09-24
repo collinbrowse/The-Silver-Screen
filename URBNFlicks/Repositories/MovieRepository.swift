@@ -44,14 +44,14 @@ final class MovieRepository: Sendable {
         )
     }
 
-    /// One Discover page, already sorted. Browse uses this instead of `/movie/now_playing`
-    /// or `/movie/top_rated`, which cannot be re-sorted per page.
+    /// One Discover page for the All window. Now Playing and Upcoming use their own lists.
     func discover(
         sort: BrowseSort,
         window: BrowseWindow,
         page: Int,
         locale: Locale = .current,
-        today: Date = Date()
+        today: Date = Date(),
+        timeZone: TimeZone = .current
     ) async throws -> MoviePage {
         try await fetchMoviePage(
             path: DiscoverKind.movie.path,
@@ -62,26 +62,27 @@ final class MovieRepository: Sendable {
                 window: window,
                 page: page,
                 locale: locale,
-                today: today
+                today: today,
+                timeZone: timeZone
             )
         )
     }
 
-    /// Movies currently in theaters (`/movie/now_playing`).
-    func nowPlaying(page: Int) async throws -> MoviePage {
+    /// Movies currently in theaters (`/movie/now_playing`). The list is not sortable.
+    func nowPlaying(page: Int, locale: Locale = .current) async throws -> MoviePage {
         try await fetchMoviePage(
             path: "movie/now_playing",
             context: "Now playing",
-            queryItems: listQuery(page: page)
+            queryItems: TMDBLocale.queryItems(locale: locale, page: page)
         )
     }
 
-    /// Movies with a future theatrical date (`/movie/upcoming`).
-    func upcoming(page: Int) async throws -> MoviePage {
+    /// Movies with a future theatrical date (`/movie/upcoming`). The list is not sortable.
+    func upcoming(page: Int, locale: Locale = .current) async throws -> MoviePage {
         try await fetchMoviePage(
             path: "movie/upcoming",
             context: "Upcoming",
-            queryItems: listQuery(page: page)
+            queryItems: TMDBLocale.queryItems(locale: locale, page: page)
         )
     }
 
@@ -110,11 +111,28 @@ final class MovieRepository: Sendable {
         )
     }
 
-    private func listQuery(page: Int, extra: [URLQueryItem] = []) -> [URLQueryItem] {
-        extra + [
-            URLQueryItem(name: "language", value: "en-US"),
-            URLQueryItem(name: "page", value: String(page)),
-        ]
+    /// Movies in any of these genres, most popular first.
+    func movies(inGenres ids: [Int], page: Int, locale: Locale = .current) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: "discover/movie",
+            context: "Movies by genre",
+            queryItems: genreQueryItems(ids: ids, page: page, locale: locale)
+        )
+    }
+
+    private func genreQueryItems(ids: [Int], page: Int, locale: Locale) -> [URLQueryItem] {
+        TMDBLocale.queryItems(
+            locale: locale,
+            page: page,
+            extra: [
+                URLQueryItem(name: "sort_by", value: "popularity.desc"),
+                URLQueryItem(name: "with_genres", value: ids.map(String.init).joined(separator: "|")),
+            ]
+        )
+    }
+
+    private func listQuery(page: Int, locale: Locale = .current, extra: [URLQueryItem] = []) -> [URLQueryItem] {
+        TMDBLocale.queryItems(locale: locale, page: page, extra: extra)
     }
 
     private func fetchMoviePage(
@@ -147,13 +165,13 @@ final class MovieRepository: Sendable {
         }
     }
 
-    func movieDetail(id: Int) async throws -> MovieDetail {
+    func movieDetail(id: Int, locale: Locale = .current) async throws -> MovieDetail {
         let request = try requests.get(
             path: "movie/\(id)",
             queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
+                URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
                 URLQueryItem(name: "append_to_response", value: "credits,images,similar"),
-                URLQueryItem(name: "include_image_language", value: "en,null"),
+                URLQueryItem(name: "include_image_language", value: TMDBLocale.imageLanguages(for: locale)),
             ]
         )
 
@@ -179,12 +197,10 @@ final class MovieRepository: Sendable {
         }
     }
 
-    func collection(id: Int) async throws -> MovieCollection {
+    func collection(id: Int, locale: Locale = .current) async throws -> MovieCollection {
         let request = try requests.get(
             path: "collection/\(id)",
-            queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
-            ]
+            queryItems: TMDBLocale.queryItems(locale: locale, page: 1).filter { $0.name != "page" }
         )
 
         let data = try await HTTPTransport.data(
@@ -216,13 +232,10 @@ final class MovieRepository: Sendable {
         }
     }
 
-    func movieReviews(id: Int, page: Int) async throws -> MovieReviewPage {
+    func movieReviews(id: Int, page: Int, locale: Locale = .current) async throws -> MovieReviewPage {
         let request = try requests.get(
             path: "movie/\(id)/reviews",
-            queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
-                URLQueryItem(name: "page", value: String(page)),
-            ]
+            queryItems: TMDBLocale.queryItems(locale: locale, page: page)
         )
 
         let data = try await HTTPTransport.data(
@@ -234,13 +247,19 @@ final class MovieRepository: Sendable {
         )
 
         do {
-            let dto = try JSONDecoder().decode(MovieReviewsPageDTO.self, from: data)
-            let reviews = (dto.results ?? []).compactMap { Self.mapReview($0) }
+            let decoded = try TMDBPageDecoding.decode(
+                ReviewDTO.self,
+                from: data,
+                logger: logger,
+                context: "Movie reviews"
+            )
+            let total = try Self.reviewTotalCount(from: data)
+            let reviews = decoded.items.compactMap { Self.mapReview($0) }
             return MovieReviewPage(
                 reviews: reviews,
-                page: dto.page,
-                hasMore: dto.page < dto.totalPages,
-                totalCount: dto.totalResults ?? reviews.count
+                page: decoded.page,
+                hasMore: decoded.page < decoded.totalPages,
+                totalCount: total ?? reviews.count
             )
         } catch let error as DecodingError {
             logger.error("Movie reviews decode failed: \(error)", category: .networking)
@@ -254,15 +273,6 @@ final class MovieRepository: Sendable {
     }
 
     // MARK: - Mapping
-
-    private static let releaseDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
 
     static func map(_ dto: MovieSummaryDTO) -> Movie {
         Movie(
@@ -394,7 +404,10 @@ final class MovieRepository: Sendable {
         return crew
     }
 
-    /// Directors (`job == Director`) plus Writing department, deduped by person id.
+    /// Jobs that mean the person wrote the work. Assistants and coordinators stay off the list.
+    static let writerJobs: Set<String> = ["Writer", "Screenplay", "Story", "Teleplay", "Author", "Novel"]
+
+    /// Directors (`job == Director`) plus actual writing jobs, deduped by person id.
     static func creditedDirectorsAndWriters(from crew: [CrewMember]) -> [CreditedPerson] {
         var byPerson: [Int: CreditedPerson] = [:]
         var order: [Int] = []
@@ -426,7 +439,7 @@ final class MovieRepository: Sendable {
         for member in crew where member.job == "Director" {
             append(member: member, role: "Director")
         }
-        for member in crew where member.department == "Writing" {
+        for member in crew where writerJobs.contains(member.job) {
             append(member: member, role: member.job)
         }
         return order.compactMap { byPerson[$0] }
@@ -452,7 +465,11 @@ final class MovieRepository: Sendable {
         return movies
     }
 
-    static func mapReview(_ dto: MovieReviewDTO) -> MovieReview? {
+    static func reviewTotalCount(from data: Data) throws -> Int? {
+        try JSONDecoder().decode(ReviewPageMetaDTO.self, from: data).totalResults
+    }
+
+    static func mapReview(_ dto: ReviewDTO) -> MovieReview? {
         let content = dto.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !content.isEmpty else { return nil }
         let author = dto.author?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Anonymous"
@@ -468,8 +485,18 @@ final class MovieRepository: Sendable {
 
     static func parseReleaseDate(_ raw: String) -> Date? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return releaseDateFormatter.date(from: trimmed)
+        let parts = trimmed.split(separator: "-")
+        guard parts.count == 3,
+              let year = Int(parts[0]),
+              let month = Int(parts[1]),
+              let day = Int(parts[2]),
+              (1...12).contains(month),
+              (1...31).contains(day) else {
+            return nil
+        }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar.date(from: DateComponents(year: year, month: month, day: day))
     }
 
     static func parseReviewDate(_ raw: String?) -> Date? {

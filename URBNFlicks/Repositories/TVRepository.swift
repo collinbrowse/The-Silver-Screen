@@ -32,7 +32,8 @@ final class TVRepository: Sendable {
         window: BrowseWindow,
         page: Int,
         locale: Locale = .current,
-        today: Date = Date()
+        today: Date = Date(),
+        timeZone: TimeZone = .current
     ) async throws -> TVSeriesPage {
         try await fetch(
             path: DiscoverKind.tv.path,
@@ -43,7 +44,8 @@ final class TVRepository: Sendable {
                 window: window,
                 page: page,
                 locale: locale,
-                today: today
+                today: today,
+                timeZone: timeZone
             )
         ) { data in
             let decoded = try TMDBPageDecoding.decode(
@@ -62,6 +64,37 @@ final class TVRepository: Sendable {
                 hasMore: decoded.page < decoded.totalPages
             )
         }
+    }
+
+    /// Shows with an episode on the air (`/tv/on_the_air`). The list is not sortable.
+    func onTheAir(page: Int, locale: Locale = .current) async throws -> TVSeriesPage {
+        try await fetchSeriesPage(
+            path: "tv/on_the_air",
+            context: "TV on the air",
+            page: page,
+            extra: [],
+            locale: locale
+        )
+    }
+
+    /// Series whose first episode airs after the user's local today.
+    func upcoming(
+        page: Int,
+        locale: Locale = .current,
+        today: Date = Date(),
+        timeZone: TimeZone = .current
+    ) async throws -> TVSeriesPage {
+        let after = TMDBDay.string(from: TMDBDay.adding(days: 1, to: today, timeZone: timeZone), timeZone: timeZone)
+        return try await fetchSeriesPage(
+            path: DiscoverKind.tv.path,
+            context: "Upcoming TV",
+            page: page,
+            extra: [
+                URLQueryItem(name: "sort_by", value: "first_air_date.asc"),
+                URLQueryItem(name: "first_air_date.gte", value: after),
+            ],
+            locale: locale
+        )
     }
 
     func popular(page: Int, locale: Locale = .current) async throws -> TVSeriesPage {
@@ -87,6 +120,20 @@ final class TVRepository: Sendable {
         )
     }
 
+    /// Series in any of these genres, most popular first.
+    func series(inGenres ids: [Int], page: Int, locale: Locale = .current) async throws -> TVSeriesPage {
+        try await fetchSeriesPage(
+            path: "discover/tv",
+            context: "TV by genre",
+            page: page,
+            extra: [
+                URLQueryItem(name: "sort_by", value: "popularity.desc"),
+                URLQueryItem(name: "with_genres", value: ids.map(String.init).joined(separator: "|")),
+            ],
+            locale: locale
+        )
+    }
+
     /// Series detail with images, aggregate credits, and recommendations appended.
     /// Language follows the device. Appended sections decode on their own so one bad row
     /// cannot fail the screen.
@@ -97,7 +144,7 @@ final class TVRepository: Sendable {
             queryItems: [
                 URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
                 URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,recommendations"),
-                URLQueryItem(name: "include_image_language", value: "en,null"),
+                URLQueryItem(name: "include_image_language", value: TMDBLocale.imageLanguages(for: locale)),
             ]
         ) { data in
             try Self.decodeSeries(data, logger: logger)
@@ -135,22 +182,25 @@ final class TVRepository: Sendable {
         }
     }
 
-    func reviews(seriesID: Int, page: Int) async throws -> MovieReviewPage {
+    func reviews(seriesID: Int, page: Int, locale: Locale = .current) async throws -> MovieReviewPage {
         try await fetch(
             path: "tv/\(seriesID)/reviews",
             context: "TV reviews",
-            queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
-                URLQueryItem(name: "page", value: String(page)),
-            ]
+            queryItems: TMDBLocale.queryItems(locale: locale, page: page)
         ) { data in
-            let dto = try JSONDecoder().decode(MovieReviewsPageDTO.self, from: data)
-            let reviews = (dto.results ?? []).compactMap { MovieRepository.mapReview($0) }
+            let decoded = try TMDBPageDecoding.decode(
+                ReviewDTO.self,
+                from: data,
+                logger: logger,
+                context: "TV reviews"
+            )
+            let total = try MovieRepository.reviewTotalCount(from: data)
+            let reviews = decoded.items.compactMap { MovieRepository.mapReview($0) }
             return MovieReviewPage(
                 reviews: reviews,
-                page: dto.page,
-                hasMore: dto.page < dto.totalPages,
-                totalCount: dto.totalResults ?? reviews.count
+                page: decoded.page,
+                hasMore: decoded.page < decoded.totalPages,
+                totalCount: total ?? reviews.count
             )
         }
     }
@@ -164,12 +214,7 @@ final class TVRepository: Sendable {
         extra: [URLQueryItem],
         locale: Locale? = nil
     ) async throws -> TVSeriesPage {
-        let queryItems = locale.map {
-            TMDBLocale.queryItems(locale: $0, page: page, extra: extra)
-        } ?? extra + [
-            URLQueryItem(name: "language", value: "en-US"),
-            URLQueryItem(name: "page", value: String(page)),
-        ]
+        let queryItems = TMDBLocale.queryItems(locale: locale ?? .current, page: page, extra: extra)
         return try await fetch(
             path: path,
             context: context,
@@ -222,18 +267,17 @@ final class TVRepository: Sendable {
 
     // MARK: - Appended sections
 
-    /// Core fields still fail the screen. Images, credits, and recommendations are decoded
-    /// apart from that payload so one bad element is skipped instead.
+    /// Core fields still fail the screen. A bad appended section is skipped and logged.
     private static func decodeSeries(_ data: Data, logger: any AppLogging) throws -> TVSeriesDetail {
-        let split = try splitAppended(data, keys: ["images", "aggregate_credits", "recommendations"])
-        let dto = try JSONDecoder().decode(TVSeriesDetailDTO.self, from: split.core)
-        let images = imageSection(split.sections["images"], preferredKey: "backdrops", logger: logger, context: "series images")
-        let credits = aggregateSection(split.sections["aggregate_credits"], logger: logger)
-        let recommendations = recommendationSection(
-            split.sections["recommendations"],
-            excludingID: dto.id,
-            logger: logger
-        )
+        let dto = try JSONDecoder().decode(TVSeriesDetailDTO.self, from: data)
+        logSkippedSections(dto.sectionFailures, context: "TV series", logger: logger)
+        let images = imageItems(dto.images?.backdrops, logger: logger)
+        let credits = aggregateCredits(dto.aggregateCredits, logger: logger)
+        let recommendations = (dto.recommendations?.results ?? [])
+            .compactMap(mapSummary)
+            .filter { $0.id != dto.id }
+            .prefix(20)
+            .map { $0 }
         return mapSeries(
             dto,
             logger: logger,
@@ -245,10 +289,11 @@ final class TVRepository: Sendable {
     }
 
     private static func decodeSeason(_ data: Data, logger: any AppLogging) throws -> TVSeasonDetail {
-        let split = try splitAppended(data, keys: ["images", "aggregate_credits"])
-        let dto = try JSONDecoder().decode(TVSeasonDetailDTO.self, from: split.core)
-        let images = imageSection(split.sections["images"], preferredKey: "stills", fallbackKey: "posters", logger: logger, context: "season images")
-        let credits = aggregateSection(split.sections["aggregate_credits"], logger: logger)
+        let dto = try JSONDecoder().decode(TVSeasonDetailDTO.self, from: data)
+        logSkippedSections(dto.sectionFailures, context: "TV season", logger: logger)
+        let stills = dto.images?.stills ?? dto.images?.posters
+        let images = imageItems(stills, logger: logger)
+        let credits = aggregateCredits(dto.aggregateCredits, logger: logger)
         return mapSeason(
             dto,
             logger: logger,
@@ -259,125 +304,40 @@ final class TVRepository: Sendable {
     }
 
     private static func decodeEpisode(_ data: Data, logger: any AppLogging) throws -> TVEpisodeDetail {
-        let split = try splitAppended(data, keys: ["images", "credits"])
-        let dto = try JSONDecoder().decode(TVEpisodeDetailDTO.self, from: split.core)
-        let images = imageSection(split.sections["images"], preferredKey: "stills", logger: logger, context: "episode images")
-        let credits = episodeCreditSection(split.sections["credits"], logger: logger)
-        let guests = credits.guestStars.isEmpty ? (dto.guestStars ?? []) : credits.guestStars
-        let crew = credits.crew.isEmpty ? (dto.crew ?? []) : credits.crew
+        let dto = try JSONDecoder().decode(TVEpisodeDetailDTO.self, from: data)
+        logSkippedSections(dto.sectionFailures, context: "TV episode", logger: logger)
+        let images = imageItems(dto.images?.stills, logger: logger)
+        let credits = dto.credits
+        let guests = (credits?.guestStars?.isEmpty == false ? credits?.guestStars : dto.guestStars) ?? []
+        let crew = (credits?.crew?.isEmpty == false ? credits?.crew : dto.crew) ?? []
         return mapEpisode(
             dto,
             logger: logger,
             images: images,
-            cast: credits.cast,
+            cast: credits?.cast ?? [],
             guestStars: guests,
             crew: crew
         )
     }
 
-    private static func splitAppended(
-        _ data: Data,
-        keys: [String]
-    ) throws -> (core: Data, sections: [String: Any]) {
-        guard var root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw AppError.decoding
+    private static func logSkippedSections(_ names: [String], context: String, logger: any AppLogging) {
+        for name in names {
+            logger.error("\(context) skipped malformed \(name)", category: .networking)
         }
-        var sections: [String: Any] = [:]
-        for key in keys {
-            if let value = root.removeValue(forKey: key) {
-                sections[key] = value
-            }
-        }
-        let core = try JSONSerialization.data(withJSONObject: root)
-        return (core, sections)
     }
 
-    private static func imageSection(
-        _ value: Any?,
-        preferredKey: String,
-        fallbackKey: String? = nil,
-        logger: any AppLogging,
-        context: String
-    ) -> [MovieImage] {
-        guard let value else { return [] }
-        guard let dict = value as? [String: Any] else {
-            logger.error("\(context) was not an object", category: .networking)
-            return []
-        }
-        if let raw = dict[preferredKey] {
-            let items = TMDBPageDecoding.elements(MovieImageDTO.self, from: raw, logger: logger, context: context)
-            return MovieRepository.mapImageItems(items, logger: logger)
-        }
-        if let fallbackKey, let raw = dict[fallbackKey] {
-            let items = TMDBPageDecoding.elements(MovieImageDTO.self, from: raw, logger: logger, context: context)
-            return MovieRepository.mapImageItems(items, logger: logger)
-        }
-        return []
+    private static func imageItems(_ items: [MovieImageDTO]?, logger: any AppLogging) -> [MovieImage] {
+        MovieRepository.mapImageItems(items ?? [], logger: logger)
     }
 
-    private static func aggregateSection(
-        _ value: Any?,
+    private static func aggregateCredits(
+        _ dto: TVAggregateCreditsDTO?,
         logger: any AppLogging
     ) -> (cast: [TVCredit], crew: [TVCredit]) {
-        guard let value else { return ([], []) }
-        guard let dict = value as? [String: Any] else {
-            logger.error("Aggregate credits were not an object", category: .networking)
-            return ([], [])
-        }
-        let cast = TMDBPageDecoding.elements(
-            TVAggregateCastDTO.self,
-            from: dict["cast"],
-            logger: logger,
-            context: "aggregate cast"
-        )
-        let crew = TMDBPageDecoding.elements(
-            TVAggregateCrewDTO.self,
-            from: dict["crew"],
-            logger: logger,
-            context: "aggregate crew"
-        )
+        guard let dto else { return ([], []) }
         return (
-            mapAggregateCast(cast, logger: logger),
-            mapAggregateCrew(crew, logger: logger)
-        )
-    }
-
-    private static func recommendationSection(
-        _ value: Any?,
-        excludingID: Int,
-        logger: any AppLogging
-    ) -> [TVSeriesSummary] {
-        guard let value else { return [] }
-        guard let dict = value as? [String: Any] else {
-            logger.error("Recommendations were not an object", category: .networking)
-            return []
-        }
-        let items = TMDBPageDecoding.elements(
-            TVSeriesSummaryDTO.self,
-            from: dict["results"],
-            logger: logger,
-            context: "recommendations"
-        )
-        return items
-            .compactMap(mapSummary)
-            .filter { $0.id != excludingID }
-            .prefix(20)
-            .map { $0 }
-    }
-
-    private static func episodeCreditSection(
-        _ value: Any?,
-        logger: any AppLogging
-    ) -> (cast: [CastMemberDTO], guestStars: [CastMemberDTO], crew: [CrewMemberDTO]) {
-        guard let value else { return ([], [], []) }
-        guard let dict = value as? [String: Any] else {
-            logger.error("Episode credits were not an object", category: .networking)
-            return ([], [], [])
-        }
-        return (
-            TMDBPageDecoding.elements(CastMemberDTO.self, from: dict["cast"], logger: logger, context: "episode cast"),
-            TMDBPageDecoding.elements(CastMemberDTO.self, from: dict["guest_stars"], logger: logger, context: "guest stars"),
-            TMDBPageDecoding.elements(CrewMemberDTO.self, from: dict["crew"], logger: logger, context: "episode crew")
+            mapAggregateCast(dto.cast, logger: logger),
+            mapAggregateCrew(dto.crew, logger: logger)
         )
     }
 
@@ -529,7 +489,7 @@ final class TVRepository: Sendable {
                 skipped += 1
                 continue
             }
-            let roles = directorAndWriterRoles(department: item.department, jobs: item.jobs ?? [])
+            let roles = directorAndWriterRoles(jobs: item.jobs ?? [])
             guard !roles.isEmpty else { continue }
             let credit = TVCredit(
                 id: item.id,
@@ -615,12 +575,12 @@ final class TVRepository: Sendable {
         return credits
     }
 
-    /// Episode crew is only Director, Writer, and Screenplay. Other writing jobs stay off the list.
+    /// Episode crew keeps directors and the shared writer jobs. Other writing roles stay off the list.
     private static func mapEpisodeCrew(
         _ items: [CrewMemberDTO],
         logger: any AppLogging
     ) -> [TVCredit] {
-        let allowed: Set<String> = ["Director", "Writer", "Screenplay"]
+        let allowed = MovieRepository.writerJobs.union(["Director"])
         let crew = MovieRepository.mapCrew(items, logger: logger).filter { allowed.contains($0.job) }
         var rolesByPerson: [Int: [String]] = [:]
         var creditByPerson: [Int: TVCredit] = [:]
@@ -676,23 +636,16 @@ final class TVRepository: Sendable {
     }
 
     private static func directorAndWriterRoles(
-        department: String?,
         jobs: [TVAggregateJobDTO]
     ) -> [String] {
         var roles: [String] = []
-        let departmentName = department?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if jobs.contains(where: { $0.job == "Director" }) {
             roles.append("Director")
         }
-        if departmentName == "Writing" {
-            for job in jobs {
-                let title = job.job?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                guard !title.isEmpty, title != "Director", !roles.contains(title) else { continue }
-                roles.append(title)
-            }
-            if roles.isEmpty {
-                roles.append("Writer")
-            }
+        for job in jobs {
+            let title = job.job?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard MovieRepository.writerJobs.contains(title), !roles.contains(title) else { continue }
+            roles.append(title)
         }
         return roles
     }

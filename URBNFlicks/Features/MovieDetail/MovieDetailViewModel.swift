@@ -230,7 +230,21 @@ final class MovieDetailViewModel {
                 activity: latestActivity
             )
         } catch is CancellationError {
-            return
+            guard case .loaded(let latest, let latestActivity) = state,
+                  let current = latest.reviews else { return }
+            state = .loaded(
+                latest.replacing(
+                    reviews: ReviewsPatch(
+                        items: current.items,
+                        nextPage: current.nextPage,
+                        hasMore: current.hasMore,
+                        totalCount: current.totalCount,
+                        isLoadingPage: false,
+                        pageError: nil
+                    )
+                ),
+                activity: latestActivity
+            )
         } catch let error as AppError {
             guard case .loaded(let latest, let latestActivity) = state,
                   let current = latest.reviews else { return }
@@ -353,8 +367,8 @@ final class MovieDetailViewModel {
     }
 
     static func formatReleaseDate(_ date: Date?) -> String {
-        guard let date else { return "Not available" }
-        return displayDateFormatter.string(from: date)
+        guard date != nil else { return "Not available" }
+        return DisplayDate.day(date)
     }
 
     static func formatCurrency(_ amount: Int) -> (display: String, accessibility: String) {
@@ -421,19 +435,26 @@ final class MovieDetailViewModel {
             )
         } catch is CancellationError {
             return nil
+        } catch let error as AppError {
+            return MovieDetailContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: error
+            )
         } catch {
-            return nil
+            return MovieDetailContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: .unknown
+            )
         }
     }
-
-    private static let displayDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter
-    }()
 
     private static let fullCurrencyFormatter: NumberFormatter = {
         let formatter = NumberFormatter()

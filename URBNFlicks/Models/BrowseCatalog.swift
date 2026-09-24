@@ -102,7 +102,8 @@ enum DiscoverQuery {
         window: BrowseWindow,
         page: Int,
         locale: Locale,
-        today: Date
+        today: Date,
+        timeZone: TimeZone = .current
     ) -> [URLQueryItem] {
         var extra = [
             URLQueryItem(name: "sort_by", value: sortBy(kind: kind, sort: sort)),
@@ -110,7 +111,7 @@ enum DiscoverQuery {
         if sort == .topRated {
             extra.append(URLQueryItem(name: "vote_count.gte", value: "50"))
         }
-        extra.append(contentsOf: dateItems(kind: kind, window: window, today: today))
+        extra.append(contentsOf: dateItems(kind: kind, window: window, today: today, timeZone: timeZone))
         return TMDBLocale.queryItems(locale: locale, page: page, extra: extra)
     }
 
@@ -121,7 +122,7 @@ enum DiscoverQuery {
         case (_, .topRated):
             "vote_average.desc"
         case (.movie, .alphabetical):
-            "original_title.asc"
+            "title.asc"
         case (.tv, .alphabetical):
             "name.asc"
         case (.movie, .newest):
@@ -135,35 +136,20 @@ enum DiscoverQuery {
         }
     }
 
-    /// Now Playing is a closed window. Upcoming is any release or first-air date after today.
-    /// Movies look back a week through today (still in a theatrical window). TV now playing
-    /// is episodes airing from today through the next 7 days.
-    static func dateItems(kind: DiscoverKind, window: BrowseWindow, today: Date) -> [URLQueryItem] {
-        let start = TMDBDay.string(from: TMDBDay.adding(days: 0, to: today))
-        switch (kind, window) {
-        case (_, .all):
-            return []
-        case (.movie, .nowPlaying):
-            let from = TMDBDay.string(
-                from: TMDBDay.adding(days: -TMDBDay.movieNowPlayingLookbackDays, to: today)
-            )
-            return [
-                URLQueryItem(name: "primary_release_date.gte", value: from),
-                URLQueryItem(name: "primary_release_date.lte", value: start),
-            ]
-        case (.movie, .upcoming):
-            let after = TMDBDay.string(from: TMDBDay.adding(days: 1, to: today))
-            return [URLQueryItem(name: "primary_release_date.gte", value: after)]
-        case (.tv, .nowPlaying):
-            let through = TMDBDay.string(from: TMDBDay.adding(days: TMDBDay.tvOnAirSpanDays, to: today))
-            return [
-                URLQueryItem(name: "air_date.gte", value: start),
-                URLQueryItem(name: "air_date.lte", value: through),
-            ]
-        case (.tv, .upcoming):
-            let after = TMDBDay.string(from: TMDBDay.adding(days: 1, to: today))
-            return [URLQueryItem(name: "first_air_date.gte", value: after)]
-        }
+    /// Discover is the All window, which has no date filter. Now Playing and Upcoming
+    /// are separate endpoints, except upcoming TV, which Discover filters by first air date.
+    static func dateItems(
+        kind: DiscoverKind,
+        window: BrowseWindow,
+        today: Date,
+        timeZone: TimeZone = .current
+    ) -> [URLQueryItem] {
+        guard kind == .tv, window == .upcoming else { return [] }
+        let after = TMDBDay.string(
+            from: TMDBDay.adding(days: 1, to: today, timeZone: timeZone),
+            timeZone: timeZone
+        )
+        return [URLQueryItem(name: "first_air_date.gte", value: after)]
     }
 }
 
@@ -277,6 +263,8 @@ struct BrowseMerge: Equatable, Sendable {
     var movieCursor = 0
     var showCursor = 0
     var shown: [BrowseCandidate] = []
+    /// Popular alternates movie, then show. Other sorts compare a shared key.
+    var nextIsMovie = true
 
     mutating func reset() {
         movies = []
@@ -284,16 +272,25 @@ struct BrowseMerge: Equatable, Sendable {
         movieCursor = 0
         showCursor = 0
         shown = []
+        nextIsMovie = true
     }
 
-    mutating func appendMovies(_ page: [BrowseCandidate]) {
+    /// Newly appended ids. Zero means the page was only duplicates.
+    @discardableResult
+    mutating func appendMovies(_ page: [BrowseCandidate]) -> Int {
         let existing = Set(movies.map(\.id))
-        movies.append(contentsOf: page.filter { !existing.contains($0.id) })
+        let fresh = page.filter { !existing.contains($0.id) }
+        movies.append(contentsOf: fresh)
+        return fresh.count
     }
 
-    mutating func appendShows(_ page: [BrowseCandidate]) {
+    /// Newly appended ids. Zero means the page was only duplicates.
+    @discardableResult
+    mutating func appendShows(_ page: [BrowseCandidate]) -> Int {
         let existing = Set(shows.map(\.id))
-        shows.append(contentsOf: page.filter { !existing.contains($0.id) })
+        let fresh = page.filter { !existing.contains($0.id) }
+        shows.append(contentsOf: fresh)
+        return fresh.count
     }
 
     /// Pulls every row that can be decided from the buffers already fetched.
@@ -303,7 +300,16 @@ struct BrowseMerge: Equatable, Sendable {
             let movieReady = movieCursor < movies.count
             let showReady = showCursor < shows.count
             if movieReady && showReady {
-                if BrowseOrdering.comesBefore(movies[movieCursor], shows[showCursor], sort: sort) {
+                if sort == .popular {
+                    if nextIsMovie {
+                        shown.append(movies[movieCursor])
+                        movieCursor += 1
+                    } else {
+                        shown.append(shows[showCursor])
+                        showCursor += 1
+                    }
+                    nextIsMovie.toggle()
+                } else if BrowseOrdering.comesBefore(movies[movieCursor], shows[showCursor], sort: sort) {
                     shown.append(movies[movieCursor])
                     movieCursor += 1
                 } else {

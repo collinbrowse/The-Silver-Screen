@@ -64,6 +64,7 @@ struct CollectionView: View {
                                 .font(DesignTypography.title)
                                 .foregroundStyle(DesignTheme.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .inlineTitleAnchor()
                         }
                         if !content.overview.isEmpty {
                             Text(content.overview)
@@ -74,6 +75,7 @@ struct CollectionView: View {
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(headerLabel(content))
+                    .coordinateSpace(.named("detailScroll"))
                 }
             }
 

@@ -17,6 +17,8 @@ struct CatalogMovieRow: Sendable, Identifiable, Equatable, Hashable {
     let genreIDs: [Int]
     let releaseDate: Date?
     let voteAverage: Double
+    /// Keeps a name search in popularity order after later pages arrive.
+    let popularity: Double
 
     init(movie: Movie) {
         id = movie.id
@@ -26,6 +28,7 @@ struct CatalogMovieRow: Sendable, Identifiable, Equatable, Hashable {
         genreNames = MovieGenreCatalog.names(for: movie.genreIDs)
         releaseDate = movie.releaseDate
         voteAverage = movie.voteAverage
+        popularity = movie.popularity
         formattedReleaseDate = DisplayDate.day(movie.releaseDate)
     }
 
@@ -49,6 +52,8 @@ struct CatalogTVRow: Sendable, Identifiable, Equatable, Hashable {
     let formattedFirstAirDate: String
     let genreIDs: [Int]
     let firstAirDate: Date?
+    /// Keeps a name search in popularity order after later pages arrive.
+    let popularity: Double
 
     init(series: TVSeriesSummary) {
         id = series.id
@@ -57,6 +62,7 @@ struct CatalogTVRow: Sendable, Identifiable, Equatable, Hashable {
         genreIDs = series.genreIDs
         genreNames = TVGenreCatalog.names(for: series.genreIDs)
         firstAirDate = series.firstAirDate
+        popularity = series.popularity
         formattedFirstAirDate = DisplayDate.day(series.firstAirDate)
     }
 
@@ -77,6 +83,8 @@ struct PersonSummary: Sendable, Identifiable, Equatable, Hashable {
     let name: String
     let profilePath: String?
     let knownForDepartment: String?
+    /// TMDB popularity. Zero when the payload omitted it.
+    var popularity: Double = 0
 }
 
 struct PersonPage: Sendable, Equatable {
@@ -90,6 +98,7 @@ struct CatalogPersonRow: Sendable, Identifiable, Equatable, Hashable {
     let name: String
     let profilePath: String?
     let knownForDepartment: String?
+    let popularity: Double
 
     init(person: PersonSummary) {
         id = person.id
@@ -98,6 +107,7 @@ struct CatalogPersonRow: Sendable, Identifiable, Equatable, Hashable {
         let department = person.knownForDepartment?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         knownForDepartment = (department?.isEmpty == false) ? department : nil
+        popularity = person.popularity
     }
 
     func asPerson() -> FavoritePerson {

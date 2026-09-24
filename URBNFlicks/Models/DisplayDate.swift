@@ -9,22 +9,17 @@
 import Foundation
 
 enum DisplayDate {
-    /// "Jan 12, 2024" in `en_US`, or "Date unavailable" when TMDB omitted the day.
-    /// Month, day, and year follow the device locale.
+    /// A TMDB calendar day, formatted for `locale` without shifting the day into another timezone.
     static func day(_ date: Date?, locale: Locale = .current) -> String {
         guard let date else { return "Date unavailable" }
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(secondsFromGMT: 0)!
-        let style = Date.FormatStyle(
-            date: .abbreviated,
-            time: .omitted,
-            locale: locale,
-            calendar: utc,
-            timeZone: TimeZone(secondsFromGMT: 0)!
-        )
-        .year()
-        .month(.abbreviated)
-        .day()
-        return date.formatted(style)
+        let parts = utc.dateComponents([.year, .month, .day], from: date)
+        guard let stable = utc.date(from: parts) else { return "Date unavailable" }
+        let style = Date.FormatStyle(date: .abbreviated, time: .omitted, locale: locale, calendar: utc, timeZone: utc.timeZone)
+            .year()
+            .month(.abbreviated)
+            .day()
+        return stable.formatted(style)
     }
 }

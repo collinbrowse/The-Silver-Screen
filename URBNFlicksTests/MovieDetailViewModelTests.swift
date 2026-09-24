@@ -131,6 +131,54 @@ final class MovieDetailViewModelTests: XCTestCase {
         }
         XCTAssertEqual(content.reviews?.items.map(\.id), ["rev-1", "rev-2"])
         XCTAssertEqual(content.reviews?.hasMore, false)
+        XCTAssertFalse(
+            ReviewWindow.canMoveForward(
+                index: 0,
+                itemCount: content.reviews?.items.count ?? 0,
+                hasMore: content.reviews?.hasMore ?? true
+            )
+        )
+    }
+
+    func test_loadMoreReviews_cancelClearsLoadingPage() async {
+        let client = GatedReviewHTTPClient()
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+        await viewModel.load()
+
+        let task = Task { await viewModel.loadMoreReviews() }
+        await client.waitUntilSecondReview()
+        task.cancel()
+        await task.value
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.reviews?.isLoadingPage, false)
+        XCTAssertNil(content.reviews?.pageError)
+    }
+
+    func test_load_whenReviewsFail_showsInlineError() async {
+        let client = RoutingHTTPClient(routes: [
+            "/movie/278": .success(TMDBFixtures.movieDetailShawshank),
+            "/reviews": .failure(URLError(.notConnectedToInternet)),
+        ])
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: client),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+        )
+
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded detail, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.reviews?.items.count, 0)
+        XCTAssertEqual(content.reviews?.pageError, .offline)
     }
 
     func test_reviewWindow_showsFiveAndKeepsTheRestForTheNextPage() {
@@ -429,7 +477,7 @@ final class MovieDetailViewModelTests: XCTestCase {
     private func makeViewModel(stub: FakeHTTPClient.Stub) -> MovieDetailViewModel {
         MovieDetailViewModel(
             movieID: 278,
-            movies: MovieRepository.test(client: FakeHTTPClient(stub: stub)),
+            movies: MovieRepository.test(client: DetailStubHTTPClient(detail: stub)),
             favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
         )
     }
@@ -440,6 +488,23 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: FakeHTTPClient(result: result)),
             favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
         )
+    }
+}
+
+/// Movie JSON for the detail request, and an empty review page so a missing list stays hidden.
+private actor DetailStubHTTPClient: HTTPClient {
+    private let detail: FakeHTTPClient.Stub
+
+    init(detail: FakeHTTPClient.Stub) {
+        self.detail = detail
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        if request.url?.path.contains("/reviews") == true {
+            let empty = Data(#"{"id":278,"page":1,"results":[],"total_pages":1,"total_results":0}"#.utf8)
+            return try await FakeHTTPClient(stub: .success(empty)).data(for: request)
+        }
+        return try await FakeHTTPClient(stub: detail).data(for: request)
     }
 }
 
@@ -456,6 +521,28 @@ private actor SwitchableDetailHTTPClient: HTTPClient {
 
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         try await FakeHTTPClient(stub: stub).data(for: request)
+    }
+}
+
+/// Detail and the first review page succeed. The next review page waits until cancelled.
+private actor GatedReviewHTTPClient: HTTPClient {
+    private var reviewPage = 0
+    private let gate = BlockingHTTPClient(responseData: TMDBFixtures.movieReviewsPage2)
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let path = request.url?.path ?? ""
+        if path.contains("/reviews") {
+            reviewPage += 1
+            if reviewPage == 1 {
+                return try await FakeHTTPClient(stub: .success(TMDBFixtures.movieReviewsPage1)).data(for: request)
+            }
+            return try await gate.data(for: request)
+        }
+        return try await FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank)).data(for: request)
+    }
+
+    func waitUntilSecondReview() async {
+        await gate.waitUntilEntered()
     }
 }
 

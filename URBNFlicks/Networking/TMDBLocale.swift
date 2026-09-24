@@ -18,6 +18,11 @@ enum TMDBLocale {
         return language
     }
 
+    /// ISO language plus `null`, so posters with no language tag still load.
+    static func imageLanguages(for locale: Locale) -> String {
+        let language = locale.language.languageCode?.identifier ?? "en"
+        return "\(language),null"
+    }
     /// ISO region, or nil when the device locale does not have one.
     static func regionCode(for locale: Locale) -> String? {
         guard let code = locale.region?.identifier, !code.isEmpty else { return nil }
@@ -35,27 +40,26 @@ enum TMDBLocale {
     }
 }
 
-/// UTC calendar-day strings for Discover date windows (`yyyy-MM-dd`).
+/// Calendar-day strings (`yyyy-MM-dd`) in a timezone. Upcoming TV uses the user's zone
+/// so "tomorrow" matches the day on their phone.
 enum TMDBDay {
-    static let movieNowPlayingLookbackDays = 7
-    static let tvOnAirSpanDays = 7
-
-    static func string(from date: Date) -> String {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+    static func string(from date: Date, timeZone: TimeZone = .current) -> String {
+        let parts = calendar(timeZone).dateComponents([.year, .month, .day], from: date)
         let year = parts.year ?? 0
         let month = parts.month ?? 0
         let day = parts.day ?? 0
         return String(format: "%04d-%02d-%02d", year, month, day)
     }
 
-    static func adding(days: Int, to date: Date) -> Date {
+    static func adding(days: Int, to date: Date, timeZone: TimeZone = .current) -> Date {
+        let calendar = calendar(timeZone)
         let start = calendar.startOfDay(for: date)
         return calendar.date(byAdding: .day, value: days, to: start) ?? start
     }
 
-    private static var calendar: Calendar {
+    private static func calendar(_ timeZone: TimeZone) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.timeZone = timeZone
         return calendar
     }
 }

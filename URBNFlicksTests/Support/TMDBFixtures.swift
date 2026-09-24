@@ -660,7 +660,8 @@ enum TMDBFixtures {
               {"id": 4, "credit_id": "crew-1", "name": "Vince Gilligan", "job": "Director", "department": "Directing"},
               {"id": 4, "credit_id": "crew-2", "name": "Vince Gilligan", "job": "Writer", "department": "Writing"},
               {"id": 9, "credit_id": "crew-3", "name": "Story Person", "job": "Story", "department": "Writing"},
-              {"id": 5, "credit_id": "crew-4", "name": "Screen Person", "job": "Screenplay", "department": "Writing"}
+              {"id": 5, "credit_id": "crew-4", "name": "Screen Person", "job": "Screenplay", "department": "Writing"},
+              {"id": 11, "credit_id": "crew-5", "name": "Script Coordinator", "job": "Script Coordinator", "department": "Writing"}
             ]
           }
         }

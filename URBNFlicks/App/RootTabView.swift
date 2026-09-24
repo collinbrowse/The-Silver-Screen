@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct RootTabView: View {
     @Bindable var router: AppRouter
@@ -158,16 +157,6 @@ private struct SearchTabRoot: View {
                 )
             }
         }
-        .searchable(text: $viewModel.query, isPresented: $searchFieldPresented, prompt: searchPrompt)
-        .scrollDismissesKeyboard(.immediately)
-    }
-
-    private var searchPrompt: String {
-        switch viewModel.scope {
-        case .movies: "Search movies"
-        case .tv: "Search TV"
-        case .people: "Search people"
-        }
     }
 }
 
@@ -188,6 +177,7 @@ private struct FavoritesTabRoot: View {
                 imageLoader: imageLoader
             )
             .navigationTitle("Favorites")
+            .toolbarTitleDisplayMode(.inlineLarge)
             .navigationDestination(for: Route.self) { route in
                 AppRouteDestination(
                     route: route,
