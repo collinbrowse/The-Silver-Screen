@@ -16,7 +16,7 @@ No architecture spike. Implement the one requested story (or the next required s
    - Use `FakeHTTPClient` and `TMDBFixtures` from `URBNFlicksTests/Support/` — do not invent a repository protocol or call TMDB.
    - Every `func test...` must assert something. Empty bodies and `testExample` / `testPerformanceExample` are banned (`scripts/validate-tests.py`).
    - Run `xcodebuild test -scheme URBNFlicks -only-testing:URBNFlicksTests`.
-5. **Screenshot.** Capture the affected screen (`xcrun simctl io booted screenshot`). Use the `visual-qa` skill when comparing to comps. Record the screenshot path in the PR.
+5. **Screenshot.** Capture the affected screen on the **iPhone 17e** with `xcrun simctl io <iphone-17e-udid> screenshot`. Device Hub is the viewer; do not open the Simulator app. Use the `visual-qa` skill when comparing to comps. Record the screenshot path in the PR.
 6. **Gates.** Run before claiming Done:
    ```bash
    python3 scripts/validate-rules.py

@@ -4,22 +4,24 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct RootTabView: View {
     @Bindable var router: AppRouter
     let movies: MovieRepository
+    let shows: TVRepository
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
     let imageLoader: ImageLoader
     let favoritesListViewModel: FavoritesListViewModel
 
-    @State private var topMoviesViewModel: MovieListViewModel
+    @State private var browseViewModel: BrowseListViewModel
+    @State private var searchViewModel: SearchViewModel
 
     init(
         router: AppRouter,
         movies: MovieRepository,
+        shows: TVRepository,
         people: PersonRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
@@ -28,83 +30,132 @@ struct RootTabView: View {
     ) {
         self.router = router
         self.movies = movies
+        self.shows = shows
         self.people = people
         self.favorites = favorites
         self.favoritesIndex = favoritesIndex
         self.imageLoader = imageLoader
         self.favoritesListViewModel = favoritesListViewModel
-        _topMoviesViewModel = State(initialValue: MovieListViewModel(movies: movies))
+        _browseViewModel = State(
+            initialValue: BrowseListViewModel(movies: movies, shows: shows)
+        )
+        _searchViewModel = State(
+            initialValue: SearchViewModel(movies: movies, shows: shows, people: people)
+        )
     }
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
-            TopMoviesListRepresentable(
-                viewModel: topMoviesViewModel,
-                imageLoader: imageLoader,
-                favorites: favorites,
-                favoritesIndex: favoritesIndex,
-                router: router.topMovies,
-                makeDestination: makeUIKitDestination
-            )
-            .ignoresSafeArea()
-            .tabItem {
-                Label("Top Movies", systemImage: "film")
+            Tab("Browse", systemImage: "square.grid.2x2", value: AppTab.browse) {
+                BrowseTabRoot(
+                    router: router.browse,
+                    viewModel: browseViewModel,
+                    imageLoader: imageLoader,
+                    movies: movies,
+                    shows: shows,
+                    people: people,
+                    favorites: favorites,
+                    favoritesIndex: favoritesIndex
+                )
             }
-            .tag(AppTab.topMovies)
 
-            FavoritesTabRoot(
-                router: router.favorites,
-                viewModel: favoritesListViewModel,
-                imageLoader: imageLoader,
-                favorites: favorites,
-                favoritesIndex: favoritesIndex,
-                movies: movies,
-                people: people
-            )
-            .tabItem {
-                Label("Favorites", systemImage: "heart")
+            Tab("Search", systemImage: "magnifyingglass", value: AppTab.search) {
+                SearchTabRoot(
+                    router: router.search,
+                    viewModel: searchViewModel,
+                    imageLoader: imageLoader,
+                    movies: movies,
+                    shows: shows,
+                    people: people,
+                    favorites: favorites,
+                    favoritesIndex: favoritesIndex
+                )
             }
-            .tag(AppTab.favorites)
+
+            Tab("Favorites", systemImage: "heart", value: AppTab.favorites) {
+                FavoritesTabRoot(
+                    router: router.favorites,
+                    viewModel: favoritesListViewModel,
+                    imageLoader: imageLoader,
+                    favorites: favorites,
+                    favoritesIndex: favoritesIndex,
+                    movies: movies,
+                    shows: shows,
+                    people: people
+                )
+            }
         }
     }
+}
 
-    @MainActor
-    private func makeUIKitDestination(_ route: Route) -> UIViewController {
-        switch route {
-        case .movieDetail(let id):
-            return MovieDetailHostingController(
-                movieID: id,
-                movies: movies,
+private struct BrowseTabRoot: View {
+    @Bindable var router: NavigationRouter
+    @Bindable var viewModel: BrowseListViewModel
+    let imageLoader: ImageLoader
+    let movies: MovieRepository
+    let shows: TVRepository
+    let people: PersonRepository
+    let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
+
+    var body: some View {
+        NavigationStack(path: $router.path) {
+            BrowseListView(
+                viewModel: viewModel,
+                imageLoader: imageLoader,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
-                imageLoader: imageLoader,
-                router: router.topMovies
+                router: router
             )
-        case .person(let id):
-            return PersonHostingController(
-                personID: id,
-                people: people,
-                favorites: favorites,
-                favoritesIndex: favoritesIndex,
-                imageLoader: imageLoader,
-                router: router.topMovies
-            )
-        case .personCredits(let personID, let personName, let department):
-            let root = CreditsListView(
-                personID: personID,
-                personName: personName,
-                department: department,
-                people: people,
-                imageLoader: imageLoader,
-                router: router.topMovies
-            )
-            let host = UIHostingController(rootView: root)
-            switch department {
-            case .cast: host.title = "Acting Roles"
-            case .crew: host.title = "Crew Roles"
+            .navigationDestination(for: Route.self) { route in
+                AppRouteDestination(
+                    route: route,
+                    movies: movies,
+                    shows: shows,
+                    people: people,
+                    favorites: favorites,
+                    favoritesIndex: favoritesIndex,
+                    imageLoader: imageLoader,
+                    router: router
+                )
             }
-            host.navigationItem.largeTitleDisplayMode = .never
-            return host
+        }
+    }
+}
+
+private struct SearchTabRoot: View {
+    @Bindable var router: NavigationRouter
+    @Bindable var viewModel: SearchViewModel
+    let imageLoader: ImageLoader
+    let movies: MovieRepository
+    let shows: TVRepository
+    let people: PersonRepository
+    let favorites: FavoritesRepository
+    let favoritesIndex: FavoritesIndex
+    @State private var searchFieldPresented = false
+
+    var body: some View {
+        NavigationStack(path: $router.path) {
+            SearchView(
+                viewModel: viewModel,
+                imageLoader: imageLoader,
+                favorites: favorites,
+                favoritesIndex: favoritesIndex,
+                isSearchPresented: $searchFieldPresented,
+                router: router
+            )
+            .navigationDestination(for: Route.self) { route in
+                AppRouteDestination(
+                    route: route,
+                    movies: movies,
+                    shows: shows,
+                    people: people,
+                    favorites: favorites,
+                    favoritesIndex: favoritesIndex,
+                    imageLoader: imageLoader,
+                    router: router
+                )
+            }
         }
     }
 }
@@ -116,6 +167,7 @@ private struct FavoritesTabRoot: View {
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
     let movies: MovieRepository
+    let shows: TVRepository
     let people: PersonRepository
 
     var body: some View {
@@ -125,10 +177,12 @@ private struct FavoritesTabRoot: View {
                 imageLoader: imageLoader
             )
             .navigationTitle("Favorites")
+            .toolbarTitleDisplayMode(.inlineLarge)
             .navigationDestination(for: Route.self) { route in
                 AppRouteDestination(
                     route: route,
                     movies: movies,
+                    shows: shows,
                     people: people,
                     favorites: favorites,
                     favoritesIndex: favoritesIndex,

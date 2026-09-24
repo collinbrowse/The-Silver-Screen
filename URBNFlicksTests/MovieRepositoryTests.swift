@@ -228,11 +228,24 @@ final class MovieRepositoryTests: XCTestCase {
         XCTAssertEqual(people[0].roles, ["Director", "Screenplay"])
     }
 
+    func test_creditedDirectorsAndWriters_keepsWriterJobsAndDropsAssistants() {
+        let crew = [
+            CrewMember(id: "1", personID: 1, name: "Ada", job: "Story", department: "Writing", profilePath: nil),
+            CrewMember(id: "2", personID: 2, name: "Bea", job: "Script Coordinator", department: "Writing", profilePath: nil),
+            CrewMember(id: "3", personID: 3, name: "Cam", job: "Director", department: "Directing", profilePath: nil),
+        ]
+        let people = MovieRepository.creditedDirectorsAndWriters(from: crew)
+        XCTAssertEqual(people.map(\.name), ["Cam", "Ada"])
+        XCTAssertEqual(people[1].roles, ["Story"])
+    }
+
     func test_collection_mapsParts() async throws {
         let client = FakeHTTPClient(stub: .success(TMDBFixtures.collectionGodfather))
         let repository = MovieRepository.test(client: client)
         let collection = try await repository.collection(id: 230)
         XCTAssertEqual(collection.name, "The Godfather Collection")
+        XCTAssertEqual(collection.overview, "The Corleone family saga.")
+        XCTAssertEqual(collection.posterPath, "/collection.jpg")
         XCTAssertEqual(collection.parts.map(\.id), [238, 240])
     }
 
@@ -318,5 +331,33 @@ final class MovieRepositoryTests: XCTestCase {
         } catch {
             XCTFail("Expected AppError, got \(error)")
         }
+    }
+
+    func test_nowPlaying_requestsNowPlayingPath() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        let page = try await repository.nowPlaying(page: 1)
+        let path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/now_playing")
+        XCTAssertEqual(page.movies.map(\.id), [278, 238])
+        XCTAssertTrue(page.hasMore)
+    }
+
+    func test_upcoming_requestsUpcomingPath() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        _ = try await repository.upcoming(page: 2)
+        let path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/upcoming")
+    }
+
+    func test_searchMovies_sendsQueryWithoutLoggingIt() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        _ = try await repository.searchMovies(query: "shawshank", page: 1)
+        let url = await client.lastURL
+        let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems
+        XCTAssertEqual(url?.path, "/3/search/movie")
+        XCTAssertEqual(items?.first { $0.name == "query" }?.value, "shawshank")
     }
 }

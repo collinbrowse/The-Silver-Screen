@@ -48,10 +48,8 @@ Start at the [Requirements index](Requirements/README.md) for the full list and 
 ## Codebase Tour
 A quick map so you can step in fast:
 
-- [`URBNFlicks/Networking/MovieController.swift`](URBNFlicks/Networking/MovieController.swift) — networking layer (currently a single `getTopMovies` call).
-- [`URBNFlicks/Models/MovieSummary.swift`](URBNFlicks/Models/MovieSummary.swift) — data models.
-- [`URBNFlicks/View Models/MovieListViewModel.swift`](URBNFlicks/View%20Models/MovieListViewModel.swift) — the movie list view model.
-- [`URBNFlicks/Views/MovieListViewController.swift`](URBNFlicks/Views/MovieListViewController.swift) — the existing UIKit movie list.
+- [`URBNFlicks/Repositories/MovieRepository.swift`](URBNFlicks/Repositories/MovieRepository.swift) — movie networking and mapping.
+- [`URBNFlicks/App/RootTabView.swift`](URBNFlicks/App/RootTabView.swift) — Browse, Search, and Favorites.
 
 ## Submission
 - Do your work in your own **private** repo (see Getting Started), with the recruiting-provided GitHub usernames added as collaborators.

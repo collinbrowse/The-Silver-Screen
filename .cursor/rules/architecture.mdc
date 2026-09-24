@@ -84,4 +84,4 @@ Concretely, this app has three protocols and no others: `HTTPClient` (network), 
 
 Swift 6 language mode with strict concurrency, Observation, and an iOS 26 deployment target. `project.pbxproj` still says Swift 5.0 / iOS 15.2: bump both during the Top Movies epic, together with the async/await conversion that Swift 6 mode requires (today it fails with `sending 'completion' risks causing data races`).
 
-The existing UIKit list view stays UIKit, but the layers beneath it get migrated to this architecture rather than left as-is.
+Screens are SwiftUI. `AppDelegate`, `SceneDelegate`, and `ImageLoader`'s `UIImage` cache are the only UIKit that stays.

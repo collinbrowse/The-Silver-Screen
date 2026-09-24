@@ -2,8 +2,7 @@
 //  DesignTokens.swift
 //  URBNFlicks
 //
-//  Shared visual language for new SwiftUI screens. The legacy Top Movies UIKit
-//  list stays on Comps/redline.png and should not adopt these tokens.
+//  Shared visual language for SwiftUI screens.
 //
 
 import SwiftUI
@@ -45,6 +44,62 @@ enum DesignTheme {
     static var accent: Color { Color("DesignAccent") }
 
     static var accentOnFill: Color { Color.black }
+}
+
+/// Bottom of the on-page title in the `detailScroll` coordinate space.
+struct InlineTitleBottomKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Inline navigation title that appears only after the on-page title has scrolled away.
+/// Rubber-banding past the top or bottom does not toggle it.
+struct ScrollingInlineTitle: ViewModifier {
+    let title: String
+    @State private var showsTitle = false
+    @State private var titleBottom: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(showsTitle && !title.isEmpty ? title : "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .onPreferenceChange(InlineTitleBottomKey.self) { titleBottom = $0 }
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                let offset = geometry.contentOffset.y + geometry.contentInsets.top
+                let maxOffset = max(0, geometry.contentSize.height - geometry.containerSize.height)
+                if offset < 0 || geometry.contentOffset.y > maxOffset {
+                    return showsTitle
+                }
+                guard titleBottom > 0 else { return false }
+                return offset > titleBottom
+            } action: { _, shouldShow in
+                guard shouldShow != showsTitle else { return }
+                withAnimation(.smooth(duration: 0.25)) {
+                    showsTitle = shouldShow
+                }
+            }
+    }
+}
+
+extension View {
+    func scrollingInlineTitle(_ title: String) -> some View {
+        modifier(ScrollingInlineTitle(title: title))
+    }
+
+    /// Reports this view's bottom so the bar title waits until it has left the scroll view.
+    func inlineTitleAnchor() -> some View {
+        background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: InlineTitleBottomKey.self,
+                    value: proxy.frame(in: .named("detailScroll")).maxY
+                )
+            }
+        }
+    }
 }
 
 enum DesignTypography {

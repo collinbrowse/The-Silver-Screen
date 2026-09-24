@@ -31,7 +31,9 @@ struct MovieDetailContent: Sendable, Equatable {
     }
 
     struct CollectionSection: Sendable, Equatable {
+        let id: Int
         let title: String
+        let posterPath: String?
         let movies: [Movie]
     }
 
@@ -39,6 +41,7 @@ struct MovieDetailContent: Sendable, Equatable {
         let items: [MovieReview]
         let nextPage: Int
         let hasMore: Bool
+        let totalCount: Int
         let isLoadingPage: Bool
         let pageError: AppError?
     }
@@ -197,6 +200,7 @@ final class MovieDetailViewModel {
                     items: reviews.items,
                     nextPage: reviews.nextPage,
                     hasMore: reviews.hasMore,
+                    totalCount: reviews.totalCount,
                     isLoadingPage: true,
                     pageError: nil
                 )
@@ -218,6 +222,7 @@ final class MovieDetailViewModel {
                         items: merged,
                         nextPage: page.page + 1,
                         hasMore: page.hasMore,
+                        totalCount: page.totalCount,
                         isLoadingPage: false,
                         pageError: nil
                     )
@@ -225,7 +230,21 @@ final class MovieDetailViewModel {
                 activity: latestActivity
             )
         } catch is CancellationError {
-            return
+            guard case .loaded(let latest, let latestActivity) = state,
+                  let current = latest.reviews else { return }
+            state = .loaded(
+                latest.replacing(
+                    reviews: ReviewsPatch(
+                        items: current.items,
+                        nextPage: current.nextPage,
+                        hasMore: current.hasMore,
+                        totalCount: current.totalCount,
+                        isLoadingPage: false,
+                        pageError: nil
+                    )
+                ),
+                activity: latestActivity
+            )
         } catch let error as AppError {
             guard case .loaded(let latest, let latestActivity) = state,
                   let current = latest.reviews else { return }
@@ -235,6 +254,7 @@ final class MovieDetailViewModel {
                         items: current.items,
                         nextPage: current.nextPage,
                         hasMore: current.hasMore,
+                        totalCount: current.totalCount,
                         isLoadingPage: false,
                         pageError: error
                     )
@@ -250,6 +270,7 @@ final class MovieDetailViewModel {
                         items: current.items,
                         nextPage: current.nextPage,
                         hasMore: current.hasMore,
+                        totalCount: current.totalCount,
                         isLoadingPage: false,
                         pageError: .unknown
                     )
@@ -346,13 +367,8 @@ final class MovieDetailViewModel {
     }
 
     static func formatReleaseDate(_ date: Date?) -> String {
-        guard let date else { return "Not available" }
-        return displayDateFormatter.string(from: date)
-    }
-
-    static func formatReviewDate(_ date: Date?) -> String {
-        guard let date else { return "Not available" }
-        return displayDateFormatter.string(from: date)
+        guard date != nil else { return "Not available" }
+        return DisplayDate.day(date)
     }
 
     static func formatCurrency(_ amount: Int) -> (display: String, accessibility: String) {
@@ -389,8 +405,12 @@ final class MovieDetailViewModel {
         do {
             let collection = try await movies.collection(id: ref.id)
             let others = collection.parts.filter { $0.id != movieID }
-            guard !others.isEmpty else { return nil }
-            return MovieDetailContent.CollectionSection(title: ref.name, movies: others)
+            return MovieDetailContent.CollectionSection(
+                id: ref.id,
+                title: ref.name,
+                posterPath: ref.posterPath,
+                movies: others
+            )
         } catch is CancellationError {
             return nil
         } catch {
@@ -409,24 +429,32 @@ final class MovieDetailViewModel {
                 items: page.reviews,
                 nextPage: page.page + 1,
                 hasMore: page.hasMore,
+                totalCount: page.totalCount,
                 isLoadingPage: false,
                 pageError: nil
             )
         } catch is CancellationError {
             return nil
+        } catch let error as AppError {
+            return MovieDetailContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: error
+            )
         } catch {
-            return nil
+            return MovieDetailContent.ReviewsSection(
+                items: [],
+                nextPage: 1,
+                hasMore: false,
+                totalCount: 0,
+                isLoadingPage: false,
+                pageError: .unknown
+            )
         }
     }
-
-    private static let displayDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter
-    }()
 
     private static let fullCurrencyFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -441,6 +469,7 @@ private struct ReviewsPatch {
     let items: [MovieReview]
     let nextPage: Int
     let hasMore: Bool
+    let totalCount: Int
     let isLoadingPage: Bool
     let pageError: AppError?
 }
@@ -485,6 +514,7 @@ private extension MovieDetailContent {
                     items: reviews.items,
                     nextPage: reviews.nextPage,
                     hasMore: reviews.hasMore,
+                    totalCount: reviews.totalCount,
                     isLoadingPage: reviews.isLoadingPage,
                     pageError: reviews.pageError
                 )

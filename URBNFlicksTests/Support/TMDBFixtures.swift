@@ -260,6 +260,8 @@ enum TMDBFixtures {
         {
           "id": 230,
           "name": "The Godfather Collection",
+          "overview": "The Corleone family saga.",
+          "poster_path": "/collection.jpg",
           "parts": [
             {
               "id": 238,
@@ -307,6 +309,7 @@ enum TMDBFixtures {
         {
           "page": 1,
           "total_pages": 2,
+          "total_results": 2,
           "results": [
             {
               "id": "rev-1",
@@ -325,6 +328,7 @@ enum TMDBFixtures {
         {
           "page": 2,
           "total_pages": 2,
+          "total_results": 2,
           "results": [
             {
               "id": "rev-2",
@@ -343,6 +347,7 @@ enum TMDBFixtures {
         {
           "page": 1,
           "total_pages": 1,
+          "total_results": 0,
           "results": []
         }
         """.utf8
@@ -477,4 +482,189 @@ enum TMDBFixtures {
             """.utf8
         )
     }()
+
+    static let popularTVPage = Data(
+        """
+        {
+          "page": 1,
+          "total_pages": 2,
+          "results": [
+            {
+              "id": 1396,
+              "name": "Breaking Bad",
+              "poster_path": "/bb.jpg",
+              "first_air_date": "2008-01-20",
+              "genre_ids": [18, 80]
+            }
+          ]
+        }
+        """.utf8
+    )
+
+    static let popularPeoplePage = Data(
+        """
+        {
+          "page": 1,
+          "total_pages": 1,
+          "results": [
+            {
+              "id": 287,
+              "name": "Brad Pitt",
+              "profile_path": "/pitt.jpg",
+              "known_for_department": "Acting"
+            }
+          ]
+        }
+        """.utf8
+    )
+
+    static let tvSeriesBreakingBad = Data(
+        """
+        {
+          "id": 1396,
+          "name": "Breaking Bad",
+          "overview": "A chemistry teacher cooks.",
+          "poster_path": "/bb.jpg",
+          "first_air_date": "2008-01-20",
+          "last_air_date": "2013-09-29",
+          "genres": [{"id": 18, "name": "Drama"}],
+          "created_by": [{"id": 1, "name": "Vince Gilligan"}],
+          "seasons": [
+            {"id": 2, "name": "Season 2", "season_number": 2, "episode_count": 13, "air_date": "2009-03-08", "poster_path": "/s2.jpg"},
+            {"id": 1, "name": "The Beginning", "season_number": 1, "episode_count": 7, "air_date": "2008-01-20", "poster_path": "/s1.jpg"}
+          ],
+          "images": {"backdrops": [{"file_path": "/wide.jpg", "vote_average": 5.0}]},
+          "aggregate_credits": {
+            "cast": [
+              "not-a-person",
+              {
+                "id": 2,
+                "name": "Aaron Paul",
+                "profile_path": "/aaron.jpg",
+                "known_for_department": "Acting",
+                "total_episode_count": 10,
+                "roles": [{"character": "Jesse Pinkman", "episode_count": 10}]
+              },
+              {
+                "id": 1,
+                "name": "Bryan Cranston",
+                "profile_path": "/bryan.jpg",
+                "known_for_department": "Acting",
+                "total_episode_count": 62,
+                "roles": [{"character": "Walter White", "episode_count": 62}]
+              }
+            ],
+            "crew": [
+              {
+                "id": 9,
+                "name": "Camera Op",
+                "department": "Camera",
+                "total_episode_count": 40,
+                "jobs": [{"job": "Director of Photography", "episode_count": 40}]
+              },
+              {
+                "id": 4,
+                "name": "Michelle MacLaren",
+                "profile_path": "/michelle.jpg",
+                "department": "Directing",
+                "known_for_department": "Directing",
+                "total_episode_count": 11,
+                "jobs": [{"job": "Director", "episode_count": 11}]
+              },
+              {
+                "id": 3,
+                "name": "Vince Gilligan",
+                "profile_path": "/vince.jpg",
+                "department": "Writing",
+                "known_for_department": "Writing",
+                "total_episode_count": 50,
+                "jobs": [{"job": "Writer", "episode_count": 50}]
+              }
+            ]
+          },
+          "recommendations": {
+            "results": [
+              "not-a-show",
+              {"id": 1396, "name": "Breaking Bad", "poster_path": "/bb.jpg", "genre_ids": [18]},
+              {"id": 60059, "name": "Better Call Saul", "poster_path": "/bcs.jpg", "genre_ids": [18]}
+            ]
+          }
+        }
+        """.utf8
+    )
+
+    static let tvSeasonPilot = Data(
+        """
+        {
+          "id": 1,
+          "name": "The Beginning",
+          "overview": "Walter starts cooking.",
+          "season_number": 1,
+          "air_date": "2008-01-20",
+          "poster_path": "/s1.jpg",
+          "episodes": [
+            {
+              "id": 10,
+              "name": "Pilot",
+              "overview": "The first cook.",
+              "episode_number": 1,
+              "air_date": "2008-01-20",
+              "still_path": "/pilot.jpg",
+              "crew": [
+                {"id": 4, "credit_id": "dir-1", "name": "Vince Gilligan", "job": "Director", "department": "Directing"}
+              ]
+            }
+          ],
+          "images": {"stills": [{"file_path": "/still.jpg", "vote_average": 1.0}]},
+          "aggregate_credits": {
+            "cast": [
+              {
+                "id": 1,
+                "name": "Bryan Cranston",
+                "total_episode_count": 7,
+                "roles": [{"character": "Walter White", "episode_count": 7}]
+              }
+            ],
+            "crew": [
+              {
+                "id": 4,
+                "name": "Vince Gilligan",
+                "department": "Directing",
+                "total_episode_count": 1,
+                "jobs": [{"job": "Director", "episode_count": 1}]
+              }
+            ]
+          }
+        }
+        """.utf8
+    )
+
+    static let tvEpisodePilot = Data(
+        """
+        {
+          "id": 10,
+          "name": "Pilot",
+          "overview": "The first cook.",
+          "episode_number": 1,
+          "air_date": "2008-01-20",
+          "still_path": "/pilot.jpg",
+          "images": {"stills": [{"file_path": "/still.jpg", "vote_average": 2.0}]},
+          "credits": {
+            "cast": [
+              {"id": 1, "credit_id": "cast-1", "name": "Bryan Cranston", "character": "Walter White", "order": 0}
+            ],
+            "guest_stars": [
+              {"id": 8, "credit_id": "guest-1", "name": "John Koyama", "character": "Emilio", "order": 0}
+            ],
+            "crew": [
+              {"id": 4, "credit_id": "crew-1", "name": "Vince Gilligan", "job": "Director", "department": "Directing"},
+              {"id": 4, "credit_id": "crew-2", "name": "Vince Gilligan", "job": "Writer", "department": "Writing"},
+              {"id": 9, "credit_id": "crew-3", "name": "Story Person", "job": "Story", "department": "Writing"},
+              {"id": 5, "credit_id": "crew-4", "name": "Screen Person", "job": "Screenplay", "department": "Writing"},
+              {"id": 11, "credit_id": "crew-5", "name": "Script Coordinator", "job": "Script Coordinator", "department": "Writing"}
+            ]
+          }
+        }
+        """.utf8
+    )
 }

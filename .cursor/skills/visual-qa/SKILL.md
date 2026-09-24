@@ -5,15 +5,19 @@ description: Screenshots the booted iOS simulator and compares the capture to Co
 
 # Visual QA
 
-Do not require XcodeBuildMCP. Use `xcrun simctl` and the booted simulator.
+Do not require XcodeBuildMCP. Xcode 27 shows simulators in Device Hub, not the Simulator app.
+
+iPhone captures use the **iPhone 17e**. If several simulators are booted, target that device by UDID. `booted` is only safe when it is the only booted device.
+
+Taps, swipes, and typing go through MobAI `execute_dsl` on the iPhone 17e device id. Do not use `cliclick` or click the Device Hub window. Screenshots stay on `xcrun simctl io`.
 
 ## Screenshot
 
-1. Confirm a simulator is booted (`xcrun simctl list devices booted`).
+1. Resolve the iPhone 17e (`xcrun simctl list devices`). Boot it if it is shut down (`xcrun simctl boot <udid>`). Do not open `Simulator.app`.
 2. Capture:
 
 ```bash
-xcrun simctl io booted screenshot /tmp/urbnflicks-qa.png
+xcrun simctl io <iphone-17e-udid> screenshot /tmp/urbnflicks-qa.png
 ```
 
 3. Inspect the screenshot against the relevant spec.

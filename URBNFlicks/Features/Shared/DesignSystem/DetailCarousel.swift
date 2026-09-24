@@ -10,17 +10,20 @@ struct DetailCarousel<Content: View>: View {
     let title: String
     var viewAllTitle: String? = nil
     var onViewAll: (() -> Void)? = nil
+    var onTitle: (() -> Void)? = nil
     @ViewBuilder let content: () -> Content
 
     init(
         title: String,
         viewAllTitle: String? = nil,
         onViewAll: (() -> Void)? = nil,
+        onTitle: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.viewAllTitle = viewAllTitle
         self.onViewAll = onViewAll
+        self.onTitle = onTitle
         self.content = content
     }
 
@@ -29,7 +32,8 @@ struct DetailCarousel<Content: View>: View {
             SectionHeader(
                 title: title,
                 actionTitle: viewAllTitle,
-                action: onViewAll
+                action: onViewAll,
+                onTitle: onTitle
             )
 
             ScrollView(.horizontal, showsIndicators: false) {

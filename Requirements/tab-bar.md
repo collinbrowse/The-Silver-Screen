@@ -1,8 +1,8 @@
 # Epic: Tab Bar
 
-Introduce a tab bar to organize the app's top-level views. All new work is SwiftUI.
+The tab bar is Browse, Search, and Favorites. All new work is SwiftUI.
 
 | # | Story | Done |
 | --- | --- | --- |
-| 1 | Leverage a tab bar to add the following views in tabs: Now Playing (Movies), Upcoming (Movies), and Top Rated (already built). | [ ] |
-| 2 | Add a Search tab — using the Apple-recommended UI with search at the bottom. | [ ] |
+| 1 | Browse, Search, and Favorites are the tabs. Browse shows media (All, Movies, TV Series) across the width. Window (All, Now Playing, Upcoming) and sort (Popular, Top Rated, Alphabetical, Newest, Oldest) are in a Filters menu at the top right. A new launch opens Movies, All, and Popular. Switching media keeps the current window and sort. Sort is disabled for Now Playing and Upcoming, which use TMDB's own lists. | [x] |
+| 2 | Search is a tab. The system search field sits at the top of that screen. | [x] |

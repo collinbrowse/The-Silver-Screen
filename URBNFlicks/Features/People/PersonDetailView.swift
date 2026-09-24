@@ -40,7 +40,6 @@ struct PersonDetailView: View {
             }
         }
         .background(DesignTheme.canvas)
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsToolbarFavorite, case .loaded(let content, _) = viewModel.state {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -68,6 +67,13 @@ struct PersonDetailView: View {
                 viewModel.dismissImages()
             }
         }
+    }
+
+    private var navigationTitle: String {
+        if case .loaded(let content, _) = viewModel.state {
+            return content.detail.name
+        }
+        return ""
     }
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
@@ -113,7 +119,9 @@ struct PersonDetailView: View {
             .padding(.vertical, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
+            .coordinateSpace(.named("detailScroll"))
         }
+        .scrollingInlineTitle(navigationTitle)
         .overlay(alignment: .top) {
             if case .failed(let error) = activity {
                 Text("\(error.title): \(error.message)")
@@ -162,6 +170,7 @@ struct PersonDetailView: View {
                 .font(DesignTypography.title)
                 .foregroundStyle(DesignTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+                .inlineTitleAnchor()
                 .accessibilityAddTraits(.isHeader)
             if let imdbID = content.detail.imdbID {
                 imdbButton(imdbID: imdbID)
@@ -344,7 +353,7 @@ struct PersonDetailView: View {
     }
 
     private func creditCell(_ credit: PersonCredit) -> some View {
-        let navigable = credit.mediaType == .movie && router != nil
+        let navigable = router != nil
         return VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             RemoteImageView(
                 path: credit.posterPath,
@@ -372,8 +381,12 @@ struct PersonDetailView: View {
         .frame(width: portraitCardWidth, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard credit.mediaType == .movie else { return }
-            router?.push(.movieDetail(id: credit.mediaID))
+            switch credit.mediaType {
+            case .movie:
+                router?.push(.movieDetail(id: credit.mediaID))
+            case .tv:
+                router?.push(.tvSeries(id: credit.mediaID))
+            }
         }
         .accessibilityElement(children: .contain)
     }

@@ -25,11 +25,11 @@ final class PersonRepository: Sendable {
     }
 
     /// Fetches person detail with `combined_credits`, `images`, and `external_ids` appended.
-    func personDetail(id: Int) async throws -> PersonDetail {
+    func personDetail(id: Int, locale: Locale = .current) async throws -> PersonDetail {
         let request = try requests.get(
             path: "person/\(id)",
             queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
+                URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
                 URLQueryItem(name: "append_to_response", value: "combined_credits,images,external_ids"),
             ]
         )
@@ -56,16 +56,88 @@ final class PersonRepository: Sendable {
         }
     }
 
-    // MARK: - Mapping
+    /// Popular people for the Search tab's People segment.
+    func popular(page: Int, locale: Locale = .current) async throws -> PersonPage {
+        try await fetchPeoplePage(
+            path: "person/popular",
+            context: "Popular people",
+            page: page,
+            extra: [],
+            locale: locale
+        )
+    }
 
-    private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    /// People search. The query is a request parameter and is never logged.
+    func search(query: String, page: Int, locale: Locale = .current) async throws -> PersonPage {
+        try await fetchPeoplePage(
+            path: "search/person",
+            context: "People search",
+            page: page,
+            extra: [
+                URLQueryItem(name: "query", value: query),
+                URLQueryItem(name: "include_adult", value: "false"),
+            ],
+            locale: locale
+        )
+    }
+
+    private func fetchPeoplePage(
+        path: String,
+        context: String,
+        page: Int,
+        extra: [URLQueryItem],
+        locale: Locale? = nil
+    ) async throws -> PersonPage {
+        let queryItems = TMDBLocale.queryItems(locale: locale ?? .current, page: page, extra: extra)
+        let request = try requests.get(
+            path: path,
+            queryItems: queryItems
+        )
+        let data = try await HTTPTransport.data(
+            for: request,
+            client: client,
+            logger: logger,
+            context: context,
+            sleeper: sleeper
+        )
+        do {
+            let decoded = try TMDBPageDecoding.decode(
+                PersonSummaryDTO.self,
+                from: data,
+                logger: logger,
+                context: context
+            )
+            let people = decoded.items.compactMap(Self.mapSummary)
+            if people.isEmpty, !decoded.items.isEmpty {
+                throw AppError.decoding
+            }
+            return PersonPage(
+                people: people,
+                page: decoded.page,
+                hasMore: decoded.page < decoded.totalPages
+            )
+        } catch let error as AppError {
+            throw error
+        } catch {
+            logger.error("\(context) decode failed", category: .networking)
+            throw AppError.decoding
+        }
+    }
+
+    static func mapSummary(_ dto: PersonSummaryDTO) -> PersonSummary? {
+        let name = dto.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !name.isEmpty else { return nil }
+        let department = dto.knownForDepartment?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PersonSummary(
+            id: dto.id,
+            name: name,
+            profilePath: dto.profilePath,
+            knownForDepartment: (department?.isEmpty == false) ? department : nil,
+            popularity: dto.popularity ?? 0
+        )
+    }
+
+    // MARK: - Mapping
 
     static func map(_ dto: PersonDetailDTO, logger: any AppLogging) -> PersonDetail {
         let knownFor = dto.knownForDepartment?
@@ -242,9 +314,7 @@ final class PersonRepository: Sendable {
 
     static func parseDay(_ raw: String?) -> Date? {
         guard let raw else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return dayFormatter.date(from: trimmed)
+        return MovieRepository.parseReleaseDate(raw)
     }
 
     private static func trimmedNonEmpty(_ raw: String?) -> String? {

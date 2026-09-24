@@ -8,6 +8,7 @@ import Foundation
 @MainActor
 struct AppDependencies {
     let movies: MovieRepository
+    let shows: TVRepository
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
@@ -29,6 +30,11 @@ struct AppDependencies {
             apiKey: apiKey,
             logger: logger
         )
+        let shows = TVRepository(
+            client: httpClient,
+            apiKey: apiKey,
+            logger: logger
+        )
         let favoritesStoreURL = try FileFavoritesStore.applicationSupportURL()
         let favoritesStore = FileFavoritesStore(fileURL: favoritesStoreURL)
         let favoritesIndex = FavoritesIndex()
@@ -41,6 +47,7 @@ struct AppDependencies {
         let router = AppRouter()
         return AppDependencies(
             movies: movies,
+            shows: shows,
             people: people,
             favorites: favorites,
             favoritesIndex: favoritesIndex,

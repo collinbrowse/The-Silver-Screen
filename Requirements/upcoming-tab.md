@@ -1,8 +1,8 @@
-# Epic: Upcoming Tab
+# Epic: Upcoming
 
-A browsable list of upcoming movies. All new work is SwiftUI.
+Upcoming is a window on Browse, not its own tab. All new work is SwiftUI.
 
 | # | Story | Done |
 | --- | --- | --- |
-| 1 | List of movies from the response. Each cell should contain: movie title, poster image, genres, and release date. | [ ] |
-| 2 | Clicking on a cell pushes you to the Movie Detail View. | [ ] |
+| 1 | Choosing Upcoming lists titles in that window. Each cell shows the title, poster, genres, and release or first air date. | [x] |
+| 2 | Tapping a movie opens Movie Detail. Tapping a series opens the series. | [x] |

@@ -8,7 +8,7 @@ alwaysApply: true
 - Read [`AGENTS.md`](AGENTS.md) first. It is the source of truth.
 - Required work in order: Top Movies epic, then Favorites stories 1 and 2.
 - Do not try to finish the backlog. Judgment over completion count.
-- All new work is SwiftUI. Top Movies fixes stay in the existing UIKit list.
+- All work is SwiftUI. Do not add UIKit screens.
 - No 3rd-party dependencies.
 - Unit tests for completed work.
 - Tick `Done` and the progress table only after tests and a visual check.

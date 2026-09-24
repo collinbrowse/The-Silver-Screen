@@ -8,18 +8,21 @@ import Foundation
 @Observable
 @MainActor
 final class AppRouter {
-    var selectedTab: AppTab = .topMovies
-    let topMovies: NavigationRouter
+    var selectedTab: AppTab = .browse
+    let browse: NavigationRouter
     let favorites: NavigationRouter
+    let search: NavigationRouter
 
     init(
-        selectedTab: AppTab = .topMovies,
-        topMovies: NavigationRouter = NavigationRouter(),
-        favorites: NavigationRouter = NavigationRouter()
+        selectedTab: AppTab = .browse,
+        browse: NavigationRouter = NavigationRouter(),
+        favorites: NavigationRouter = NavigationRouter(),
+        search: NavigationRouter = NavigationRouter()
     ) {
         self.selectedTab = selectedTab
-        self.topMovies = topMovies
+        self.browse = browse
         self.favorites = favorites
+        self.search = search
     }
 
     func openFavorites() {
@@ -30,8 +33,9 @@ final class AppRouter {
     var snapshot: RouterSnapshot {
         RouterSnapshot(
             selectedTab: selectedTab,
-            topMoviesPath: topMovies.path,
-            favoritesPath: favorites.path
+            browsePath: browse.path,
+            favoritesPath: favorites.path,
+            searchPath: search.path
         )
     }
 
@@ -39,16 +43,55 @@ final class AppRouter {
     /// the restored path is present at first render.
     func restore(_ snapshot: RouterSnapshot) {
         selectedTab = snapshot.selectedTab
-        topMovies.path = snapshot.topMoviesPath
+        browse.path = snapshot.browsePath
         favorites.path = snapshot.favoritesPath
+        search.path = snapshot.searchPath
     }
 }
 
 /// Serializable snapshot of the selected tab and each tab's navigation path.
+/// A snapshot written by the old Now Playing / Top Movies tabs still decodes:
+/// missing paths come back empty, which returns that tab to its root.
 struct RouterSnapshot: Codable, Equatable, Sendable {
     var selectedTab: AppTab
-    var topMoviesPath: [Route]
+    var browsePath: [Route]
     var favoritesPath: [Route]
+    var searchPath: [Route]
+
+    private enum CodingKeys: String, CodingKey {
+        case selectedTab
+        case browsePath
+        case favoritesPath
+        case searchPath
+    }
+
+    init(
+        selectedTab: AppTab,
+        browsePath: [Route] = [],
+        favoritesPath: [Route] = [],
+        searchPath: [Route] = []
+    ) {
+        self.selectedTab = selectedTab
+        self.browsePath = browsePath
+        self.favoritesPath = favoritesPath
+        self.searchPath = searchPath
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        selectedTab = try container.decodeIfPresent(AppTab.self, forKey: .selectedTab) ?? .browse
+        browsePath = try container.decodeIfPresent([Route].self, forKey: .browsePath) ?? []
+        favoritesPath = try container.decodeIfPresent([Route].self, forKey: .favoritesPath) ?? []
+        searchPath = try container.decodeIfPresent([Route].self, forKey: .searchPath) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(selectedTab, forKey: .selectedTab)
+        try container.encode(browsePath, forKey: .browsePath)
+        try container.encode(favoritesPath, forKey: .favoritesPath)
+        try container.encode(searchPath, forKey: .searchPath)
+    }
 }
 
 /// Persists `RouterSnapshot` across launches so a jetsam kill returns the user to where they

@@ -14,7 +14,7 @@ Do **not** try to finish the backlog. Judgment and craft matter more than comple
 ## Ground rules
 
 - All **new** work is SwiftUI.
-- Top Movies fixes stay in the existing UIKit list ([`Requirements/top-movies.md`](Requirements/top-movies.md)).
+- The app UI is SwiftUI. Do not add UIKit screens. Top Movies is no longer a visible screen.
 - No 3rd-party dependencies.
 - Add unit tests for completed work.
 - Tick `Done` on a story (and update the progress table in [`Requirements/README.md`](Requirements/README.md)) only after verification: unit tests plus a visual check.
@@ -28,7 +28,7 @@ Do **not** try to finish the backlog. Judgment and craft matter more than comple
 
 ## Pointers (do not duplicate architecture here)
 
-- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, the legacy UIKit screen, the data layer, image loading, secrets, errors and logging, accessibility, documentation comments, tests, commits, and pull requests
+- Architecture: [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) (always on), plus scoped rules for concurrency, SwiftUI, data layer, image loading, secrets, errors and logging, accessibility, documentation comments, tests, commits, and pull requests
 - Skills: [`.cursor/skills/implement-story/`](.cursor/skills/implement-story/SKILL.md), [`.cursor/skills/visual-qa/`](.cursor/skills/visual-qa/SKILL.md)
 - Hooks: [`.cursor/hooks.json`](.cursor/hooks.json)
 - Harness gates: [`scripts/validate-rules.py`](scripts/validate-rules.py), [`scripts/validate-tests.py`](scripts/validate-tests.py) (empty tests banned; Done requires test changes), [`scripts/validate-pr-body.py`](scripts/validate-pr-body.py) (PR template sections required)

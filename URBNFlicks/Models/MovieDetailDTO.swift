@@ -23,6 +23,8 @@ struct MovieImageDTO: Decodable, Sendable {
 struct MovieImagesDTO: Decodable, Sendable {
     let backdrops: [MovieImageDTO]?
     let posters: [MovieImageDTO]?
+    /// Episode and season stills. Absent on movie payloads.
+    let stills: [MovieImageDTO]?
 }
 
 struct CastMemberDTO: Decodable, Sendable {
@@ -85,19 +87,30 @@ struct MovieCollectionRefDTO: Decodable, Sendable {
 struct MovieCollectionDTO: Decodable, Sendable {
     let id: Int
     let name: String
+    let overview: String?
+    let posterPath: String?
     let parts: [MovieSummaryDTO]?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case overview
+        case posterPath = "poster_path"
+        case parts
+    }
 }
 
-struct MovieReviewAuthorDTO: Decodable, Sendable {
+struct ReviewAuthorDTO: Decodable, Sendable {
     let username: String?
 }
 
-struct MovieReviewDTO: Decodable, Sendable {
+/// TMDB review object. Movie and TV review payloads share this shape.
+struct ReviewDTO: Decodable, Sendable {
     let id: String
     let author: String?
     let content: String?
     let updatedAt: String?
-    let authorDetails: MovieReviewAuthorDTO?
+    let authorDetails: ReviewAuthorDTO?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -108,15 +121,11 @@ struct MovieReviewDTO: Decodable, Sendable {
     }
 }
 
-struct MovieReviewsPageDTO: Decodable, Sendable {
-    let page: Int
-    let totalPages: Int
-    let results: [MovieReviewDTO]?
+struct ReviewPageMetaDTO: Decodable, Sendable {
+    let totalResults: Int?
 
     enum CodingKeys: String, CodingKey {
-        case page
-        case totalPages = "total_pages"
-        case results
+        case totalResults = "total_results"
     }
 }
 
