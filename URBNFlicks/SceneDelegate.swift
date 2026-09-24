@@ -37,6 +37,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let root = RootTabView(
                 router: dependencies.router,
                 movies: dependencies.movies,
+                shows: dependencies.shows,
                 people: dependencies.people,
                 favorites: dependencies.favorites,
                 favoritesIndex: dependencies.favoritesIndex,

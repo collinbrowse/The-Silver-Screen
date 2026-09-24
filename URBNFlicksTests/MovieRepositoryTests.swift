@@ -233,6 +233,8 @@ final class MovieRepositoryTests: XCTestCase {
         let repository = MovieRepository.test(client: client)
         let collection = try await repository.collection(id: 230)
         XCTAssertEqual(collection.name, "The Godfather Collection")
+        XCTAssertEqual(collection.overview, "The Corleone family saga.")
+        XCTAssertEqual(collection.posterPath, "/collection.jpg")
         XCTAssertEqual(collection.parts.map(\.id), [238, 240])
     }
 
@@ -318,5 +320,33 @@ final class MovieRepositoryTests: XCTestCase {
         } catch {
             XCTFail("Expected AppError, got \(error)")
         }
+    }
+
+    func test_nowPlaying_requestsNowPlayingPath() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        let page = try await repository.nowPlaying(page: 1)
+        let path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/now_playing")
+        XCTAssertEqual(page.movies.map(\.id), [278, 238])
+        XCTAssertTrue(page.hasMore)
+    }
+
+    func test_upcoming_requestsUpcomingPath() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        _ = try await repository.upcoming(page: 2)
+        let path = await client.lastPath
+        XCTAssertEqual(path, "/3/movie/upcoming")
+    }
+
+    func test_searchMovies_sendsQueryWithoutLoggingIt() async throws {
+        let client = RecordingHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let repository = MovieRepository.test(client: client)
+        _ = try await repository.searchMovies(query: "shawshank", page: 1)
+        let url = await client.lastURL
+        let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems
+        XCTAssertEqual(url?.path, "/3/search/movie")
+        XCTAssertEqual(items?.first { $0.name == "query" }?.value, "shawshank")
     }
 }

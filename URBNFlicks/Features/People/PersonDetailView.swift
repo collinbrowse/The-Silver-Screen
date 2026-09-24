@@ -40,7 +40,6 @@ struct PersonDetailView: View {
             }
         }
         .background(DesignTheme.canvas)
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsToolbarFavorite, case .loaded(let content, _) = viewModel.state {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -68,6 +67,13 @@ struct PersonDetailView: View {
                 viewModel.dismissImages()
             }
         }
+    }
+
+    private var navigationTitle: String {
+        if case .loaded(let content, _) = viewModel.state {
+            return content.detail.name
+        }
+        return ""
     }
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
@@ -114,6 +120,7 @@ struct PersonDetailView: View {
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
         }
+        .scrollingInlineTitle(navigationTitle)
         .overlay(alignment: .top) {
             if case .failed(let error) = activity {
                 Text("\(error.title): \(error.message)")
@@ -344,7 +351,7 @@ struct PersonDetailView: View {
     }
 
     private func creditCell(_ credit: PersonCredit) -> some View {
-        let navigable = credit.mediaType == .movie && router != nil
+        let navigable = router != nil
         return VStack(alignment: .leading, spacing: DesignSpacing.sm) {
             RemoteImageView(
                 path: credit.posterPath,
@@ -372,8 +379,12 @@ struct PersonDetailView: View {
         .frame(width: portraitCardWidth, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard credit.mediaType == .movie else { return }
-            router?.push(.movieDetail(id: credit.mediaID))
+            switch credit.mediaType {
+            case .movie:
+                router?.push(.movieDetail(id: credit.mediaID))
+            case .tv:
+                router?.push(.tvSeries(id: credit.mediaID))
+            }
         }
         .accessibilityElement(children: .contain)
     }

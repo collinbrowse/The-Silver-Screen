@@ -47,6 +47,33 @@ enum DesignTheme {
     static var accentOnFill: Color { Color.black }
 }
 
+/// Inline navigation title that stays out of the bar until the page scrolls, then comes back out at the top.
+struct ScrollingInlineTitle: ViewModifier {
+    let title: String
+    @State private var showsTitle = false
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(showsTitle && !title.isEmpty ? title : "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, shouldShow in
+                guard shouldShow != showsTitle else { return }
+                withAnimation(.smooth(duration: 0.25)) {
+                    showsTitle = shouldShow
+                }
+            }
+    }
+}
+
+extension View {
+    func scrollingInlineTitle(_ title: String) -> some View {
+        modifier(ScrollingInlineTitle(title: title))
+    }
+}
+
 enum DesignTypography {
     static var title: Font { .title2.bold() }
     static var section: Font { .headline }

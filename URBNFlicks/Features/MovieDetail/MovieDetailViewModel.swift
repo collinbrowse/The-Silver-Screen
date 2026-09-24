@@ -31,7 +31,9 @@ struct MovieDetailContent: Sendable, Equatable {
     }
 
     struct CollectionSection: Sendable, Equatable {
+        let id: Int
         let title: String
+        let posterPath: String?
         let movies: [Movie]
     }
 
@@ -39,6 +41,7 @@ struct MovieDetailContent: Sendable, Equatable {
         let items: [MovieReview]
         let nextPage: Int
         let hasMore: Bool
+        let totalCount: Int
         let isLoadingPage: Bool
         let pageError: AppError?
     }
@@ -197,6 +200,7 @@ final class MovieDetailViewModel {
                     items: reviews.items,
                     nextPage: reviews.nextPage,
                     hasMore: reviews.hasMore,
+                    totalCount: reviews.totalCount,
                     isLoadingPage: true,
                     pageError: nil
                 )
@@ -218,6 +222,7 @@ final class MovieDetailViewModel {
                         items: merged,
                         nextPage: page.page + 1,
                         hasMore: page.hasMore,
+                        totalCount: page.totalCount,
                         isLoadingPage: false,
                         pageError: nil
                     )
@@ -235,6 +240,7 @@ final class MovieDetailViewModel {
                         items: current.items,
                         nextPage: current.nextPage,
                         hasMore: current.hasMore,
+                        totalCount: current.totalCount,
                         isLoadingPage: false,
                         pageError: error
                     )
@@ -250,6 +256,7 @@ final class MovieDetailViewModel {
                         items: current.items,
                         nextPage: current.nextPage,
                         hasMore: current.hasMore,
+                        totalCount: current.totalCount,
                         isLoadingPage: false,
                         pageError: .unknown
                     )
@@ -350,11 +357,6 @@ final class MovieDetailViewModel {
         return displayDateFormatter.string(from: date)
     }
 
-    static func formatReviewDate(_ date: Date?) -> String {
-        guard let date else { return "Not available" }
-        return displayDateFormatter.string(from: date)
-    }
-
     static func formatCurrency(_ amount: Int) -> (display: String, accessibility: String) {
         guard amount > 0 else {
             return ("Not available", "Not available")
@@ -389,8 +391,12 @@ final class MovieDetailViewModel {
         do {
             let collection = try await movies.collection(id: ref.id)
             let others = collection.parts.filter { $0.id != movieID }
-            guard !others.isEmpty else { return nil }
-            return MovieDetailContent.CollectionSection(title: ref.name, movies: others)
+            return MovieDetailContent.CollectionSection(
+                id: ref.id,
+                title: ref.name,
+                posterPath: ref.posterPath,
+                movies: others
+            )
         } catch is CancellationError {
             return nil
         } catch {
@@ -409,6 +415,7 @@ final class MovieDetailViewModel {
                 items: page.reviews,
                 nextPage: page.page + 1,
                 hasMore: page.hasMore,
+                totalCount: page.totalCount,
                 isLoadingPage: false,
                 pageError: nil
             )
@@ -441,6 +448,7 @@ private struct ReviewsPatch {
     let items: [MovieReview]
     let nextPage: Int
     let hasMore: Bool
+    let totalCount: Int
     let isLoadingPage: Bool
     let pageError: AppError?
 }
@@ -485,6 +493,7 @@ private extension MovieDetailContent {
                     items: reviews.items,
                     nextPage: reviews.nextPage,
                     hasMore: reviews.hasMore,
+                    totalCount: reviews.totalCount,
                     isLoadingPage: reviews.isLoadingPage,
                     pageError: reviews.pageError
                 )

@@ -17,4 +17,6 @@ struct MovieReviewPage: Sendable, Equatable {
     let reviews: [MovieReview]
     let page: Int
     let hasMore: Bool
+    /// Every review TMDB reports, including ones not loaded yet.
+    let totalCount: Int
 }

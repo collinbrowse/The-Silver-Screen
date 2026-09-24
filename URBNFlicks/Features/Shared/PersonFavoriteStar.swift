@@ -11,6 +11,8 @@ struct CellFavoriteStar: View {
     let isFavorite: Bool
     let action: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private let glyphSize: CGFloat = 22
     private let hitSize: CGFloat = 44
 
@@ -18,8 +20,8 @@ struct CellFavoriteStar: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(Color.black.opacity(0.45))
-                    .frame(width: glyphSize + 10, height: glyphSize + 10)
+                    .fill(colorScheme == .dark ? Color(white: 0.24) : Color.black.opacity(0.45))
+                    .frame(width: glyphSize + 14, height: glyphSize + 14)
                 Image(systemName: isFavorite ? "star.fill" : "star")
                     .font(.system(size: glyphSize * 0.55, weight: .semibold))
                     .foregroundStyle(isFavorite ? Color.yellow : Color.white)

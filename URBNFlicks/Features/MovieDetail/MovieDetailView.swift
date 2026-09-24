@@ -55,7 +55,6 @@ struct MovieDetailView: View {
             }
         }
         .background(DesignTheme.canvas)
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsToolbarFavorite, case .loaded(let content, _) = viewModel.state {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -85,8 +84,27 @@ struct MovieDetailView: View {
         }
     }
 
+    private var navigationTitle: String {
+        if case .loaded(let content, _) = viewModel.state {
+            return content.detail.title
+        }
+        return ""
+    }
+
     @ViewBuilder
     private func loadedBody(content: MovieDetailContent, activity: LoadActivity) -> some View {
+        ScrollViewReader { proxy in
+            loadedScroll(content: content, activity: activity, scrollTo: { id in
+                proxy.scrollTo(id, anchor: .top)
+            })
+        }
+    }
+
+    private func loadedScroll(
+        content: MovieDetailContent,
+        activity: LoadActivity,
+        scrollTo: @escaping (String) -> Void
+    ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
                 metadataBlock(content)
@@ -107,14 +125,15 @@ struct MovieDetailView: View {
                     collectionCarousel(collection)
                 }
                 if let reviews = content.reviews {
-                    reviewsSection(reviews)
+                    reviewsSection(reviews, scrollTo: scrollTo)
                 }
             }
             .padding(.vertical, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
+            .coordinateSpace(.named("detailScroll"))
         }
-        .scrollEdgeEffectHidden(true)
+        .scrollingInlineTitle(navigationTitle)
         .overlay(alignment: .top) {
             if case .failed(let error) = activity {
                 Text("\(error.title): \(error.message)")
@@ -313,7 +332,9 @@ struct MovieDetailView: View {
     private func collectionCarousel(
         _ section: MovieDetailContent.CollectionSection
     ) -> some View {
-        DetailCarousel(title: section.title) {
+        DetailCarousel(title: section.title, onTitle: {
+            router?.push(.collection(id: section.id))
+        }) {
             ForEach(section.movies) { movie in
                 moviePosterCell(
                     movie: movie,
@@ -420,38 +441,19 @@ struct MovieDetailView: View {
 
     // MARK: - Reviews
 
-    private func reviewsSection(_ section: MovieDetailContent.ReviewsSection) -> some View {
-        VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            Text("Reviews")
-                .font(DesignTypography.section)
-                .foregroundStyle(DesignTheme.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            LazyVStack(alignment: .leading, spacing: DesignSpacing.md) {
-                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, review in
-                    ReviewRow(review: review)
-                        .onAppear {
-                            if index == section.items.count - 1 {
-                                Task { await viewModel.loadMoreReviews() }
-                            }
-                        }
-                }
-
-                if section.isLoadingPage {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSpacing.sm)
-                }
-
-                if let error = section.pageError {
-                    Text("\(error.title): \(error.message)")
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(.horizontal, DesignSpacing.lg)
+    private func reviewsSection(
+        _ section: MovieDetailContent.ReviewsSection,
+        scrollTo: @escaping (String) -> Void
+    ) -> some View {
+        ReviewPageList(
+            items: section.items,
+            hasMore: section.hasMore,
+            totalCount: section.totalCount,
+            isLoadingPage: section.isLoadingPage,
+            pageError: section.pageError,
+            loadMore: { await viewModel.loadMoreReviews() },
+            scrollTo: scrollTo
+        )
     }
 
     // MARK: - Story 1 metadata
@@ -621,42 +623,5 @@ struct MovieDetailView: View {
             parts.append(item.formattedReleaseDate)
         }
         return parts.joined(separator: ", ")
-    }
-}
-
-private struct ReviewRow: View {
-    let review: MovieReview
-    @State private var expanded = false
-
-    var body: some View {
-        SurfaceCard {
-            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                Text(review.author)
-                    .font(DesignTypography.metadata.weight(.semibold))
-                    .foregroundStyle(DesignTheme.textPrimary)
-                Text("@\(review.username)")
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                Text(MovieDetailViewModel.formatReviewDate(review.updatedAt))
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textMuted)
-                Text(review.content)
-                    .font(DesignTypography.body)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .lineLimit(expanded ? nil : 6)
-                    .fixedSize(horizontal: false, vertical: true)
-                if review.content.count > 280 {
-                    Button(expanded ? "Show Less" : "Show More") {
-                        expanded.toggle()
-                    }
-                    .font(DesignTypography.chip.weight(.semibold))
-                    .foregroundStyle(DesignTheme.accent)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(review.author), \(review.username), \(MovieDetailViewModel.formatReviewDate(review.updatedAt)). \(review.content)"
-        )
     }
 }

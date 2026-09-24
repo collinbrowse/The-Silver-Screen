@@ -71,7 +71,7 @@ final class MovieDetailViewModelTests: XCTestCase {
         XCTAssertEqual(content.collection?.movies.map(\.id), [240])
     }
 
-    func test_load_whenCollectionOnlyContainsSelf_hidesCollectionSection() async {
+    func test_load_whenCollectionOnlyContainsSelf_keepsCollectionEntry() async {
         let client = RoutingHTTPClient(routes: [
             "/movie/238": .success(TMDBFixtures.movieDetailWithCollection),
             "/collection/230": .success(TMDBFixtures.collectionSolo),
@@ -88,7 +88,10 @@ final class MovieDetailViewModelTests: XCTestCase {
         guard case .loaded(let content, _) = viewModel.state else {
             return XCTFail("Expected loaded, got \(viewModel.state)")
         }
-        XCTAssertNil(content.collection)
+        XCTAssertEqual(content.collection?.id, 230)
+        XCTAssertEqual(content.collection?.title, "The Godfather Collection")
+        XCTAssertEqual(content.collection?.posterPath, "/collection.jpg")
+        XCTAssertTrue(content.collection?.movies.isEmpty == true)
     }
 
     func test_load_whenReviewsExist_setsReviewsSection() async {
@@ -128,6 +131,20 @@ final class MovieDetailViewModelTests: XCTestCase {
         }
         XCTAssertEqual(content.reviews?.items.map(\.id), ["rev-1", "rev-2"])
         XCTAssertEqual(content.reviews?.hasMore, false)
+    }
+
+    func test_reviewWindow_showsFiveAndKeepsTheRestForTheNextPage() {
+        let items = (1...7).map { $0 }
+        XCTAssertEqual(ReviewWindow.page(items, index: 0), [1, 2, 3, 4, 5])
+        XCTAssertEqual(ReviewWindow.page(items, index: 1), [6, 7])
+        XCTAssertFalse(ReviewWindow.canMoveBack(index: 0))
+        XCTAssertTrue(ReviewWindow.canMoveForward(index: 0, itemCount: 7, hasMore: false))
+        XCTAssertFalse(ReviewWindow.canMoveForward(index: 1, itemCount: 7, hasMore: false))
+        XCTAssertTrue(ReviewWindow.canMoveForward(index: 1, itemCount: 7, hasMore: true))
+        XCTAssertEqual(ReviewWindow.pageCount(totalCount: 1), 1)
+        XCTAssertEqual(ReviewWindow.pageCount(totalCount: 5), 1)
+        XCTAssertEqual(ReviewWindow.pageCount(totalCount: 6), 2)
+        XCTAssertEqual(ReviewWindow.pageCount(totalCount: 12), 3)
     }
 
     func test_openImages_setsFullscreenSelection() async {

@@ -27,6 +27,7 @@ struct MovieSummaryDTO: Decodable, Sendable {
     let releaseDate: String
     let voteAverage: Double
     let genreIDs: [Int]
+    let popularity: Double
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -35,6 +36,7 @@ struct MovieSummaryDTO: Decodable, Sendable {
         case releaseDate = "release_date"
         case voteAverage = "vote_average"
         case genreIDs = "genre_ids"
+        case popularity
     }
 
     init(from decoder: Decoder) throws {
@@ -45,5 +47,6 @@ struct MovieSummaryDTO: Decodable, Sendable {
         releaseDate = try container.decodeIfPresent(String.self, forKey: .releaseDate) ?? ""
         voteAverage = try container.decode(Double.self, forKey: .voteAverage)
         genreIDs = try container.decodeIfPresent([Int].self, forKey: .genreIDs) ?? []
+        popularity = try container.decodeIfPresent(Double.self, forKey: .popularity) ?? 0
     }
 }

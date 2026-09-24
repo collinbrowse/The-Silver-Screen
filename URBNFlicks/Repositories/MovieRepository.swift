@@ -30,22 +30,104 @@ final class MovieRepository: Sendable {
     }
 
     func topMovies(page: Int) async throws -> MoviePage {
-        let request = try requests.get(
+        try await fetchMoviePage(
             path: "discover/movie",
-            queryItems: [
-                URLQueryItem(name: "language", value: "en-US"),
-                URLQueryItem(name: "sort_by", value: "vote_average.desc"),
-                URLQueryItem(name: "vote_count.gte", value: "200"),
-                URLQueryItem(name: "without_genres", value: "99,10755"),
-                URLQueryItem(name: "page", value: String(page)),
-            ]
+            context: "Top movies",
+            queryItems: listQuery(
+                page: page,
+                extra: [
+                    URLQueryItem(name: "sort_by", value: "vote_average.desc"),
+                    URLQueryItem(name: "vote_count.gte", value: "200"),
+                    URLQueryItem(name: "without_genres", value: "99,10755"),
+                ]
+            )
         )
+    }
 
+    /// One Discover page, already sorted. Browse uses this instead of `/movie/now_playing`
+    /// or `/movie/top_rated`, which cannot be re-sorted per page.
+    func discover(
+        sort: BrowseSort,
+        window: BrowseWindow,
+        page: Int,
+        locale: Locale = .current,
+        today: Date = Date()
+    ) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: DiscoverKind.movie.path,
+            context: "Browse movies",
+            queryItems: DiscoverQuery.items(
+                kind: .movie,
+                sort: sort,
+                window: window,
+                page: page,
+                locale: locale,
+                today: today
+            )
+        )
+    }
+
+    /// Movies currently in theaters (`/movie/now_playing`).
+    func nowPlaying(page: Int) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: "movie/now_playing",
+            context: "Now playing",
+            queryItems: listQuery(page: page)
+        )
+    }
+
+    /// Movies with a future theatrical date (`/movie/upcoming`).
+    func upcoming(page: Int) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: "movie/upcoming",
+            context: "Upcoming",
+            queryItems: listQuery(page: page)
+        )
+    }
+
+    /// Popular movies, used as the Search tab's landing list.
+    func popular(page: Int, locale: Locale = .current) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: "movie/popular",
+            context: "Popular movies",
+            queryItems: TMDBLocale.queryItems(locale: locale, page: page)
+        )
+    }
+
+    /// Type-ahead movie search. `query` is sent as a query item, never logged.
+    func searchMovies(query: String, page: Int, locale: Locale = .current) async throws -> MoviePage {
+        try await fetchMoviePage(
+            path: "search/movie",
+            context: "Movie search",
+            queryItems: TMDBLocale.queryItems(
+                locale: locale,
+                page: page,
+                extra: [
+                    URLQueryItem(name: "query", value: query),
+                    URLQueryItem(name: "include_adult", value: "false"),
+                ]
+            )
+        )
+    }
+
+    private func listQuery(page: Int, extra: [URLQueryItem] = []) -> [URLQueryItem] {
+        extra + [
+            URLQueryItem(name: "language", value: "en-US"),
+            URLQueryItem(name: "page", value: String(page)),
+        ]
+    }
+
+    private func fetchMoviePage(
+        path: String,
+        context: String,
+        queryItems: [URLQueryItem]
+    ) async throws -> MoviePage {
+        let request = try requests.get(path: path, queryItems: queryItems)
         let data = try await HTTPTransport.data(
             for: request,
             client: client,
             logger: logger,
-            context: "Top movies",
+            context: context,
             sleeper: sleeper
         )
 
@@ -60,7 +142,7 @@ final class MovieRepository: Sendable {
         } catch let error as AppError {
             throw error
         } catch {
-            logger.error("Top movies page metadata decode failed", category: .networking)
+            logger.error("\(context) page metadata decode failed", category: .networking)
             throw AppError.decoding
         }
     }
@@ -115,9 +197,12 @@ final class MovieRepository: Sendable {
 
         do {
             let dto = try JSONDecoder().decode(MovieCollectionDTO.self, from: data)
+            let overview = dto.overview?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return MovieCollection(
                 id: dto.id,
                 name: dto.name,
+                overview: overview,
+                posterPath: dto.posterPath,
                 parts: (dto.parts ?? []).map(Self.map)
             )
         } catch let error as DecodingError {
@@ -154,7 +239,8 @@ final class MovieRepository: Sendable {
             return MovieReviewPage(
                 reviews: reviews,
                 page: dto.page,
-                hasMore: dto.page < dto.totalPages
+                hasMore: dto.page < dto.totalPages,
+                totalCount: dto.totalResults ?? reviews.count
             )
         } catch let error as DecodingError {
             logger.error("Movie reviews decode failed: \(error)", category: .networking)
@@ -185,7 +271,8 @@ final class MovieRepository: Sendable {
             posterPath: dto.posterPath,
             releaseDate: parseReleaseDate(dto.releaseDate),
             voteAverage: dto.voteAverage,
-            genreIDs: dto.genreIDs
+            genreIDs: dto.genreIDs,
+            popularity: dto.popularity
         )
     }
 
@@ -211,10 +298,19 @@ final class MovieRepository: Sendable {
     }
 
     static func mapImages(_ dto: MovieImagesDTO?, logger: any AppLogging) -> [MovieImage] {
-        guard let backdrops = dto?.backdrops else { return [] }
+        mapImageItems(dto?.backdrops, logger: logger)
+    }
+
+    /// Maps a TMDB image array (backdrops, stills, or posters), skipping blank paths.
+    static func mapImageItems(
+        _ items: [MovieImageDTO]?,
+        logger: any AppLogging,
+        limit: Int = 20
+    ) -> [MovieImage] {
+        guard let items else { return [] }
         var images: [MovieImage] = []
         var skipped = 0
-        for item in backdrops {
+        for item in items {
             let path = item.filePath.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !path.isEmpty else {
                 skipped += 1
@@ -227,7 +323,7 @@ final class MovieRepository: Sendable {
         }
         return images
             .sorted { $0.voteAverage > $1.voteAverage }
-            .prefix(20)
+            .prefix(limit)
             .map { $0 }
     }
 

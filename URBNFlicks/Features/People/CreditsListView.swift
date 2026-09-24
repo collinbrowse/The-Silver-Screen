@@ -69,9 +69,14 @@ struct CreditsListView: View {
     @ViewBuilder
     private func creditRow(_ item: CreditsListItem) -> some View {
         let row = CreditsListRow(item: item, imageLoader: imageLoader)
-        if item.credit.mediaType == .movie, let router {
+        if let router {
             Button {
-                router.push(.movieDetail(id: item.credit.mediaID))
+                switch item.credit.mediaType {
+                case .movie:
+                    router.push(.movieDetail(id: item.credit.mediaID))
+                case .tv:
+                    router.push(.tvSeries(id: item.credit.mediaID))
+                }
             } label: {
                 row
             }

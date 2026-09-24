@@ -30,6 +30,11 @@ struct FavoritesListView: View {
                 }
             }
         }
+        .safeAreaBar(edge: .top, spacing: 0) {
+            if case .loaded = viewModel.state {
+                filterPicker
+            }
+        }
         .searchable(text: $viewModel.searchText, prompt: "Search Favorites")
         .onAppear {
             Task { await viewModel.load() }
@@ -39,8 +44,7 @@ struct FavoritesListView: View {
     @ViewBuilder
     private func loadedBody(activity: LoadActivity) -> some View {
         let displayed = viewModel.displayedFavorites
-        VStack(spacing: 0) {
-            filterPicker
+        Group {
             if displayed.isEmpty {
                 EmptyStateView(
                     title: noMatchesTitle,
@@ -137,8 +141,9 @@ struct FavoritesListView: View {
                 FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
             }
         case .tv:
-            // No TV detail screen exists yet, so the row is static (swipe-to-remove only).
-            FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
+            NavigationLink(value: Route.tvSeries(id: favorite.id)) {
+                FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
+            }
         case .person:
             NavigationLink(value: Route.person(id: favorite.id)) {
                 FavoritePersonRow(favorite: favorite, imageLoader: imageLoader)
@@ -155,7 +160,7 @@ private struct FavoriteTitleRow: View {
     @State private var poster: UIImage?
     @Environment(\.displayScale) private var displayScale
 
-    private let posterSize = CGSize(width: 70, height: 105)
+    private let posterSize = CGSize(width: 120, height: 180)
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -246,7 +251,7 @@ private struct FavoritePersonRow: View {
     let favorite: FavoriteRecord
     let imageLoader: ImageLoader
 
-    private let profileWidth: CGFloat = 70
+    private let profileWidth: CGFloat = 120
     private let profileAspect: CGFloat = 2 / 3
 
     var body: some View {

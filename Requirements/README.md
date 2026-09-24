@@ -23,9 +23,9 @@ After that, pick anything you like.
 | [Top Movies](top-movies.md)                       | **Required — do first.** Bug fixes and improvements to the existing Top Ranked Movies list: cell layout, scrolling performance, error handling and sorting. |
 | [Favorites & Bookmarking](favorites.md)           | **Stories 1 & 2 required** (after Top Movies). Bookmark movies/TV/people and browse them in a Favorites tab with filtering and search.                      |
 | [Movie Detail View](movie-detail-view.md)         | Full detail screen for a movie: metadata, image carousel, cast, crew, similar movies, collections, and paginated reviews.                                   |
-| [Tab Bar](tab-bar.md)                             | Introduce a tab bar for Now Playing, Upcoming, Top Rated, and Search.                                                                                       |
-| [Now Playing Tab](now-playing-tab.md)             | A browsable list of now-playing movies.                                                                                                                     |
-| [Upcoming Tab](upcoming-tab.md)                   | A browsable list of upcoming movies.                                                                                                                        |
+| [Tab Bar](tab-bar.md)                             | Browse, Search, and Favorites. Browse holds media, window, and sort on one screen.                                                                          |
+| [Now Playing Tab](now-playing-tab.md)             | The Now Playing window on Browse.                                                                                                                           |
+| [Upcoming Tab](upcoming-tab.md)                   | The Upcoming window on Browse.                                                                                                                              |
 | [Search Tab](search-tab.md)                       | Type-ahead movie search with persistent results.                                                                                                            |
 | [People View](people-view.md)                     | Person detail screen with bio, images, and cast/crew credits.                                                                                               |
 | [Collections View](collections-view.md)           | Movie collection screen listing its parts.                                                                                                                  |
@@ -47,16 +47,16 @@ Update the `Completed / Total` column as you go.
 | [Top Movies](top-movies.md)                       | 4 / 4             |
 | [Favorites & Bookmarking](favorites.md)           | 9 / 9             |
 | [Movie Detail View](movie-detail-view.md)         | 7 / 7             |
-| [Tab Bar](tab-bar.md)                             | 0 / 2             |
-| [Now Playing Tab](now-playing-tab.md)             | 0 / 2             |
-| [Upcoming Tab](upcoming-tab.md)                   | 0 / 2             |
-| [Search Tab](search-tab.md)                       | 0 / 4             |
+| [Tab Bar](tab-bar.md)                             | 2 / 2             |
+| [Now Playing Tab](now-playing-tab.md)             | 2 / 2             |
+| [Upcoming Tab](upcoming-tab.md)                   | 2 / 2             |
+| [Search Tab](search-tab.md)                       | 4 / 4             |
 | [People View](people-view.md)                     | 4 / 4             |
-| [Collections View](collections-view.md)           | 0 / 3             |
-| [TV Series View](tv-series-view.md)               | 0 / 7             |
-| [TV Series Season View](tv-series-season-view.md) | 0 / 5             |
-| [TV Episode](tv-episode.md)                       | 0 / 5             |
-| [Advanced Search Tab](advanced-search-tab.md)     | 0 / 6             |
+| [Collections View](collections-view.md)           | 3 / 3             |
+| [TV Series View](tv-series-view.md)               | 7 / 7             |
+| [TV Series Season View](tv-series-season-view.md) | 5 / 5             |
+| [TV Episode](tv-episode.md)                       | 5 / 5             |
+| [Advanced Search Tab](advanced-search-tab.md)     | 6 / 6             |
 
 
 

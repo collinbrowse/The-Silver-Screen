@@ -56,6 +56,91 @@ final class PersonRepository: Sendable {
         }
     }
 
+    /// Popular people for the Search tab's People segment.
+    func popular(page: Int, locale: Locale = .current) async throws -> PersonPage {
+        try await fetchPeoplePage(
+            path: "person/popular",
+            context: "Popular people",
+            page: page,
+            extra: [],
+            locale: locale
+        )
+    }
+
+    /// People search. The query is a request parameter and is never logged.
+    func search(query: String, page: Int, locale: Locale = .current) async throws -> PersonPage {
+        try await fetchPeoplePage(
+            path: "search/person",
+            context: "People search",
+            page: page,
+            extra: [
+                URLQueryItem(name: "query", value: query),
+                URLQueryItem(name: "include_adult", value: "false"),
+            ],
+            locale: locale
+        )
+    }
+
+    private func fetchPeoplePage(
+        path: String,
+        context: String,
+        page: Int,
+        extra: [URLQueryItem],
+        locale: Locale? = nil
+    ) async throws -> PersonPage {
+        let queryItems = locale.map {
+            TMDBLocale.queryItems(locale: $0, page: page, extra: extra)
+        } ?? extra + [
+            URLQueryItem(name: "language", value: "en-US"),
+            URLQueryItem(name: "page", value: String(page)),
+        ]
+        let request = try requests.get(
+            path: path,
+            queryItems: queryItems
+        )
+        let data = try await HTTPTransport.data(
+            for: request,
+            client: client,
+            logger: logger,
+            context: context,
+            sleeper: sleeper
+        )
+        do {
+            let decoded = try TMDBPageDecoding.decode(
+                PersonSummaryDTO.self,
+                from: data,
+                logger: logger,
+                context: context
+            )
+            let people = decoded.items.compactMap(Self.mapSummary)
+            if people.isEmpty, !decoded.items.isEmpty {
+                throw AppError.decoding
+            }
+            return PersonPage(
+                people: people,
+                page: decoded.page,
+                hasMore: decoded.page < decoded.totalPages
+            )
+        } catch let error as AppError {
+            throw error
+        } catch {
+            logger.error("\(context) decode failed", category: .networking)
+            throw AppError.decoding
+        }
+    }
+
+    static func mapSummary(_ dto: PersonSummaryDTO) -> PersonSummary? {
+        let name = dto.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !name.isEmpty else { return nil }
+        let department = dto.knownForDepartment?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PersonSummary(
+            id: dto.id,
+            name: name,
+            profilePath: dto.profilePath,
+            knownForDepartment: (department?.isEmpty == false) ? department : nil
+        )
+    }
+
     // MARK: - Mapping
 
     private static let dayFormatter: DateFormatter = {
