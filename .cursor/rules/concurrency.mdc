@@ -1,6 +1,6 @@
 ---
-description: Strict Swift concurrency conventions for URBNFlicks under Swift 6 language mode.
-globs: URBNFlicks/**/*.swift
+description: Strict Swift concurrency conventions for TheSilverScreen under Swift 6 language mode.
+globs: TheSilverScreen/**/*.swift
 alwaysApply: false
 ---
 

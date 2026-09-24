@@ -66,7 +66,7 @@ def check_rules(problems: list[str]) -> None:
         print(f"  ok  {os.path.basename(path):22} alwaysApply={str(always).lower()}")
 
         # Pending globs are expected: swiftui.mdc and images.mdc point at
-        # URBNFlicks/Features/, which arrives with the first SwiftUI story. Surfaced
+        # TheSilverScreen/Features/, which arrives with the first SwiftUI story. Surfaced
         # so a genuine typo is visible, but not fatal.
         for pattern in globs:
             if not glob.glob(pattern, recursive=True):
@@ -88,7 +88,7 @@ def check_links(problems: list[str]) -> None:
 
 
 def check_secrets(problems: list[str]) -> None:
-    # splitlines, not split: `URBNFlicks/View Models/` has a space in it.
+    # splitlines, not split: `TheSilverScreen/View Models/` has a space in it.
     tracked = subprocess.run(
         ["git", "ls-files", "*.swift"], capture_output=True, text=True, check=True
     ).stdout.splitlines()

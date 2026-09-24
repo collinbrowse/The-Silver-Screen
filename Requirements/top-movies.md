@@ -1,6 +1,6 @@
 # Epic: Top Movies (Do This First)
 
-> **Start here.** This epic covers bug fixes and improvements to the existing Top Ranked Movies list — the screen the app ships with today (`[URBNFlicks/Views/MovieListViewController.swift](../URBNFlicks/Views/MovieListViewController.swift)` and `[URBNFlicks/Views/MovieTableViewCell.swift](../URBNFlicks/Views/MovieTableViewCell.swift)`). Getting this screen solid gives you the foundation (networking, models, navigation) that the rest of the backlog builds on.
+> **Start here.** This epic covers bug fixes and improvements to the existing Top Ranked Movies list — the screen the app ships with today (`[TheSilverScreen/Views/MovieListViewController.swift](../TheSilverScreen/Views/MovieListViewController.swift)` and `[TheSilverScreen/Views/MovieTableViewCell.swift](../TheSilverScreen/Views/MovieTableViewCell.swift)`). Getting this screen solid gives you the foundation (networking, models, navigation) that the rest of the backlog builds on.
 
 This epic works with the existing UIKit Top Movies screen, so these fixes live in that UIKit code. All net-new screens in the other epics are SwiftUI.
 

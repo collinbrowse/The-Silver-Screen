@@ -1,6 +1,6 @@
 ---
-description: Accessibility requirements for URBNFlicks screens and cells.
-globs: URBNFlicks/Features/**/*.swift,URBNFlicks/Views/**/*.swift,URBNFlicks/**/*View.swift,URBNFlicks/**/*Cell.swift
+description: Accessibility requirements for TheSilverScreen screens and cells.
+globs: TheSilverScreen/Features/**/*.swift,TheSilverScreen/Views/**/*.swift,TheSilverScreen/**/*View.swift,TheSilverScreen/**/*Cell.swift
 alwaysApply: false
 ---
 

@@ -92,7 +92,7 @@ The harness lives in the repo under `.cursor/` and is part of the workflow:
   - `stop` → `run-unit-tests.sh` (runs the unit tests when the agent finishes).
 - **CI gates** (`scripts/`):
   - `validate-tests.py` — bans empty tests and fails a PR that ticks a story
-    `Done` without touching `URBNFlicksTests/`.
+    `Done` without touching `TheSilverScreenTests/`.
   - `validate-pr-body.py` — enforces the PR template sections.
   - `validate-rules.py` — validates the rule files.
 - **MCP**: 
@@ -102,7 +102,7 @@ The harness lives in the repo under `.cursor/` and is part of the workflow:
 ## Testing
 
 Unit tests cover the completed work (repositories, view models, favorites
-logic) under `URBNFlicksTests/`. Tests substitute only real external boundaries
+logic) under `TheSilverScreenTests/`. Tests substitute only real external boundaries
 (HTTP, disk) — repositories and view models are not hidden behind a protocol and faked. 
 
 

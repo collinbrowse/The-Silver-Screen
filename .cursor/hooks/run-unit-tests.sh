@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop hook: run URBNFlicksTests. Fail-open (print {}) if aborted, missing simulator, or unexpected errors.
+# stop hook: run TheSilverScreenTests. Fail-open (print {}) if aborted, missing simulator, or unexpected errors.
 
 set -u
 
@@ -83,9 +83,9 @@ trap 'rm -f "$LOG"' EXIT
 
 set +e
 xcodebuild test \
-  -project URBNFlicks.xcodeproj \
-  -scheme URBNFlicks \
-  -only-testing:URBNFlicksTests \
+  -project TheSilverScreen.xcodeproj \
+  -scheme TheSilverScreen \
+  -only-testing:TheSilverScreenTests \
   -destination "platform=iOS Simulator,id=${UDID}" \
   >"$LOG" 2>&1
 EXIT_CODE=$?
@@ -111,7 +111,7 @@ if len(text) > limit:
     text = "(truncated)\n" + text
 
 print(json.dumps({
-    "followup_message": "URBNFlicksTests failed. Fix the failures, then continue. Do not tick Done until tests pass.\n\n" + text
+    "followup_message": "TheSilverScreenTests failed. Fix the failures, then continue. Do not tick Done until tests pass.\n\n" + text
 }))
 ' "$LOG"
 

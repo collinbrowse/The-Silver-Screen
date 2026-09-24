@@ -1,5 +1,5 @@
 ---
-description: URBNFlicks architecture — MVVM, repositories, dependency injection, AppRouter, and the target toolchain.
+description: TheSilverScreen architecture — MVVM, repositories, dependency injection, AppRouter, and the target toolchain.
 alwaysApply: true
 ---
 

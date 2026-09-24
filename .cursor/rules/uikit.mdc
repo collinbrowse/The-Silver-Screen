@@ -1,6 +1,6 @@
 ---
-description: URBNFlicks screens are SwiftUI. Do not add UIKit view controllers or lists.
-globs: URBNFlicks/**/*.swift
+description: TheSilverScreen screens are SwiftUI. Do not add UIKit view controllers or lists.
+globs: TheSilverScreen/**/*.swift
 alwaysApply: false
 ---
 

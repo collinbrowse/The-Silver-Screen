@@ -1,6 +1,6 @@
 # Requirements
 
-This is the backlog for the URBNFlicks assessment. It is **intentionally larger than anyone could finish** — beyond the required work below, pick whatever you want, in any order, and go as deep or wide as you like. You are not expected to complete everything, so please don't try.
+This is the backlog for the The Silver Screen assessment. It is **intentionally larger than anyone could finish** — beyond the required work below, pick whatever you want, in any order, and go as deep or wide as you like. You are not expected to complete everything, so please don't try.
 
 Each file below is an **epic** containing a table of **stories**. Tick the `Done` box for each story you complete.
 

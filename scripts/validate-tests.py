@@ -5,12 +5,12 @@ Green CI means nothing if tests assert nothing, or if a story is marked Done
 without any test change. This script makes both of those build failures.
 
 Checks:
-  1. Every `func test...` in URBNFlicksTests has at least one assertion (or
+  1. Every `func test...` in TheSilverScreenTests has at least one assertion (or
      XCTFail / throws expectation). Empty bodies and Xcode placeholders fail.
   2. Banned placeholder names (`testExample`, `testPerformanceExample`) never
-     appear in URBNFlicksTests.
+     appear in TheSilverScreenTests.
   3. On a PR (BASE_SHA set), newly checked Done boxes in Requirements/ must be
-     accompanied by a change under URBNFlicksTests/.
+     accompanied by a change under TheSilverScreenTests/.
 
 Run from the repo root:
   python3 scripts/validate-tests.py
@@ -25,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-TESTS_ROOT = Path("URBNFlicksTests")
+TESTS_ROOT = Path("TheSilverScreenTests")
 REQUIREMENTS_ROOT = Path("Requirements")
 
 BANNED_NAMES = {"testExample", "testPerformanceExample"}
@@ -162,12 +162,12 @@ def check_done_coupling(problems: list[str], base: str) -> None:
         print("  ok  Requirements changed but no new Done checks")
         return
 
-    test_changes = [p for p in changed if p.startswith("URBNFlicksTests/")]
+    test_changes = [p for p in changed if p.startswith("TheSilverScreenTests/")]
     if not test_changes:
         fail(
             problems,
             f"marked {newly_done} story Done checkbox(es) without changing "
-            "URBNFlicksTests/ — Done requires unit tests for the work",
+            "TheSilverScreenTests/ — Done requires unit tests for the work",
         )
         return
 

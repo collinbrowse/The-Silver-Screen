@@ -1,4 +1,4 @@
-# URBNFlicks — agent contract
+# The Silver Screen — agent contract
 
 This file is the source of truth for the assessment constraints. Follow them. Architecture conventions live in [`.cursor/rules/architecture.mdc`](.cursor/rules/architecture.mdc) and the scoped rules beside it. Do not add optional epic recommendations beyond what Nuuly already wrote.
 

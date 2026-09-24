@@ -1,6 +1,6 @@
 ---
-description: URBNFlicks data layer — API models separated from domain models, repositories, and mapping.
-globs: URBNFlicks/Networking/**/*.swift,URBNFlicks/Models/**/*.swift,URBNFlicks/**/*Repository.swift
+description: TheSilverScreen data layer — API models separated from domain models, repositories, and mapping.
+globs: TheSilverScreen/Networking/**/*.swift,TheSilverScreen/Models/**/*.swift,TheSilverScreen/**/*Repository.swift
 alwaysApply: false
 ---
 

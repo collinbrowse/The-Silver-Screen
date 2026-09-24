@@ -1,6 +1,6 @@
 ---
 description: Poster and backdrop image loading — cache, downsampling, request coalescing, and cancellation on cell reuse.
-globs: URBNFlicks/ImageLoading/**/*.swift,URBNFlicks/Views/**/*.swift,URBNFlicks/Features/**/*.swift
+globs: TheSilverScreen/ImageLoading/**/*.swift,TheSilverScreen/Views/**/*.swift,TheSilverScreen/Features/**/*.swift
 alwaysApply: false
 ---
 

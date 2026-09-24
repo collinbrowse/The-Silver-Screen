@@ -1,6 +1,6 @@
 ---
-description: URBNFlicks user-facing error system and logging conventions.
-globs: URBNFlicks/**/*.swift
+description: TheSilverScreen user-facing error system and logging conventions.
+globs: TheSilverScreen/**/*.swift
 alwaysApply: false
 ---
 
@@ -50,7 +50,7 @@ protocol AppLogging: Sendable {
 }
 ```
 
-- The production implementation wraps `os.Logger` with subsystem `com.urbn.URBNFlicks` and a fixed `LogCategory` set: `networking`, `persistence`, `ui`, `navigation`.
+- The production implementation wraps `os.Logger` with subsystem `com.collinbrowse.thesilverscreen` and a fixed `LogCategory` set: `networking`, `persistence`, `ui`, `navigation`.
 - Log failures and lifecycle transitions. Never log API keys, tokens, or full response bodies. Never log a URL that carries credentials in its query — see [`secrets.mdc`](.cursor/rules/secrets.mdc).
 
 ### Annotate privacy, or every line reads `<private>`

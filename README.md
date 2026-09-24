@@ -1,7 +1,7 @@
-# URBNFlicks — iOS Engineering Assessment
+# The Silver Screen — iOS Engineering Assessment
 
 ## Overview
-URBNFlicks is a small iOS app that uses [The Movie Database (TMDB)](https://developer.themoviedb.org/reference/getting-started) API to display movies. When we're not busy programming, the URBN Mobile Team loves discussing our favorite films and making recommendations — this app is where we track them.
+The Silver Screen is a small iOS app that uses [The Movie Database (TMDB)](https://developer.themoviedb.org/reference/getting-started) API to display movies. When we're not busy programming, the URBN Mobile Team loves discussing our favorite films and making recommendations — this app is where we track them.
 
 This repo is a coding assessment. It ships with a working UIKit movie list, and a large backlog of new SwiftUI features to build on top of it.
 
@@ -21,7 +21,7 @@ We are assessing your approach, judgment, and craft — not raw completion count
 - Create a new **private** repo from this project.
 - Add the GitHub usernames provided by the recruiting team as collaborators.
 - Your **first commit should be the project exactly as-is** (no changes), so we can see your work as a diff.
-- Open the project in Xcode. The TMDB API key is in [`URBNFlicks/Networking/Globals.swift`](URBNFlicks/Networking/Globals.swift).
+- Open the project in Xcode. The TMDB API key is in [`TheSilverScreen/Networking/Globals.swift`](TheSilverScreen/Networking/Globals.swift).
 - Commit as often as you like.
 
 TMDB API reference: https://developer.themoviedb.org/reference/getting-started
@@ -48,8 +48,8 @@ Start at the [Requirements index](Requirements/README.md) for the full list and 
 ## Codebase Tour
 A quick map so you can step in fast:
 
-- [`URBNFlicks/Repositories/MovieRepository.swift`](URBNFlicks/Repositories/MovieRepository.swift) — movie networking and mapping.
-- [`URBNFlicks/App/RootTabView.swift`](URBNFlicks/App/RootTabView.swift) — Browse, Search, and Favorites.
+- [`TheSilverScreen/Repositories/MovieRepository.swift`](TheSilverScreen/Repositories/MovieRepository.swift) — movie networking and mapping.
+- [`TheSilverScreen/App/RootTabView.swift`](TheSilverScreen/App/RootTabView.swift) — Browse, Search, and Favorites.
 
 ## Submission
 - Do your work in your own **private** repo (see Getting Started), with the recruiting-provided GitHub usernames added as collaborators.

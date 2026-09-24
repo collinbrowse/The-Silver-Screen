@@ -13,7 +13,7 @@ How to verify this PR (commands, screens, edge cases).
 - [ ] `python3 scripts/validate-rules.py`
 - [ ] `BASE_SHA=origin/main python3 scripts/validate-tests.py` (PRs that tick Done)
 - [ ] `python3 scripts/validate-pr-body.py --pr <number>` (or pipe the body on stdin)
-- [ ] `xcodebuild test -scheme URBNFlicks -only-testing:URBNFlicksTests`
+- [ ] `xcodebuild test -scheme TheSilverScreen -only-testing:TheSilverScreenTests`
 - [ ] Screenshot path (if UI changed):
 
 ## Stories completed
