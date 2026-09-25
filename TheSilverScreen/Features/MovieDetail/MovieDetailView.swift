@@ -155,7 +155,10 @@ struct MovieDetailView: View {
             if !content.detail.genres.isEmpty {
                 genres(content.detail.genres)
             }
-            ratingCard(content)
+            TMDBRatingCard(
+                formattedRating: content.formattedRating,
+                accessibilityLabel: content.ratingAccessibilityLabel
+            )
             overviewSection(content.detail.overview)
             factsCard(content)
         }
@@ -520,29 +523,6 @@ struct MovieDetailView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Genres: \(genres.map(\.name).joined(separator: ", "))")
-    }
-
-    private func ratingCard(_ content: MovieDetailContent) -> some View {
-        SurfaceCard {
-            HStack(spacing: DesignSpacing.md) {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(DesignTheme.accent)
-                    .accessibilityHidden(true)
-                    .accessibilityLabel("")
-                VStack(alignment: .leading, spacing: DesignSpacing.xs) {
-                    Text(content.formattedRating)
-                        .font(DesignTypography.ratingValue)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                    Text("TMDB RATING")
-                        .font(DesignTypography.factLabel)
-                        .foregroundStyle(DesignTheme.textMuted)
-                        .tracking(0.6)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(content.ratingAccessibilityLabel)
     }
 
     private func overviewSection(_ overview: String) -> some View {

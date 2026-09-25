@@ -161,12 +161,27 @@ struct TVSeriesView: View {
 
     private func header(_ content: TVSeriesContent) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.md) {
+            seriesIdentity(content)
+            TMDBRatingCard(
+                formattedRating: content.formattedRating,
+                accessibilityLabel: content.ratingAccessibilityLabel
+            )
+            if !content.detail.overview.isEmpty {
+                Text(content.detail.overview)
+                    .font(DesignTypography.body)
+                    .foregroundStyle(DesignTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, DesignSpacing.lg)
+    }
+
+    private func seriesIdentity(_ content: TVSeriesContent) -> some View {
+        let posterPath = content.detail.posterPath
+        let hasPoster = posterPath?.isEmpty == false
+        return VStack(alignment: .leading, spacing: DesignSpacing.md) {
             HStack(alignment: .top, spacing: DesignSpacing.md) {
-                MoviePosterView(
-                    posterPath: content.detail.posterPath,
-                    imageLoader: imageLoader,
-                    width: 112
-                )
+                posterThumbnail(path: posterPath)
                 VStack(alignment: .leading, spacing: DesignSpacing.sm) {
                     Text(content.detail.name)
                         .font(DesignTypography.title)
@@ -191,15 +206,31 @@ struct TVSeriesView: View {
                     .foregroundStyle(DesignTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if !content.detail.overview.isEmpty {
-                Text(content.detail.overview)
-                    .font(DesignTypography.body)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
-        .padding(.horizontal, DesignSpacing.lg)
         .accessibilityElement(children: .combine)
+        .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
+        .accessibilityAction(named: "Show poster") {
+            viewModel.openPoster()
+        }
+    }
+
+    @ViewBuilder
+    private func posterThumbnail(path: String?) -> some View {
+        let poster = MoviePosterView(
+            posterPath: path,
+            imageLoader: imageLoader,
+            width: 112
+        )
+        if let path, !path.isEmpty {
+            poster
+                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
+                .onTapGesture {
+                    viewModel.openPoster()
+                }
+                .accessibilityAddTraits(.isButton)
+        } else {
+            poster
+        }
     }
 
     private func seasonsCarousel(_ content: TVSeriesContent) -> some View {

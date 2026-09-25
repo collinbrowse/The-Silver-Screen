@@ -73,6 +73,8 @@ struct TVSeriesDetail: Sendable, Identifiable, Equatable {
     let firstAirDate: Date?
     let lastAirDate: Date?
     let genres: [MovieGenre]
+    /// TMDB user score, 0–10. Zero when the payload omitted it.
+    let voteAverage: Double
     let creators: [String]
     let images: [MovieImage]
     /// Seasons sorted by season number, earliest first.
@@ -91,6 +93,8 @@ struct TVSeasonDetail: Sendable, Equatable, Identifiable {
     let overview: String
     let airDate: Date?
     let posterPath: String?
+    /// TMDB user score, 0–10. Zero when the payload omitted it.
+    let voteAverage: Double
     let images: [MovieImage]
     let cast: [TVCredit]
     let directorsAndWriters: [TVCredit]
@@ -104,24 +108,24 @@ struct TVEpisodeDetail: Sendable, Equatable, Identifiable {
     let overview: String
     let airDate: Date?
     let stillPath: String?
+    /// TMDB user score, 0–10. Zero when the payload omitted it.
+    let voteAverage: Double
     let images: [MovieImage]
     let cast: [TVCredit]
     let guestStars: [TVCredit]
     let directorsAndWriters: [TVCredit]
 }
 
-/// Season headings always lead with the number, even when the name repeats it.
+/// Season title from TMDB's name. The name already includes the number (`Season 1`).
 enum SeasonTitle {
     static func display(name: String, number: Int) -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let label: String
         if !trimmed.isEmpty {
-            label = trimmed
-        } else if number == 0 {
-            label = "Specials"
-        } else {
-            label = "Season \(number)"
+            return trimmed
         }
-        return "\(number) · \(label)"
+        if number == 0 {
+            return "Specials"
+        }
+        return "Season \(number)"
     }
 }

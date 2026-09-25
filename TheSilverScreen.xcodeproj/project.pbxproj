@@ -83,6 +83,8 @@
 		C77D45532788B823003D8011 /* TheSilverScreenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45522788B823003D8011 /* TheSilverScreenUITests.swift */; };
 		C77D45552788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45542788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift */; };
 		E2A000012788B823003D8011 /* DisplayDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000022788B823003D8011 /* DisplayDate.swift */; };
+		F20000012788B823003D8011 /* TMDBRating.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000022788B823003D8011 /* TMDBRating.swift */; };
+		F20000032788B823003D8011 /* TMDBRatingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000042788B823003D8011 /* TMDBRatingCard.swift */; };
 		E2A000032788B823003D8011 /* CatalogMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000042788B823003D8011 /* CatalogMedia.swift */; };
 		E2A000052788B823003D8011 /* TVSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000062788B823003D8011 /* TVSeries.swift */; };
 		E2A000072788B823003D8011 /* TVSeriesDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000082788B823003D8011 /* TVSeriesDTO.swift */; };
@@ -214,6 +216,8 @@
 		C77D45522788B823003D8011 /* TheSilverScreenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheSilverScreenUITests.swift; sourceTree = "<group>"; };
 		C77D45542788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheSilverScreenUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		E2A000022788B823003D8011 /* DisplayDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayDate.swift; sourceTree = "<group>"; };
+		F20000022788B823003D8011 /* TMDBRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRating.swift; sourceTree = "<group>"; };
+		F20000042788B823003D8011 /* TMDBRatingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRatingCard.swift; sourceTree = "<group>"; };
 		E2A000042788B823003D8011 /* CatalogMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogMedia.swift; sourceTree = "<group>"; };
 		E2A000062788B823003D8011 /* TVSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSeries.swift; sourceTree = "<group>"; };
 		E2A000082788B823003D8011 /* TVSeriesDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSeriesDTO.swift; sourceTree = "<group>"; };
@@ -410,6 +414,7 @@
 				B10002072788B823003D8011 /* MoviePosterView.swift */,
 				B10002092788B823003D8011 /* TagChip.swift */,
 				B100020B2788B823003D8011 /* SurfaceCard.swift */,
+				F20000042788B823003D8011 /* TMDBRatingCard.swift */,
 				B10002212788B823003D8011 /* FlowLayout.swift */,
 				B10003132788B823003D8011 /* SectionHeader.swift */,
 			);
@@ -525,6 +530,7 @@
 			isa = PBXGroup;
 			children = (
 				E2A000022788B823003D8011 /* DisplayDate.swift */,
+				F20000022788B823003D8011 /* TMDBRating.swift */,
 				F10000042788B823003D8011 /* BrowseCatalog.swift */,
 				E2A000042788B823003D8011 /* CatalogMedia.swift */,
 				E2A000062788B823003D8011 /* TVSeries.swift */,
@@ -718,6 +724,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				E2A000012788B823003D8011 /* DisplayDate.swift in Sources */,
+				F20000012788B823003D8011 /* TMDBRating.swift in Sources */,
+				F20000032788B823003D8011 /* TMDBRatingCard.swift in Sources */,
 				F10000012788B823003D8011 /* TMDBLocale.swift in Sources */,
 				F10000032788B823003D8011 /* BrowseCatalog.swift in Sources */,
 				F10000052788B823003D8011 /* BrowseListViewModel.swift in Sources */,

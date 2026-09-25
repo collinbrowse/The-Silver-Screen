@@ -190,6 +190,7 @@ struct TVSeriesDetailDTO: Decodable, Sendable {
     let images: MovieImagesDTO?
     let aggregateCredits: TVAggregateCreditsDTO?
     let recommendations: TVSeriesResultsDTO?
+    let voteAverage: Double?
     /// Appended sections that were present but could not be decoded.
     let sectionFailures: [String]
 
@@ -206,6 +207,7 @@ struct TVSeriesDetailDTO: Decodable, Sendable {
         case images
         case aggregateCredits = "aggregate_credits"
         case recommendations
+        case voteAverage = "vote_average"
     }
 
     init(from decoder: Decoder) throws {
@@ -219,6 +221,7 @@ struct TVSeriesDetailDTO: Decodable, Sendable {
         genres = try container.decodeIfPresent([MovieGenreDTO].self, forKey: .genres)
         createdBy = try container.decodeIfPresent([TVCreatorDTO].self, forKey: .createdBy)
         seasons = try container.decodeIfPresent([TVSeasonSummaryDTO].self, forKey: .seasons)
+        voteAverage = try container.decodeIfPresent(Double.self, forKey: .voteAverage)
         var failures: [String] = []
         images = Self.optionalSection(MovieImagesDTO.self, from: container, key: .images, failures: &failures)
         aggregateCredits = Self.optionalSection(TVAggregateCreditsDTO.self, from: container, key: .aggregateCredits, failures: &failures)
@@ -272,6 +275,7 @@ struct TVSeasonDetailDTO: Decodable, Sendable {
     let episodes: [TVEpisodeSummaryDTO]?
     let images: MovieImagesDTO?
     let aggregateCredits: TVAggregateCreditsDTO?
+    let voteAverage: Double?
     let sectionFailures: [String]
 
     enum CodingKeys: String, CodingKey {
@@ -284,6 +288,7 @@ struct TVSeasonDetailDTO: Decodable, Sendable {
         case episodes
         case images
         case aggregateCredits = "aggregate_credits"
+        case voteAverage = "vote_average"
     }
 
     init(from decoder: Decoder) throws {
@@ -295,6 +300,7 @@ struct TVSeasonDetailDTO: Decodable, Sendable {
         airDate = try container.decodeIfPresent(String.self, forKey: .airDate)
         posterPath = try container.decodeIfPresent(String.self, forKey: .posterPath)
         episodes = try container.decodeIfPresent([TVEpisodeSummaryDTO].self, forKey: .episodes)
+        voteAverage = try container.decodeIfPresent(Double.self, forKey: .voteAverage)
         var failures: [String] = []
         images = Self.optionalSection(MovieImagesDTO.self, from: container, key: .images, failures: &failures)
         aggregateCredits = Self.optionalSection(TVAggregateCreditsDTO.self, from: container, key: .aggregateCredits, failures: &failures)
@@ -340,6 +346,7 @@ struct TVEpisodeDetailDTO: Decodable, Sendable {
     let guestStars: [CastMemberDTO]?
     let credits: TVEpisodeCreditsDTO?
     let images: MovieImagesDTO?
+    let voteAverage: Double?
     let sectionFailures: [String]
 
     enum CodingKeys: String, CodingKey {
@@ -353,6 +360,7 @@ struct TVEpisodeDetailDTO: Decodable, Sendable {
         case guestStars = "guest_stars"
         case credits
         case images
+        case voteAverage = "vote_average"
     }
 
     init(from decoder: Decoder) throws {
@@ -363,6 +371,7 @@ struct TVEpisodeDetailDTO: Decodable, Sendable {
         episodeNumber = try container.decode(Int.self, forKey: .episodeNumber)
         airDate = try container.decodeIfPresent(String.self, forKey: .airDate)
         stillPath = try container.decodeIfPresent(String.self, forKey: .stillPath)
+        voteAverage = try container.decodeIfPresent(Double.self, forKey: .voteAverage)
         crew = try container.decodeIfPresent([CrewMemberDTO].self, forKey: .crew)
         guestStars = try container.decodeIfPresent([CastMemberDTO].self, forKey: .guestStars)
         var failures: [String] = []
