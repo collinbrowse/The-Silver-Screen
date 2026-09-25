@@ -12,8 +12,12 @@ struct TVSeasonView: View {
     let favoritesIndex: FavoritesIndex
     var router: NavigationRouter?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
     let seriesID: Int
     let seasonNumber: Int
+
+    @Namespace private var heroTransition
+    @State private var selectedBackdropID: String?
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
         Binding(
@@ -72,7 +76,7 @@ struct TVSeasonView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -82,6 +86,7 @@ struct TVSeasonView: View {
             ) {
                 viewModel.dismissImages()
             }
+            .navigationTransition(.zoom(sourceID: selection.initialID, in: heroTransition))
         }
     }
 
@@ -93,14 +98,11 @@ struct TVSeasonView: View {
     }
 
     private func loaded(_ content: TVSeasonContent) -> some View {
-        ScrollView {
+        let bleedsToTop = !content.images.isEmpty
+        return ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
-                header(content)
-                if !content.images.isEmpty {
-                    TVImageCarousel(images: content.images, imageLoader: imageLoader) { image in
-                        viewModel.openImages(initialID: image.id)
-                    }
-                }
+                seasonHero(content)
+                seasonFacts(content)
                 if !content.cast.isEmpty {
                     TVCreditCarousel(title: "Cast", people: content.cast, imageLoader: imageLoader) { person in
                         router?.push(.person(id: person.id))
@@ -119,39 +121,40 @@ struct TVSeasonView: View {
                     episodes(content.episodes, seriesName: content.seriesName)
                 }
             }
-            .padding(.vertical, DesignSpacing.lg)
+            .padding(.bottom, DesignSpacing.lg)
             .coordinateSpace(.named("detailScroll"))
         }
-        .scrollingInlineTitle(navigationTitle)
+        .heroStatusBarBleed(enabled: bleedsToTop)
+        .scrollingInlineTitle(navigationTitle, showsToolbarBackground: !bleedsToTop)
     }
 
-    private func header(_ content: TVSeasonContent) -> some View {
-        let hasPoster = content.posterPath?.isEmpty == false
-        return VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            HStack(alignment: .top, spacing: DesignSpacing.md) {
-                posterThumbnail(path: content.posterPath)
-                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                    Text(content.seriesName)
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                    Text(content.displayName)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .inlineTitleAnchor()
-                    Text(content.formattedAirDate)
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
-            .accessibilityAction(named: "Show poster") {
-                viewModel.openPoster()
-            }
+    private func seasonHero(_ content: TVSeasonContent) -> some View {
+        DetailHero(
+            title: content.displayName,
+            eyebrow: content.seriesName,
+            posterPath: content.posterPath,
+            images: content.images,
+            selectedImageID: $selectedBackdropID,
+            imageLoader: imageLoader,
+            transitionNamespace: heroTransition,
+            onOpenPoster: { viewModel.openPoster() },
+            onOpenImage: { viewModel.openImages(initialID: $0) }
+        ) {
+            Text(content.formattedAirDate)
+                .font(DesignTypography.metadata)
+                .foregroundStyle(DesignTheme.textSecondary)
             if !content.trailers.isEmpty {
-                MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
+                MediaMetadataPills(
+                    trailers: content.trailers,
+                    loadingTrailerID: loadingTrailerID,
+                    playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
+                )
             }
+        }
+    }
+
+    private func seasonFacts(_ content: TVSeasonContent) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.md) {
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
                 accessibilityLabel: content.ratingAccessibilityLabel,
@@ -169,25 +172,6 @@ struct TVSeasonView: View {
             )
         }
         .padding(.horizontal, DesignSpacing.lg)
-    }
-
-    @ViewBuilder
-    private func posterThumbnail(path: String?) -> some View {
-        let poster = MoviePosterView(
-            posterPath: path,
-            imageLoader: imageLoader,
-            width: 112
-        )
-        if let path, !path.isEmpty {
-            poster
-                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
-                .onTapGesture {
-                    viewModel.openPoster()
-                }
-                .accessibilityAddTraits(.isButton)
-        } else {
-            poster
-        }
     }
 
     private func toggleSeries(_ content: TVSeasonContent) async {

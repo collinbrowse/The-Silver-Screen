@@ -15,6 +15,10 @@ struct TVEpisodeView: View {
     let seasonNumber: Int
     var router: NavigationRouter?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
+
+    @Namespace private var heroTransition
+    @State private var selectedBackdropID: String?
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
         Binding(
@@ -81,7 +85,7 @@ struct TVEpisodeView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -91,6 +95,7 @@ struct TVEpisodeView: View {
             ) {
                 viewModel.dismissImages()
             }
+            .navigationTransition(.zoom(sourceID: selection.initialID, in: heroTransition))
         }
     }
 
@@ -102,16 +107,14 @@ struct TVEpisodeView: View {
     }
 
     private func loaded(_ content: TVEpisodeContent) -> some View {
-        ScrollView {
+        let images = content.heroImages
+        let bleedsToTop = !images.isEmpty
+        return ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
-                header(content)
+                episodeHero(content, images: images)
+                episodeFacts(content)
                 if !content.otherEpisodes.isEmpty {
                     otherEpisodes(content.otherEpisodes)
-                }
-                if !content.images.isEmpty {
-                    TVImageCarousel(images: content.images, imageLoader: imageLoader) { image in
-                        viewModel.openImages(initialID: image.id)
-                    }
                 }
                 if !content.cast.isEmpty {
                     TVCreditCarousel(title: "Cast", people: content.cast, imageLoader: imageLoader) { person in
@@ -137,37 +140,44 @@ struct TVEpisodeView: View {
                     }
                 }
             }
-            .padding(.vertical, DesignSpacing.lg)
+            .padding(.bottom, DesignSpacing.lg)
             .coordinateSpace(.named("detailScroll"))
         }
-        .scrollingInlineTitle(navigationTitle)
+        .heroStatusBarBleed(enabled: bleedsToTop)
+        .scrollingInlineTitle(navigationTitle, showsToolbarBackground: !bleedsToTop)
     }
 
-    private func header(_ content: TVEpisodeContent) -> some View {
-        VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            RemoteImageView(
-                path: content.stillPath,
-                kind: .backdrop,
-                width: 360,
-                aspectRatio: 16 / 9,
-                imageLoader: imageLoader,
-                placeholderSystemImage: "tv"
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text(content.title)
-                .font(DesignTypography.title)
-                .foregroundStyle(DesignTheme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .inlineTitleAnchor()
-            Text(content.episodeNumberText)
-                .font(DesignTypography.metadata.weight(.semibold))
-                .foregroundStyle(DesignTheme.textSecondary)
-            Text(content.formattedAirDate)
-                .font(DesignTypography.metadata)
-                .foregroundStyle(DesignTheme.textSecondary)
-            if !content.trailers.isEmpty {
-                MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
+    private func episodeHero(_ content: TVEpisodeContent, images: [MovieImage]) -> some View {
+        DetailHero(
+            title: content.title,
+            eyebrow: seriesName,
+            posterPath: nil,
+            images: images,
+            selectedImageID: $selectedBackdropID,
+            imageLoader: imageLoader,
+            transitionNamespace: heroTransition,
+            onOpenPoster: {},
+            onOpenImage: { viewModel.openImages(initialID: $0) }
+        ) {
+            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                Text(content.episodeNumberText)
+                    .font(DesignTypography.metadata.weight(.semibold))
+                Text(content.formattedAirDate)
+                if !content.trailers.isEmpty {
+                    MediaMetadataPills(
+                        trailers: content.trailers,
+                        loadingTrailerID: loadingTrailerID,
+                        playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
+                    )
+                }
             }
+            .font(DesignTypography.metadata)
+            .foregroundStyle(DesignTheme.textSecondary)
+        }
+    }
+
+    private func episodeFacts(_ content: TVEpisodeContent) -> some View {
+        VStack(alignment: .leading, spacing: DesignSpacing.md) {
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
                 accessibilityLabel: content.ratingAccessibilityLabel,

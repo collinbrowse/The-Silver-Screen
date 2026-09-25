@@ -648,3 +648,22 @@ private actor ReviewPagingHTTPClient: HTTPClient {
             .data(for: request)
     }
 }
+
+final class MovieHeroSelectionTests: XCTestCase {
+    func test_backdropID_whenSelectionIsStillPresent_keepsIt() {
+        let images = [
+            MovieImage(filePath: "/a.jpg", voteAverage: 0),
+            MovieImage(filePath: "/b.jpg", voteAverage: 0)
+        ]
+        XCTAssertEqual(MovieHeroSelection.backdropID(selected: "/b.jpg", images: images), "/b.jpg")
+    }
+
+    func test_backdropID_whenSelectionIsMissing_usesFirstImage() {
+        let images = [MovieImage(filePath: "/a.jpg", voteAverage: 0)]
+        XCTAssertEqual(MovieHeroSelection.backdropID(selected: "/gone.jpg", images: images), "/a.jpg")
+    }
+
+    func test_backdropID_whenThereAreNoImages_returnsNil() {
+        XCTAssertNil(MovieHeroSelection.backdropID(selected: "/a.jpg", images: []))
+    }
+}

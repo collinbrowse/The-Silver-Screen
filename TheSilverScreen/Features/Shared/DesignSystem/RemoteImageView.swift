@@ -6,7 +6,7 @@
 import SwiftUI
 import UIKit
 
-/// Shared remote image for carousel cells. Inject `ImageLoader`; do not fetch in the view.
+/// Shared remote image. Inject `ImageLoader`; do not fetch in the view.
 struct RemoteImageView: View {
     let path: String?
     let kind: ImageLoader.ImageKind
@@ -14,6 +14,8 @@ struct RemoteImageView: View {
     let aspectRatio: CGFloat
     let imageLoader: ImageLoader
     var placeholderSystemImage: String = "photo"
+    /// Continuous corner radius. Pass `0` when the image should run edge to edge.
+    var cornerRadius: CGFloat = DesignRadius.media
 
     @State private var image: UIImage?
     @Environment(\.displayScale) private var displayScale
@@ -36,7 +38,7 @@ struct RemoteImageView: View {
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.media, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .accessibilityHidden(true)
         .task(id: path) {
             await load()

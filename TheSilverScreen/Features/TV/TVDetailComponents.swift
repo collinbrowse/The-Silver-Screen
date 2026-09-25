@@ -60,34 +60,4 @@ struct TVCreditCarousel: View {
     }
 }
 
-struct TVImageCarousel: View {
-    let images: [MovieImage]
-    let imageLoader: ImageLoader
-    let onSelect: (MovieImage) -> Void
-
-    private let cardWidth: CGFloat = 280
-
-    var body: some View {
-        DetailCarousel(title: "Images") {
-            ForEach(Array(images.enumerated()), id: \.element.id) { index, image in
-                RemoteImageView(
-                    path: image.filePath,
-                    kind: .backdrop,
-                    width: cardWidth,
-                    aspectRatio: 16 / 9,
-                    imageLoader: imageLoader,
-                    placeholderSystemImage: "photo"
-                )
-                .clipShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
-                .frame(width: cardWidth, height: cardWidth * 9 / 16)
-                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
-                .onTapGesture { onSelect(image) }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Image \(index + 1) of \(images.count)")
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction { onSelect(image) }
-            }
-        }
-    }
-}
 

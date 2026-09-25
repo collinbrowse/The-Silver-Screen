@@ -26,6 +26,14 @@ struct TVEpisodeContent: Sendable, Equatable {
     let otherEpisodes: [TVEpisodeSummary]
     let trailers: [MediaTrailer]
     var fullscreenImages: FullscreenImages?
+
+    /// Stills for the hero. The episode still leads when the gallery does not already include it.
+    var heroImages: [MovieImage] {
+        guard let stillPath, !stillPath.isEmpty, !images.contains(where: { $0.filePath == stillPath }) else {
+            return images
+        }
+        return [MovieImage(filePath: stillPath, voteAverage: 0)] + images
+    }
 }
 
 /// One episode, opened from the episode list on a season.
@@ -158,10 +166,12 @@ final class TVEpisodeViewModel {
     }
 
     func openImages(initialID: String) {
-        guard case .loaded(var content, let activity) = state, !content.images.isEmpty else { return }
+        guard case .loaded(var content, let activity) = state else { return }
+        let images = content.heroImages
+        guard !images.isEmpty else { return }
         content.fullscreenImages = FullscreenImages(
             initialID: initialID,
-            images: content.images,
+            images: images,
             kind: .backdrop
         )
         state = .loaded(content, activity: activity)

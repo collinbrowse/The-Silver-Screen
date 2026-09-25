@@ -13,9 +13,11 @@ struct MovieDetailView: View {
     var showsToolbarFavorite: Bool = true
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Namespace private var heroTransition
+    @State private var selectedBackdropID: String?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
 
-    private let backdropCardWidth: CGFloat = 280
     private let portraitCardWidth: CGFloat = 140
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
@@ -72,7 +74,7 @@ struct MovieDetailView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: showsToolbarFavorite ? fullscreenBinding : .constant(nil)) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -82,6 +84,7 @@ struct MovieDetailView: View {
             ) {
                 viewModel.dismissImages()
             }
+            .navigationTransition(.zoom(sourceID: selection.initialID, in: heroTransition))
         }
     }
 
@@ -106,13 +109,31 @@ struct MovieDetailView: View {
         activity: LoadActivity,
         scrollTo: @escaping (String) -> Void
     ) -> some View {
-        ScrollView {
+        let bleedsToTop = content.images?.items.isEmpty == false
+        return ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
+                DetailHero(
+                    title: content.detail.title,
+                    posterPath: content.detail.posterPath,
+                    images: content.images?.items ?? [],
+                    selectedImageID: $selectedBackdropID,
+                    imageLoader: imageLoader,
+                    transitionNamespace: heroTransition,
+                    onOpenPoster: { viewModel.openPoster() },
+                    onOpenImage: { viewModel.openImages(initialID: $0) },
+                    genreNames: content.detail.genres.map(\.name)
+                ) {
+                    if !content.detail.trailers.isEmpty {
+                        MediaMetadataPills(
+                            trailers: content.detail.trailers,
+                            loadingTrailerID: loadingTrailerID,
+                            playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
+                        )
+                    }
+                }
+
                 metadataBlock(content)
 
-                if let images = content.images {
-                    imagesCarousel(images)
-                }
                 if let cast = content.cast {
                     castCarousel(cast)
                 }
@@ -129,12 +150,13 @@ struct MovieDetailView: View {
                     reviewsSection(reviews, scrollTo: scrollTo)
                 }
             }
-            .padding(.vertical, DesignSpacing.lg)
+            .padding(.bottom, DesignSpacing.lg)
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
             .coordinateSpace(.named("detailScroll"))
         }
-        .scrollingInlineTitle(navigationTitle)
+        .heroStatusBarBleed(enabled: bleedsToTop)
+        .scrollingInlineTitle(navigationTitle, showsToolbarBackground: !bleedsToTop)
         .overlay(alignment: .top) {
             if case .failed(let error) = activity {
                 Text("\(error.title): \(error.message)")
@@ -153,14 +175,6 @@ struct MovieDetailView: View {
 
     private func metadataBlock(_ content: MovieDetailContent) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.xl) {
-            header(content)
-            if !content.detail.genres.isEmpty || !content.detail.trailers.isEmpty {
-                MediaMetadataPills(
-                    genres: content.detail.genres,
-                    trailers: content.detail.trailers,
-                    playTrailer: { playingTrailer = $0 }
-                )
-            }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
                 accessibilityLabel: content.ratingAccessibilityLabel,
@@ -182,36 +196,6 @@ struct MovieDetailView: View {
     }
 
     // MARK: - Carousels
-
-    private func imagesCarousel(_ section: MovieDetailContent.ImagesSection) -> some View {
-        // Images has no caption stack under each card (unlike cast/crew/similar),
-        // so add matching bottom air so the gap before the next section matches.
-        DetailCarousel(title: "Images") {
-            ForEach(Array(section.items.enumerated()), id: \.element.id) { index, image in
-                RemoteImageView(
-                    path: image.filePath,
-                    kind: .backdrop,
-                    width: backdropCardWidth,
-                    aspectRatio: 16 / 9,
-                    imageLoader: imageLoader,
-                    placeholderSystemImage: "photo"
-                )
-                .clipShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
-                .frame(width: backdropCardWidth, height: backdropCardWidth * 9 / 16)
-                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.carousel, style: .continuous))
-                .onTapGesture {
-                    viewModel.openImages(initialID: image.id)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Image \(index + 1) of \(section.items.count)")
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    viewModel.openImages(initialID: image.id)
-                }
-            }
-        }
-        .padding(.bottom, DesignSpacing.xl)
-    }
 
     private func castCarousel(
         _ section: MovieDetailContent.CastSection
@@ -475,61 +459,6 @@ struct MovieDetailView: View {
     }
 
     // MARK: - Story 1 metadata
-
-    @ViewBuilder
-    private func header(_ content: MovieDetailContent) -> some View {
-        let stackVertically = dynamicTypeSize.isAccessibilitySize
-        let posterWidth: CGFloat = stackVertically ? 128 : 112
-        let poster = posterThumbnail(path: content.detail.posterPath, width: posterWidth)
-
-        Group {
-            if stackVertically {
-                VStack(alignment: .leading, spacing: DesignSpacing.md) {
-                    poster
-                    Text(content.detail.title)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .inlineTitleAnchor()
-                }
-            } else {
-                HStack(alignment: .top, spacing: DesignSpacing.md) {
-                    poster
-                    Text(content.detail.title)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .inlineTitleAnchor()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(content.detail.title)
-        .accessibilityHint(content.detail.posterPath == nil ? "" : "Shows the poster full screen")
-        .accessibilityAction(named: "Show poster") {
-            viewModel.openPoster()
-        }
-    }
-
-    @ViewBuilder
-    private func posterThumbnail(path: String?, width: CGFloat) -> some View {
-        let poster = MoviePosterView(
-            posterPath: path,
-            imageLoader: imageLoader,
-            width: width
-        )
-        if path != nil {
-            poster
-                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
-                .onTapGesture {
-                    viewModel.openPoster()
-                }
-                .accessibilityAddTraits(.isButton)
-        } else {
-            poster
-        }
-    }
 
     private func factsCard(_ content: MovieDetailContent) -> some View {
         SurfaceCard {
