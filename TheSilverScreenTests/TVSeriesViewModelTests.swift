@@ -25,8 +25,10 @@ final class TVSeriesViewModelTests: XCTestCase {
         XCTAssertEqual(content.formattedFirstAirDate, "Jan 20, 2008")
         XCTAssertEqual(content.formattedLastAirDate, "Last Air Date: Sep 29, 2013")
         XCTAssertEqual(content.creatorsText, "Vince Gilligan")
+        XCTAssertEqual(content.formattedRating, "8.9 / 10")
+        XCTAssertEqual(content.ratingAccessibilityLabel, "Rated 8.9 out of 10")
         XCTAssertEqual(content.seasons.map(\.seasonNumber), [1, 2])
-        XCTAssertEqual(content.seasons.map(\.name), ["1 · The Beginning", "2 · Season 2"])
+        XCTAssertEqual(content.seasons.map(\.name), ["The Beginning", "Season 2"])
         XCTAssertEqual(content.seasons[0].episodeCountText, "7 episodes")
         XCTAssertEqual(content.recommendations.map(\.name), ["Better Call Saul"])
         XCTAssertEqual(content.reviews?.items.count, 1)
@@ -103,5 +105,25 @@ final class TVSeriesViewModelTests: XCTestCase {
         }
         XCTAssertEqual(content.creatorsText, "Creator unknown")
         XCTAssertEqual(content.formattedLastAirDate, "Last Air Date: Unknown")
+        XCTAssertEqual(content.formattedRating, "Unavailable")
+        XCTAssertEqual(content.ratingAccessibilityLabel, "TMDB rating unavailable")
+    }
+
+    func test_openPoster_setsFullscreenPoster() async {
+        let client = RoutingHTTPClient(routes: [
+            "/tv/1396/reviews": .success(TMDBFixtures.movieReviewsPage1),
+            "/tv/1396": .success(TMDBFixtures.tvSeriesBreakingBad),
+        ])
+        let viewModel = TVSeriesViewModel(seriesID: 1396, shows: TVRepository.test(client: client))
+        await viewModel.load()
+
+        viewModel.openPoster()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.fullscreenImages?.kind, .poster)
+        XCTAssertEqual(content.fullscreenImages?.images.map(\.filePath), ["/bb.jpg"])
+        XCTAssertEqual(content.fullscreenImages?.images.count, 1)
     }
 }

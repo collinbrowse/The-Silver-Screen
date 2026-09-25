@@ -160,6 +160,10 @@ struct TVEpisodeView: View {
             Text(content.formattedAirDate)
                 .font(DesignTypography.metadata)
                 .foregroundStyle(DesignTheme.textSecondary)
+            TMDBRatingCard(
+                formattedRating: content.formattedRating,
+                accessibilityLabel: content.ratingAccessibilityLabel
+            )
             if !content.overview.isEmpty {
                 Text(content.overview)
                     .font(DesignTypography.body)
@@ -168,7 +172,6 @@ struct TVEpisodeView: View {
             }
         }
         .padding(.horizontal, DesignSpacing.lg)
-        .accessibilityElement(children: .combine)
     }
 
     private func otherEpisodes(_ episodes: [TVEpisodeSummary]) -> some View {

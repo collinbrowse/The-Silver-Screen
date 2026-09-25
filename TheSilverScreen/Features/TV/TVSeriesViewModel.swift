@@ -34,6 +34,8 @@ struct TVSeriesContent: Sendable, Equatable {
     let formattedFirstAirDate: String
     let formattedLastAirDate: String
     let creatorsText: String
+    let formattedRating: String
+    let ratingAccessibilityLabel: String
     let seasons: [SeasonRow]
     let recommendations: [RecommendationRow]
     let reviews: ReviewsSection?
@@ -106,6 +108,19 @@ final class TVSeriesViewModel {
     func dismissImages() {
         guard case .loaded(var content, let activity) = state else { return }
         content.fullscreenImages = nil
+        state = .loaded(content, activity: activity)
+    }
+
+    /// Opens the series poster. A missing path leaves the screen as it is.
+    func openPoster() {
+        guard case .loaded(var content, let activity) = state,
+              let path = content.detail.posterPath,
+              !path.isEmpty else { return }
+        content.fullscreenImages = FullscreenImages(
+            initialID: path,
+            images: [MovieImage(filePath: path, voteAverage: 0)],
+            kind: .poster
+        )
         state = .loaded(content, activity: activity)
     }
 
@@ -226,6 +241,8 @@ final class TVSeriesViewModel {
             formattedFirstAirDate: DisplayDate.day(detail.firstAirDate),
             formattedLastAirDate: lastAirDate,
             creatorsText: creators,
+            formattedRating: TMDBRating.formatted(detail.voteAverage),
+            ratingAccessibilityLabel: TMDBRating.accessibilityLabel(detail.voteAverage),
             seasons: seasons,
             recommendations: recommendations,
             reviews: reviewsSection,
@@ -245,6 +262,8 @@ private extension TVSeriesContent {
             formattedFirstAirDate: formattedFirstAirDate,
             formattedLastAirDate: formattedLastAirDate,
             creatorsText: creatorsText,
+            formattedRating: formattedRating,
+            ratingAccessibilityLabel: ratingAccessibilityLabel,
             seasons: seasons,
             recommendations: recommendations,
             reviews: reviews,

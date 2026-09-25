@@ -312,8 +312,8 @@ final class MovieDetailViewModel {
 
         return MovieDetailContent(
             detail: detail,
-            formattedRating: formatRating(detail.voteAverage),
-            ratingAccessibilityLabel: ratingAccessibility(detail.voteAverage),
+            formattedRating: TMDBRating.formatted(detail.voteAverage),
+            ratingAccessibilityLabel: TMDBRating.accessibilityLabel(detail.voteAverage),
             formattedBudget: budget.display,
             budgetAccessibilityLabel: budget.accessibility,
             formattedRevenue: revenue.display,
@@ -356,14 +356,6 @@ final class MovieDetailViewModel {
     func dismissImages() {
         guard case .loaded(let content, let activity) = state else { return }
         state = .loaded(content.withFullscreen(nil), activity: activity)
-    }
-
-    static func formatRating(_ value: Double) -> String {
-        String(format: "%.1f / 10", value)
-    }
-
-    static func ratingAccessibility(_ value: Double) -> String {
-        String(format: "Rated %.1f out of 10", value)
     }
 
     static func formatReleaseDate(_ date: Date?) -> String {

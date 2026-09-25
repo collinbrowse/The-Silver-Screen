@@ -10,6 +10,8 @@ struct TVSeasonContent: Sendable, Equatable {
     let displayName: String
     let overview: String
     let formattedAirDate: String
+    let formattedRating: String
+    let ratingAccessibilityLabel: String
     let posterPath: String?
     let images: [MovieImage]
     let cast: [TVCredit]
@@ -70,12 +72,27 @@ final class TVSeasonViewModel {
         state = .loaded(content, activity: activity)
     }
 
+    /// Opens the season poster. A missing path leaves the screen as it is.
+    func openPoster() {
+        guard case .loaded(var content, let activity) = state,
+              let path = content.posterPath,
+              !path.isEmpty else { return }
+        content.fullscreenImages = FullscreenImages(
+            initialID: path,
+            images: [MovieImage(filePath: path, voteAverage: 0)],
+            kind: .poster
+        )
+        state = .loaded(content, activity: activity)
+    }
+
     private static func makeContent(season: TVSeasonDetail, seriesName: String) -> TVSeasonContent {
         TVSeasonContent(
             seriesName: seriesName,
             displayName: SeasonTitle.display(name: season.name, number: season.seasonNumber),
             overview: season.overview,
             formattedAirDate: DisplayDate.day(season.airDate),
+            formattedRating: TMDBRating.formatted(season.voteAverage),
+            ratingAccessibilityLabel: TMDBRating.accessibilityLabel(season.voteAverage),
             posterPath: season.posterPath,
             images: season.images,
             cast: season.cast,

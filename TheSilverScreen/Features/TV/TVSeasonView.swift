@@ -121,13 +121,10 @@ struct TVSeasonView: View {
     }
 
     private func header(_ content: TVSeasonContent) -> some View {
-        VStack(alignment: .leading, spacing: DesignSpacing.md) {
+        let hasPoster = content.posterPath?.isEmpty == false
+        return VStack(alignment: .leading, spacing: DesignSpacing.md) {
             HStack(alignment: .top, spacing: DesignSpacing.md) {
-                MoviePosterView(
-                    posterPath: content.posterPath,
-                    imageLoader: imageLoader,
-                    width: 112
-                )
+                posterThumbnail(path: content.posterPath)
                 VStack(alignment: .leading, spacing: DesignSpacing.sm) {
                     Text(content.seriesName)
                         .font(DesignTypography.metadata)
@@ -142,6 +139,15 @@ struct TVSeasonView: View {
                         .foregroundStyle(DesignTheme.textSecondary)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
+            .accessibilityAction(named: "Show poster") {
+                viewModel.openPoster()
+            }
+            TMDBRatingCard(
+                formattedRating: content.formattedRating,
+                accessibilityLabel: content.ratingAccessibilityLabel
+            )
             if !content.overview.isEmpty {
                 Text(content.overview)
                     .font(DesignTypography.body)
@@ -150,7 +156,25 @@ struct TVSeasonView: View {
             }
         }
         .padding(.horizontal, DesignSpacing.lg)
-        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func posterThumbnail(path: String?) -> some View {
+        let poster = MoviePosterView(
+            posterPath: path,
+            imageLoader: imageLoader,
+            width: 112
+        )
+        if let path, !path.isEmpty {
+            poster
+                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
+                .onTapGesture {
+                    viewModel.openPoster()
+                }
+                .accessibilityAddTraits(.isButton)
+        } else {
+            poster
+        }
     }
 
     private func toggleSeries(_ content: TVSeasonContent) async {

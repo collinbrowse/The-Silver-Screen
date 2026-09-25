@@ -25,6 +25,8 @@ final class TVEpisodeViewModelTests: XCTestCase {
         XCTAssertEqual(content.title, "Pilot")
         XCTAssertEqual(content.episodeNumberText, "Episode 1")
         XCTAssertEqual(content.formattedAirDate, "Jan 20, 2008")
+        XCTAssertEqual(content.formattedRating, "8.2 / 10")
+        XCTAssertEqual(content.ratingAccessibilityLabel, "Rated 8.2 out of 10")
         XCTAssertEqual(content.overview, "The first cook.")
         XCTAssertEqual(content.stillPath, "/pilot.jpg")
         XCTAssertEqual(content.cast.map(\.role), ["Walter White"])

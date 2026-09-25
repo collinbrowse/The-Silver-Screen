@@ -10,6 +10,8 @@ struct TVEpisodeContent: Sendable, Equatable {
     let episodeNumberText: String
     let overview: String
     let formattedAirDate: String
+    let formattedRating: String
+    let ratingAccessibilityLabel: String
     let stillPath: String?
     let images: [MovieImage]
     let cast: [TVCredit]
@@ -100,6 +102,8 @@ final class TVEpisodeViewModel {
             episodeNumberText: "Episode \(episode.episodeNumber)",
             overview: episode.overview,
             formattedAirDate: DisplayDate.day(episode.airDate),
+            formattedRating: TMDBRating.formatted(episode.voteAverage),
+            ratingAccessibilityLabel: TMDBRating.accessibilityLabel(episode.voteAverage),
             stillPath: episode.stillPath,
             images: episode.images,
             cast: episode.cast,
