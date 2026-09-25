@@ -134,7 +134,7 @@ final class TVRepository: Sendable {
         )
     }
 
-    /// Series detail with images, aggregate credits, and recommendations appended.
+    /// Series detail with images, aggregate credits, recommendations, and videos appended.
     /// Language follows the device. Appended sections decode on their own so one bad row
     /// cannot fail the screen.
     func series(id: Int, locale: Locale = .current) async throws -> TVSeriesDetail {
@@ -143,7 +143,7 @@ final class TVRepository: Sendable {
             context: "TV series",
             queryItems: [
                 URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
-                URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,recommendations"),
+                URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,recommendations,videos"),
                 URLQueryItem(name: "include_image_language", value: TMDBLocale.imageLanguages(for: locale)),
             ]
         ) { data in
@@ -157,7 +157,7 @@ final class TVRepository: Sendable {
             context: "TV season",
             queryItems: [
                 URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
-                URLQueryItem(name: "append_to_response", value: "images,aggregate_credits"),
+                URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,videos"),
             ]
         ) { data in
             try Self.decodeSeason(data, logger: logger)
@@ -175,7 +175,7 @@ final class TVRepository: Sendable {
             context: "TV episode",
             queryItems: [
                 URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
-                URLQueryItem(name: "append_to_response", value: "images,credits"),
+                URLQueryItem(name: "append_to_response", value: "images,credits,videos"),
             ]
         ) { data in
             try Self.decodeEpisode(data, logger: logger)
@@ -284,7 +284,8 @@ final class TVRepository: Sendable {
             images: images,
             recommendations: recommendations,
             cast: credits.cast,
-            directorsAndWriters: credits.crew
+            directorsAndWriters: credits.crew,
+            trailers: TMDBTrailerDecoding.trailers(from: data, logger: logger, context: "TV series")
         )
     }
 
@@ -299,7 +300,8 @@ final class TVRepository: Sendable {
             logger: logger,
             images: images,
             cast: credits.cast,
-            directorsAndWriters: credits.crew
+            directorsAndWriters: credits.crew,
+            trailers: TMDBTrailerDecoding.trailers(from: data, logger: logger, context: "TV season")
         )
     }
 
@@ -316,7 +318,8 @@ final class TVRepository: Sendable {
             images: images,
             cast: credits?.cast ?? [],
             guestStars: guests,
-            crew: crew
+            crew: crew,
+            trailers: TMDBTrailerDecoding.trailers(from: data, logger: logger, context: "TV episode")
         )
     }
 
@@ -363,7 +366,8 @@ final class TVRepository: Sendable {
         images: [MovieImage],
         recommendations: [TVSeriesSummary],
         cast: [TVCredit],
-        directorsAndWriters: [TVCredit]
+        directorsAndWriters: [TVCredit],
+        trailers: [MediaTrailer]
     ) -> TVSeriesDetail {
         let creators = (dto.createdBy ?? []).compactMap { creator -> String? in
             let name = creator.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -380,6 +384,7 @@ final class TVRepository: Sendable {
             firstAirDate: MovieRepository.parseReleaseDate(dto.firstAirDate ?? ""),
             lastAirDate: MovieRepository.parseReleaseDate(dto.lastAirDate ?? ""),
             genres: (dto.genres ?? []).map { MovieGenre(id: $0.id, name: $0.name) },
+            trailers: trailers,
             voteAverage: dto.voteAverage ?? 0,
             creators: creators,
             images: images,
@@ -395,7 +400,8 @@ final class TVRepository: Sendable {
         logger: any AppLogging,
         images: [MovieImage],
         cast: [TVCredit],
-        directorsAndWriters: [TVCredit]
+        directorsAndWriters: [TVCredit],
+        trailers: [MediaTrailer]
     ) -> TVSeasonDetail {
         let episodes = (dto.episodes ?? [])
             .sorted { $0.episodeNumber < $1.episodeNumber }
@@ -411,7 +417,8 @@ final class TVRepository: Sendable {
             images: images,
             cast: cast,
             directorsAndWriters: directorsAndWriters,
-            episodes: episodes
+            episodes: episodes,
+            trailers: trailers
         )
     }
 
@@ -421,7 +428,8 @@ final class TVRepository: Sendable {
         images: [MovieImage],
         cast: [CastMemberDTO],
         guestStars: [CastMemberDTO],
-        crew: [CrewMemberDTO]
+        crew: [CrewMemberDTO],
+        trailers: [MediaTrailer]
     ) -> TVEpisodeDetail {
         TVEpisodeDetail(
             id: dto.id,
@@ -434,7 +442,8 @@ final class TVRepository: Sendable {
             images: images,
             cast: mapEpisodePeople(cast, logger: logger, context: "episode cast"),
             guestStars: mapEpisodePeople(guestStars, logger: logger, context: "guest stars"),
-            directorsAndWriters: mapEpisodeCrew(crew, logger: logger)
+            directorsAndWriters: mapEpisodeCrew(crew, logger: logger),
+            trailers: trailers
         )
     }
 

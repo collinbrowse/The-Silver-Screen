@@ -185,4 +185,57 @@ final class TVRepositoryTests: XCTestCase {
         XCTAssertTrue(series.images.isEmpty)
         XCTAssertTrue(series.cast.isEmpty)
     }
+
+    func test_series_appendsVideosAndMapsOfficialTrailers() async throws {
+        let client = RecordingHTTPClient(stub: .success(Self.detailPayload(
+            core: #""id": 9, "name": "Show""#,
+            videos: Self.twoTrailers
+        )))
+        let repository = TVRepository.test(client: client)
+        let series = try await repository.series(id: 9)
+        let url = await client.lastURL
+        let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,recommendations,videos")))
+        XCTAssertEqual(series.trailers.map(\.title), ["Official Trailer", "Trailer 2"])
+    }
+
+    func test_season_appendsVideosAndMapsOfficialTrailers() async throws {
+        let client = RecordingHTTPClient(stub: .success(Self.detailPayload(
+            core: #""id": 3, "season_number": 1"#,
+            videos: Self.twoTrailers
+        )))
+        let repository = TVRepository.test(client: client)
+        let season = try await repository.season(seriesID: 9, seasonNumber: 1)
+        let url = await client.lastURL
+        let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "images,aggregate_credits,videos")))
+        XCTAssertEqual(season.trailers.map(\.youtubeID), ["abc_123", "second"])
+    }
+
+    func test_episode_appendsVideosAndMapsOfficialTrailers() async throws {
+        let client = RecordingHTTPClient(stub: .success(Self.detailPayload(
+            core: #""id": 4, "episode_number": 2"#,
+            videos: Self.twoTrailers
+        )))
+        let repository = TVRepository.test(client: client)
+        let episode = try await repository.episode(seriesID: 9, seasonNumber: 1, episodeNumber: 2)
+        let url = await client.lastURL
+        let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "images,credits,videos")))
+        XCTAssertEqual(episode.trailers.map(\.title), ["Official Trailer", "Trailer 2"])
+    }
+
+    private static let twoTrailers = """
+    {"name": "Official Trailer", "key": "abc_123", "site": "YouTube", "type": "Trailer", "official": true},
+    {"key": "second", "site": "YouTube", "type": "Trailer", "official": true}
+    """
+
+    private static func detailPayload(core: String, videos: String) -> Data {
+        Data("""
+        {
+          \(core),
+          "videos": { "results": [\(videos)] }
+        }
+        """.utf8)
+    }
 }

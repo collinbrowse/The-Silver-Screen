@@ -131,7 +131,7 @@ struct BrowseListView: View {
                     } label: {
                         CatalogRowView(
                             title: row.title,
-                            subtitle: row.genreLine,
+                            genreNames: row.genreNames,
                             metadata: row.formattedDate,
                             userScore: row.formattedUserScore,
                             imagePath: row.posterPath,

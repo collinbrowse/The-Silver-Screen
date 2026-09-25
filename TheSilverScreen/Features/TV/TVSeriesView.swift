@@ -12,6 +12,8 @@ struct TVSeriesView: View {
     let favoritesIndex: FavoritesIndex
     var router: NavigationRouter?
 
+    @State private var playingTrailer: MediaTrailer?
+
     private var fullscreenBinding: Binding<FullscreenImages?> {
         Binding(
             get: {
@@ -69,6 +71,7 @@ struct TVSeriesView: View {
                 await viewModel.load()
             }
         }
+        .trailerPlayer($playingTrailer)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -208,17 +211,18 @@ struct TVSeriesView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            if !content.detail.genres.isEmpty {
-                Text(content.detail.genres.map(\.name).joined(separator: ", "))
-                    .font(DesignTypography.chip)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
+            .accessibilityAction(named: "Show poster") {
+                viewModel.openPoster()
             }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
-        .accessibilityAction(named: "Show poster") {
-            viewModel.openPoster()
+            if !content.detail.genres.isEmpty || !content.detail.trailers.isEmpty {
+                MediaMetadataPills(
+                    genres: content.detail.genres,
+                    trailers: content.detail.trailers,
+                    playTrailer: { playingTrailer = $0 }
+                )
+            }
         }
     }
 

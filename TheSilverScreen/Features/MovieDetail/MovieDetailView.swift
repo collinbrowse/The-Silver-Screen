@@ -13,6 +13,7 @@ struct MovieDetailView: View {
     var showsToolbarFavorite: Bool = true
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var playingTrailer: MediaTrailer?
 
     private let backdropCardWidth: CGFloat = 280
     private let portraitCardWidth: CGFloat = 140
@@ -71,6 +72,7 @@ struct MovieDetailView: View {
                 await viewModel.load()
             }
         }
+        .trailerPlayer($playingTrailer)
         .fullScreenCover(item: showsToolbarFavorite ? fullscreenBinding : .constant(nil)) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -152,8 +154,12 @@ struct MovieDetailView: View {
     private func metadataBlock(_ content: MovieDetailContent) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.xl) {
             header(content)
-            if !content.detail.genres.isEmpty {
-                genres(content.detail.genres)
+            if !content.detail.genres.isEmpty || !content.detail.trailers.isEmpty {
+                MediaMetadataPills(
+                    genres: content.detail.genres,
+                    trailers: content.detail.trailers,
+                    playTrailer: { playingTrailer = $0 }
+                )
             }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
@@ -382,10 +388,7 @@ struct MovieDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !item.genreNames.isEmpty {
-                    Text(item.genreNames.joined(separator: ", "))
-                        .font(DesignTypography.chip)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    GenreChipRow(names: item.genreNames, announces: false)
                 }
 
                 if item.formattedReleaseDate != "Not available" {
@@ -523,16 +526,6 @@ struct MovieDetailView: View {
         } else {
             poster
         }
-    }
-
-    private func genres(_ genres: [MovieGenre]) -> some View {
-        FlowLayout(spacing: DesignSpacing.sm) {
-            ForEach(genres) { genre in
-                TagChip(title: genre.name)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Genres: \(genres.map(\.name).joined(separator: ", "))")
     }
 
     private func factsCard(_ content: MovieDetailContent) -> some View {
