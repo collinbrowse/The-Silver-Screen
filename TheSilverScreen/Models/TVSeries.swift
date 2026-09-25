@@ -73,6 +73,8 @@ struct TVSeriesDetail: Sendable, Identifiable, Equatable {
     let firstAirDate: Date?
     let lastAirDate: Date?
     let genres: [MovieGenre]
+    /// Official YouTube trailers, in TMDB order.
+    let trailers: [MediaTrailer]
     /// TMDB user score, 0–10. Zero when the payload omitted it.
     let voteAverage: Double
     let creators: [String]
@@ -99,6 +101,8 @@ struct TVSeasonDetail: Sendable, Equatable, Identifiable {
     let cast: [TVCredit]
     let directorsAndWriters: [TVCredit]
     let episodes: [TVEpisodeSummary]
+    /// Official YouTube trailers, in TMDB order.
+    let trailers: [MediaTrailer]
 }
 
 struct TVEpisodeDetail: Sendable, Equatable, Identifiable {
@@ -114,6 +118,8 @@ struct TVEpisodeDetail: Sendable, Equatable, Identifiable {
     let cast: [TVCredit]
     let guestStars: [TVCredit]
     let directorsAndWriters: [TVCredit]
+    /// Official YouTube trailers, in TMDB order.
+    let trailers: [MediaTrailer]
 }
 
 /// Season title from TMDB's name. The name already includes the number (`Season 1`).

@@ -14,6 +14,7 @@ struct TVEpisodeView: View {
     let seriesName: String
     let seasonNumber: Int
     var router: NavigationRouter?
+    @State private var playingTrailer: MediaTrailer?
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
         Binding(
@@ -80,6 +81,7 @@ struct TVEpisodeView: View {
                 await viewModel.load()
             }
         }
+        .trailerPlayer($playingTrailer)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -163,6 +165,9 @@ struct TVEpisodeView: View {
             Text(content.formattedAirDate)
                 .font(DesignTypography.metadata)
                 .foregroundStyle(DesignTheme.textSecondary)
+            if !content.trailers.isEmpty {
+                MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
+            }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
                 accessibilityLabel: content.ratingAccessibilityLabel,

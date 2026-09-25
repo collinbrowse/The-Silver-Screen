@@ -170,7 +170,7 @@ final class MovieRepository: Sendable {
             path: "movie/\(id)",
             queryItems: [
                 URLQueryItem(name: "language", value: TMDBLocale.languageTag(for: locale)),
-                URLQueryItem(name: "append_to_response", value: "credits,images,similar"),
+                URLQueryItem(name: "append_to_response", value: "credits,images,similar,videos"),
                 URLQueryItem(name: "include_image_language", value: TMDBLocale.imageLanguages(for: locale)),
             ]
         )
@@ -185,7 +185,8 @@ final class MovieRepository: Sendable {
 
         do {
             let dto = try JSONDecoder().decode(MovieDetailDTO.self, from: data)
-            return Self.map(dto, logger: logger)
+            let trailers = TMDBTrailerDecoding.trailers(from: data, logger: logger, context: "Movie detail")
+            return Self.map(dto, trailers: trailers, logger: logger)
         } catch let error as DecodingError {
             logger.error("Movie detail decode failed: \(error)", category: .networking)
             throw AppError.decoding
@@ -286,7 +287,7 @@ final class MovieRepository: Sendable {
         )
     }
 
-    static func map(_ dto: MovieDetailDTO, logger: any AppLogging) -> MovieDetail {
+    static func map(_ dto: MovieDetailDTO, trailers: [MediaTrailer], logger: any AppLogging) -> MovieDetail {
         MovieDetail(
             id: dto.id,
             title: dto.title,
@@ -295,6 +296,7 @@ final class MovieRepository: Sendable {
             releaseDate: parseReleaseDate(dto.releaseDate ?? ""),
             voteAverage: dto.voteAverage,
             genres: (dto.genres ?? []).map { MovieGenre(id: $0.id, name: $0.name) },
+            trailers: trailers,
             budget: dto.budget ?? 0,
             revenue: dto.revenue ?? 0,
             images: mapImages(dto.images, logger: logger),

@@ -11,6 +11,7 @@ struct TVSeasonView: View {
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
     var router: NavigationRouter?
+    @State private var playingTrailer: MediaTrailer?
     let seriesID: Int
     let seasonNumber: Int
 
@@ -71,6 +72,7 @@ struct TVSeasonView: View {
                 await viewModel.load()
             }
         }
+        .trailerPlayer($playingTrailer)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -146,6 +148,9 @@ struct TVSeasonView: View {
             .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
             .accessibilityAction(named: "Show poster") {
                 viewModel.openPoster()
+            }
+            if !content.trailers.isEmpty {
+                MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
             }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,

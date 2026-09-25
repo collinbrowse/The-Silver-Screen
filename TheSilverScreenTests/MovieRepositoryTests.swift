@@ -205,7 +205,8 @@ final class MovieRepositoryTests: XCTestCase {
         let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
         XCTAssertTrue(items.contains(URLQueryItem(name: "api_key", value: "test-key")))
         XCTAssertTrue(items.contains(URLQueryItem(name: "language", value: "en-US")))
-        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "credits,images,similar")))
+        XCTAssertTrue(items.contains(URLQueryItem(name: "append_to_response", value: "credits,images,similar,videos")))
+        XCTAssertTrue(detail.trailers.isEmpty)
         XCTAssertTrue(items.contains(URLQueryItem(name: "include_image_language", value: "en,null")))
         let authorization = await client.lastAuthorizationHeader
         XCTAssertNil(authorization)
@@ -359,5 +360,41 @@ final class MovieRepositoryTests: XCTestCase {
         let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems
         XCTAssertEqual(url?.path, "/3/search/movie")
         XCTAssertEqual(items?.first { $0.name == "query" }?.value, "shawshank")
+    }
+
+    func test_movieDetail_mapsOfficialYouTubeTrailers() async throws {
+        let payload = Data("""
+        {
+          "id": 1,
+          "title": "Dune",
+          "vote_average": 8,
+          "videos": {
+            "results": [
+              {"name": "Teaser", "key": "tease", "site": "YouTube", "type": "Teaser", "official": true},
+              {"name": "Official Trailer", "key": "abc_123", "site": "YouTube", "type": "Trailer", "official": true},
+              {"key": "second", "site": "YouTube", "type": "Trailer", "official": true}
+            ]
+          }
+        }
+        """.utf8)
+        let detail = try await MovieRepository.test(client: FakeHTTPClient(stub: .success(payload)))
+            .movieDetail(id: 1)
+        XCTAssertEqual(detail.trailers.map(\.title), ["Official Trailer", "Trailer 2"])
+        XCTAssertEqual(detail.trailers.map(\.youtubeID), ["abc_123", "second"])
+    }
+
+    func test_movieDetail_keepsTheMovieWhenVideosAreMalformed() async throws {
+        let payload = Data("""
+        {
+          "id": 1,
+          "title": "Dune",
+          "vote_average": 8,
+          "videos": []
+        }
+        """.utf8)
+        let detail = try await MovieRepository.test(client: FakeHTTPClient(stub: .success(payload)))
+            .movieDetail(id: 1)
+        XCTAssertEqual(detail.title, "Dune")
+        XCTAssertTrue(detail.trailers.isEmpty)
     }
 }

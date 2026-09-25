@@ -1,0 +1,105 @@
+//
+//  MediaTrailer.swift
+//  TheSilverScreen
+//
+//  Official YouTube trailers taken from a TMDB `videos` block.
+//
+
+import Foundation
+
+/// A trailer the app can play inside YouTube's player.
+struct MediaTrailer: Sendable, Equatable, Hashable, Identifiable {
+    /// YouTube video id. Also the identity of the player sheet.
+    let youtubeID: String
+    /// Pill title. A blank TMDB name becomes "Trailer", then "Trailer 2", and so on.
+    let title: String
+
+    var id: String { youtubeID }
+
+    /// Referer origin for the watch page. YouTube rejects a player request that has none.
+    static let embedOrigin = URL(string: "https://www.youtube.com")!
+
+    /// Watch page. YouTube's embed endpoint rejects in-app web views with error 152-4;
+    /// the watch page is the same player and does not.
+    var watchURL: URL {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "www.youtube.com"
+        components.path = "/watch"
+        components.queryItems = [
+            URLQueryItem(name: "v", value: youtubeID),
+            URLQueryItem(name: "playsinline", value: "1"),
+        ]
+        return components.url ?? Self.embedOrigin
+    }
+}
+
+/// One row from TMDB's `videos.results`.
+struct TMDBVideoDTO: Decodable, Sendable, Equatable {
+    let name: String?
+    let key: String?
+    let site: String?
+    let type: String?
+    let official: Bool?
+}
+
+/// Selects the official YouTube trailers a detail screen can offer.
+enum OfficialYouTubeTrailers {
+    /// Official YouTube trailers in payload order. Duplicate ids are dropped.
+    /// A blank name is "Trailer" on the first pill and "Trailer #" after that.
+    /// A TMDB name replaces that fallback.
+    static func make(from videos: [TMDBVideoDTO]) -> [MediaTrailer] {
+        var seen: Set<String> = []
+        let selected: [(id: String, name: String)] = videos.compactMap { video in
+            guard video.official == true else { return nil }
+            guard video.site?.caseInsensitiveCompare("YouTube") == .orderedSame else { return nil }
+            guard video.type?.caseInsensitiveCompare("Trailer") == .orderedSame else { return nil }
+            guard let id = youtubeID(from: video.key), seen.insert(id).inserted else { return nil }
+            let name = video.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return (id, name)
+        }
+        return selected.enumerated().map { index, video in
+            MediaTrailer(youtubeID: video.id, title: pillTitle(name: video.name, index: index))
+        }
+    }
+
+    private static func pillTitle(name: String, index: Int) -> String {
+        if !name.isEmpty {
+            return name
+        }
+        if index == 0 {
+            return "Trailer"
+        }
+        return "Trailer \(index + 1)"
+    }
+
+    /// YouTube ids are a short token. Anything else is dropped so it cannot be placed in the watch URL.
+    private static func youtubeID(from key: String?) -> String? {
+        let trimmed = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+        guard trimmed.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return nil }
+        return trimmed
+    }
+}
+
+/// Reads `videos` from a TMDB detail payload. A bad videos block does not fail the screen.
+enum TMDBTrailerDecoding {
+    static func trailers(from data: Data, logger: any AppLogging, context: String) -> [MediaTrailer] {
+        do {
+            let envelope = try JSONDecoder().decode(Envelope.self, from: data)
+            return OfficialYouTubeTrailers.make(from: envelope.videos?.results ?? [])
+        } catch {
+            logger.error("\(context) skipped malformed videos", category: .networking)
+            return []
+        }
+    }
+
+    private struct Envelope: Decodable {
+        let videos: TMDBVideosDTO?
+    }
+
+    private struct TMDBVideosDTO: Decodable {
+        let results: [TMDBVideoDTO]?
+    }
+}

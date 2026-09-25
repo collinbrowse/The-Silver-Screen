@@ -24,6 +24,7 @@ struct TVEpisodeContent: Sendable, Equatable {
     let directorsAndWriters: [TVCredit]
     /// The rest of this season, in episode order. The episode on screen is left out.
     let otherEpisodes: [TVEpisodeSummary]
+    let trailers: [MediaTrailer]
     var fullscreenImages: FullscreenImages?
 }
 
@@ -207,6 +208,7 @@ final class TVEpisodeViewModel {
             guestStars: episode.guestStars,
             directorsAndWriters: episode.directorsAndWriters,
             otherEpisodes: otherEpisodes,
+            trailers: episode.trailers,
             fullscreenImages: nil
         )
     }
@@ -232,6 +234,7 @@ private extension TVEpisodeContent {
             guestStars: guestStars,
             directorsAndWriters: directorsAndWriters,
             otherEpisodes: otherEpisodes,
+            trailers: trailers,
             fullscreenImages: fullscreenImages
         )
     }

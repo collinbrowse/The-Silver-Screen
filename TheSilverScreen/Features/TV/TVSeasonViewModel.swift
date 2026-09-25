@@ -22,6 +22,7 @@ struct TVSeasonContent: Sendable, Equatable {
     let cast: [TVCredit]
     let directorsAndWriters: [TVCredit]
     let episodes: [TVEpisodeSummary]
+    let trailers: [MediaTrailer]
     var fullscreenImages: FullscreenImages?
 }
 
@@ -198,6 +199,7 @@ final class TVSeasonViewModel {
             cast: season.cast,
             directorsAndWriters: season.directorsAndWriters,
             episodes: season.episodes,
+            trailers: season.trailers,
             fullscreenImages: nil
         )
     }
@@ -222,6 +224,7 @@ private extension TVSeasonContent {
             cast: cast,
             directorsAndWriters: directorsAndWriters,
             episodes: episodes,
+            trailers: trailers,
             fullscreenImages: fullscreenImages
         )
     }

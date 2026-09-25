@@ -46,6 +46,10 @@
 		B10002042788B823003D8011 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002052788B823003D8011 /* DesignTokens.swift */; };
 		B10002062788B823003D8011 /* MoviePosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002072788B823003D8011 /* MoviePosterView.swift */; };
 		B10002082788B823003D8011 /* TagChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002092788B823003D8011 /* TagChip.swift */; };
+		C3A100022788B823003D8011 /* MediaTrailer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A100012788B823003D8011 /* MediaTrailer.swift */; };
+		C3A100042788B823003D8011 /* MediaMetadataPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A100032788B823003D8011 /* MediaMetadataPills.swift */; };
+		C3A100062788B823003D8011 /* TrailerPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A100052788B823003D8011 /* TrailerPlayerView.swift */; };
+		C3A100082788B823003D8011 /* OfficialYouTubeTrailersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A100072788B823003D8011 /* OfficialYouTubeTrailersTests.swift */; };
 		B100020A2788B823003D8011 /* SurfaceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020B2788B823003D8011 /* SurfaceCard.swift */; };
 		B100020C2788B823003D8011 /* MovieDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020D2788B823003D8011 /* MovieDetailViewModel.swift */; };
 		B100020E2788B823003D8011 /* MovieDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100020F2788B823003D8011 /* MovieDetailView.swift */; };
@@ -182,6 +186,10 @@
 		B10002052788B823003D8011 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		B10002072788B823003D8011 /* MoviePosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoviePosterView.swift; sourceTree = "<group>"; };
 		B10002092788B823003D8011 /* TagChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagChip.swift; sourceTree = "<group>"; };
+		C3A100012788B823003D8011 /* MediaTrailer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTrailer.swift; sourceTree = "<group>"; };
+		C3A100032788B823003D8011 /* MediaMetadataPills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMetadataPills.swift; sourceTree = "<group>"; };
+		C3A100052788B823003D8011 /* TrailerPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrailerPlayerView.swift; sourceTree = "<group>"; };
+		C3A100072788B823003D8011 /* OfficialYouTubeTrailersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficialYouTubeTrailersTests.swift; sourceTree = "<group>"; };
 		B100020B2788B823003D8011 /* SurfaceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfaceCard.swift; sourceTree = "<group>"; };
 		B100020D2788B823003D8011 /* MovieDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailViewModel.swift; sourceTree = "<group>"; };
 		B100020F2788B823003D8011 /* MovieDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDetailView.swift; sourceTree = "<group>"; };
@@ -375,6 +383,7 @@
 			isa = PBXGroup;
 			children = (
 				E2A000282788B823003D8011 /* CatalogRowView.swift */,
+				C3A100052788B823003D8011 /* TrailerPlayerView.swift */,
 				E2A0002A2788B823003D8011 /* ReviewCard.swift */,
 				B10002172788B823003D8011 /* DesignSystem */,
 				B10001612788B823003D8011 /* PersonFavoriteStar.swift */,
@@ -431,6 +440,7 @@
 				B10002052788B823003D8011 /* DesignTokens.swift */,
 				B10002072788B823003D8011 /* MoviePosterView.swift */,
 				B10002092788B823003D8011 /* TagChip.swift */,
+				C3A100032788B823003D8011 /* MediaMetadataPills.swift */,
 				B100020B2788B823003D8011 /* SurfaceCard.swift */,
 				F20000042788B823003D8011 /* TMDBRatingCard.swift */,
 				C20000092788B823003D8011 /* MediaDescriptionSection.swift */,
@@ -509,6 +519,7 @@
 				A10000092788B823003D8011 /* Support */,
 				A10000072788B823003D8011 /* FakeHTTPClientTests.swift */,
 				B10000232788B823003D8011 /* MovieRepositoryTests.swift */,
+				C3A100072788B823003D8011 /* OfficialYouTubeTrailersTests.swift */,
 				B10000272788B823003D8011 /* ImageLoaderTests.swift */,
 				B100010D2788B823003D8011 /* FavoritesRepositoryTests.swift */,
 				C200000D2788B823003D8011 /* AnnotationsRepositoryTests.swift */,
@@ -563,6 +574,7 @@
 				B10002452788B823003D8011 /* MovieCollection.swift */,
 				B10002472788B823003D8011 /* MovieReview.swift */,
 				B10002012788B823003D8011 /* MovieDetail.swift */,
+				C3A100012788B823003D8011 /* MediaTrailer.swift */,
 				B10002032788B823003D8011 /* MovieDetailDTO.swift */,
 				B10001012788B823003D8011 /* FavoriteRecord.swift */,
 				B10001032788B823003D8011 /* MovieGenreCatalog.swift */,
@@ -814,6 +826,9 @@
 				B10002042788B823003D8011 /* DesignTokens.swift in Sources */,
 				B10002062788B823003D8011 /* MoviePosterView.swift in Sources */,
 				B10002082788B823003D8011 /* TagChip.swift in Sources */,
+				C3A100042788B823003D8011 /* MediaMetadataPills.swift in Sources */,
+				C3A100022788B823003D8011 /* MediaTrailer.swift in Sources */,
+				C3A100062788B823003D8011 /* TrailerPlayerView.swift in Sources */,
 				B100020A2788B823003D8011 /* SurfaceCard.swift in Sources */,
 				B10002202788B823003D8011 /* FlowLayout.swift in Sources */,
 				B100020C2788B823003D8011 /* MovieDetailViewModel.swift in Sources */,
@@ -849,6 +864,7 @@
 				A10000062788B823003D8011 /* TMDBFixtures.swift in Sources */,
 				A10000082788B823003D8011 /* FakeHTTPClientTests.swift in Sources */,
 				B10000222788B823003D8011 /* MovieRepositoryTests.swift in Sources */,
+				C3A100082788B823003D8011 /* OfficialYouTubeTrailersTests.swift in Sources */,
 				B10000262788B823003D8011 /* ImageLoaderTests.swift in Sources */,
 				B10000282788B823003D8011 /* TestSupport.swift in Sources */,
 				B100010A2788B823003D8011 /* InMemoryFavoritesStore.swift in Sources */,

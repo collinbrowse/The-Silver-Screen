@@ -18,6 +18,8 @@ struct MovieDetail: Sendable, Identifiable, Equatable, Hashable {
     let releaseDate: Date?
     let voteAverage: Double
     let genres: [MovieGenre]
+    /// Official YouTube trailers, in TMDB order.
+    let trailers: [MediaTrailer]
     let budget: Int
     let revenue: Int
     let images: [MovieImage]
