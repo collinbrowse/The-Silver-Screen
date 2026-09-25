@@ -11,6 +11,8 @@ struct CatalogRowView: View {
     let title: String
     let subtitle: String
     let metadata: String
+    /// Personal score shown under the date. Not a control.
+    var userScore: String? = nil
     let imagePath: String?
     let imageKind: ImageLoader.ImageKind
     let placeholderSystemImage: String
@@ -45,6 +47,12 @@ struct CatalogRowView: View {
                         .foregroundStyle(DesignTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let userScore {
+                    Text(userScore)
+                        .font(DesignTypography.metadata)
+                        .foregroundStyle(DesignTheme.accent)
+                        .accessibilityLabel("Your rating, \(userScore)")
+                }
             }
             Spacer(minLength: 0)
         }
@@ -54,7 +62,7 @@ struct CatalogRowView: View {
     }
 
     private var accessibilityLabel: String {
-        [title, subtitle, metadata]
+        [title, subtitle, metadata, userScore ?? ""]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
     }

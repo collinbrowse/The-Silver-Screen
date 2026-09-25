@@ -38,6 +38,9 @@ struct CollectionView: View {
                 await viewModel.load()
             }
         }
+        .onAppear {
+            Task { await viewModel.reloadDisplayedScores() }
+        }
     }
 
     private var navigationTitle: String {
@@ -90,6 +93,7 @@ struct CollectionView: View {
                                     title: row.title,
                                     subtitle: row.genreNames.joined(separator: ", "),
                                     metadata: row.formattedReleaseDate,
+                                    userScore: row.formattedUserScore,
                                     imagePath: row.posterPath,
                                     imageKind: .poster,
                                     placeholderSystemImage: "film",

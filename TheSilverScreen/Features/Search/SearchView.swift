@@ -76,6 +76,12 @@ struct SearchView: View {
         .onChange(of: isSearchPresented.wrappedValue) { _, focused in
             viewModel.setFieldFocused(focused)
         }
+        .onAppear {
+            Task { await viewModel.reloadDisplayedScores() }
+        }
+        .onChange(of: router?.path.count ?? 0) { _, _ in
+            Task { await viewModel.reloadDisplayedScores() }
+        }
         .onChange(of: viewModel.committedQuery) { _, _ in
             scrollIDs = [:]
         }
@@ -116,6 +122,7 @@ struct SearchView: View {
                             title: row.title,
                             subtitle: row.genreNames.joined(separator: ", "),
                             metadata: row.formattedReleaseDate,
+                            userScore: row.formattedUserScore,
                             imagePath: row.posterPath,
                             imageKind: .poster,
                             placeholderSystemImage: "film",
@@ -136,6 +143,7 @@ struct SearchView: View {
                             title: row.name,
                             subtitle: row.genreNames.joined(separator: ", "),
                             metadata: row.formattedFirstAirDate,
+                            userScore: row.formattedUserScore,
                             imagePath: row.posterPath,
                             imageKind: .poster,
                             placeholderSystemImage: "tv",

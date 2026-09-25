@@ -76,6 +76,13 @@
 		B10003182788B823003D8011 /* PersonDetailViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003192788B823003D8011 /* PersonDetailViewModelTests.swift */; };
 		B100031A2788B823003D8011 /* CreditsListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100031B2788B823003D8011 /* CreditsListViewModelTests.swift */; };
 		B10004082788B823003D8011 /* FavoritesIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004092788B823003D8011 /* FavoritesIndex.swift */; };
+		C20000022788B823003D8011 /* MediaAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000012788B823003D8011 /* MediaAnnotation.swift */; };
+		C20000042788B823003D8011 /* AnnotationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000032788B823003D8011 /* AnnotationsStore.swift */; };
+		C20000062788B823003D8011 /* FileAnnotationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000052788B823003D8011 /* FileAnnotationsStore.swift */; };
+		C20000082788B823003D8011 /* AnnotationsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000072788B823003D8011 /* AnnotationsRepository.swift */; };
+		C200000A2788B823003D8011 /* MediaDescriptionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000092788B823003D8011 /* MediaDescriptionSection.swift */; };
+		C200000C2788B823003D8011 /* InMemoryAnnotationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C200000B2788B823003D8011 /* InMemoryAnnotationsStore.swift */; };
+		C200000E2788B823003D8011 /* AnnotationsRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C200000D2788B823003D8011 /* AnnotationsRepositoryTests.swift */; };
 		C77D45322788B821003D8011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45312788B821003D8011 /* AppDelegate.swift */; };
 		C77D45342788B821003D8011 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45332788B821003D8011 /* SceneDelegate.swift */; };
 		C77D453B2788B822003D8011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C77D453A2788B822003D8011 /* Assets.xcassets */; };
@@ -83,8 +90,6 @@
 		C77D45532788B823003D8011 /* TheSilverScreenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45522788B823003D8011 /* TheSilverScreenUITests.swift */; };
 		C77D45552788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77D45542788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift */; };
 		E2A000012788B823003D8011 /* DisplayDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000022788B823003D8011 /* DisplayDate.swift */; };
-		F20000012788B823003D8011 /* TMDBRating.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000022788B823003D8011 /* TMDBRating.swift */; };
-		F20000032788B823003D8011 /* TMDBRatingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000042788B823003D8011 /* TMDBRatingCard.swift */; };
 		E2A000032788B823003D8011 /* CatalogMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000042788B823003D8011 /* CatalogMedia.swift */; };
 		E2A000052788B823003D8011 /* TVSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000062788B823003D8011 /* TVSeries.swift */; };
 		E2A000072788B823003D8011 /* TVSeriesDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A000082788B823003D8011 /* TVSeriesDTO.swift */; };
@@ -114,6 +119,8 @@
 		F10000052788B823003D8011 /* BrowseListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000062788B823003D8011 /* BrowseListViewModel.swift */; };
 		F10000072788B823003D8011 /* BrowseListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000082788B823003D8011 /* BrowseListView.swift */; };
 		F100000A2788B823003D8011 /* BrowseListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F100000B2788B823003D8011 /* BrowseListViewModelTests.swift */; };
+		F20000012788B823003D8011 /* TMDBRating.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000022788B823003D8011 /* TMDBRating.swift */; };
+		F20000032788B823003D8011 /* TMDBRatingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000042788B823003D8011 /* TMDBRatingCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +212,13 @@
 		B10003192788B823003D8011 /* PersonDetailViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailViewModelTests.swift; sourceTree = "<group>"; };
 		B100031B2788B823003D8011 /* CreditsListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsListViewModelTests.swift; sourceTree = "<group>"; };
 		B10004092788B823003D8011 /* FavoritesIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesIndex.swift; sourceTree = "<group>"; };
+		C20000012788B823003D8011 /* MediaAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAnnotation.swift; sourceTree = "<group>"; };
+		C20000032788B823003D8011 /* AnnotationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationsStore.swift; sourceTree = "<group>"; };
+		C20000052788B823003D8011 /* FileAnnotationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileAnnotationsStore.swift; sourceTree = "<group>"; };
+		C20000072788B823003D8011 /* AnnotationsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationsRepository.swift; sourceTree = "<group>"; };
+		C20000092788B823003D8011 /* MediaDescriptionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDescriptionSection.swift; sourceTree = "<group>"; };
+		C200000B2788B823003D8011 /* InMemoryAnnotationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryAnnotationsStore.swift; sourceTree = "<group>"; };
+		C200000D2788B823003D8011 /* AnnotationsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationsRepositoryTests.swift; sourceTree = "<group>"; };
 		C77D452E2788B821003D8011 /* TheSilverScreen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheSilverScreen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C77D45312788B821003D8011 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C77D45332788B821003D8011 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -216,8 +230,6 @@
 		C77D45522788B823003D8011 /* TheSilverScreenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheSilverScreenUITests.swift; sourceTree = "<group>"; };
 		C77D45542788B823003D8011 /* TheSilverScreenUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheSilverScreenUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		E2A000022788B823003D8011 /* DisplayDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayDate.swift; sourceTree = "<group>"; };
-		F20000022788B823003D8011 /* TMDBRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRating.swift; sourceTree = "<group>"; };
-		F20000042788B823003D8011 /* TMDBRatingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRatingCard.swift; sourceTree = "<group>"; };
 		E2A000042788B823003D8011 /* CatalogMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogMedia.swift; sourceTree = "<group>"; };
 		E2A000062788B823003D8011 /* TVSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSeries.swift; sourceTree = "<group>"; };
 		E2A000082788B823003D8011 /* TVSeriesDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TVSeriesDTO.swift; sourceTree = "<group>"; };
@@ -247,6 +259,8 @@
 		F10000062788B823003D8011 /* BrowseListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseListViewModel.swift; sourceTree = "<group>"; };
 		F10000082788B823003D8011 /* BrowseListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseListView.swift; sourceTree = "<group>"; };
 		F100000B2788B823003D8011 /* BrowseListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseListViewModelTests.swift; sourceTree = "<group>"; };
+		F20000022788B823003D8011 /* TMDBRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRating.swift; sourceTree = "<group>"; };
+		F20000042788B823003D8011 /* TMDBRatingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TMDBRatingCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -281,6 +295,7 @@
 				A10000052788B823003D8011 /* TMDBFixtures.swift */,
 				B10000292788B823003D8011 /* TestSupport.swift */,
 				B100010B2788B823003D8011 /* InMemoryFavoritesStore.swift */,
+				C200000B2788B823003D8011 /* InMemoryAnnotationsStore.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -292,6 +307,7 @@
 				B100001F2788B823003D8011 /* MovieRepository.swift */,
 				B10003072788B823003D8011 /* PersonRepository.swift */,
 				B10001092788B823003D8011 /* FavoritesRepository.swift */,
+				C20000072788B823003D8011 /* AnnotationsRepository.swift */,
 				B10004092788B823003D8011 /* FavoritesIndex.swift */,
 			);
 			path = Repositories;
@@ -334,6 +350,8 @@
 			children = (
 				B10001052788B823003D8011 /* FavoritesStore.swift */,
 				B10001072788B823003D8011 /* FileFavoritesStore.swift */,
+				C20000032788B823003D8011 /* AnnotationsStore.swift */,
+				C20000052788B823003D8011 /* FileAnnotationsStore.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -415,6 +433,7 @@
 				B10002092788B823003D8011 /* TagChip.swift */,
 				B100020B2788B823003D8011 /* SurfaceCard.swift */,
 				F20000042788B823003D8011 /* TMDBRatingCard.swift */,
+				C20000092788B823003D8011 /* MediaDescriptionSection.swift */,
 				B10002212788B823003D8011 /* FlowLayout.swift */,
 				B10003132788B823003D8011 /* SectionHeader.swift */,
 			);
@@ -492,6 +511,7 @@
 				B10000232788B823003D8011 /* MovieRepositoryTests.swift */,
 				B10000272788B823003D8011 /* ImageLoaderTests.swift */,
 				B100010D2788B823003D8011 /* FavoritesRepositoryTests.swift */,
+				C200000D2788B823003D8011 /* AnnotationsRepositoryTests.swift */,
 				B10001352788B823003D8011 /* FavoritesListViewModelTests.swift */,
 				B10002132788B823003D8011 /* MovieDetailViewModelTests.swift */,
 				B10002152788B823003D8011 /* NavigationRouterTests.swift */,
@@ -531,6 +551,7 @@
 			children = (
 				E2A000022788B823003D8011 /* DisplayDate.swift */,
 				F20000022788B823003D8011 /* TMDBRating.swift */,
+				C20000012788B823003D8011 /* MediaAnnotation.swift */,
 				F10000042788B823003D8011 /* BrowseCatalog.swift */,
 				E2A000042788B823003D8011 /* CatalogMedia.swift */,
 				E2A000062788B823003D8011 /* TVSeries.swift */,
@@ -725,6 +746,11 @@
 			files = (
 				E2A000012788B823003D8011 /* DisplayDate.swift in Sources */,
 				F20000012788B823003D8011 /* TMDBRating.swift in Sources */,
+				C20000022788B823003D8011 /* MediaAnnotation.swift in Sources */,
+				C20000042788B823003D8011 /* AnnotationsStore.swift in Sources */,
+				C20000062788B823003D8011 /* FileAnnotationsStore.swift in Sources */,
+				C20000082788B823003D8011 /* AnnotationsRepository.swift in Sources */,
+				C200000A2788B823003D8011 /* MediaDescriptionSection.swift in Sources */,
 				F20000032788B823003D8011 /* TMDBRatingCard.swift in Sources */,
 				F10000012788B823003D8011 /* TMDBLocale.swift in Sources */,
 				F10000032788B823003D8011 /* BrowseCatalog.swift in Sources */,
@@ -826,6 +852,8 @@
 				B10000262788B823003D8011 /* ImageLoaderTests.swift in Sources */,
 				B10000282788B823003D8011 /* TestSupport.swift in Sources */,
 				B100010A2788B823003D8011 /* InMemoryFavoritesStore.swift in Sources */,
+				C200000C2788B823003D8011 /* InMemoryAnnotationsStore.swift in Sources */,
+				C200000E2788B823003D8011 /* AnnotationsRepositoryTests.swift in Sources */,
 				B100010C2788B823003D8011 /* FavoritesRepositoryTests.swift in Sources */,
 				B10001342788B823003D8011 /* FavoritesListViewModelTests.swift in Sources */,
 				B10002122788B823003D8011 /* MovieDetailViewModelTests.swift in Sources */,

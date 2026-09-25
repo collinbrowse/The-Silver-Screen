@@ -19,6 +19,10 @@ struct CatalogMovieRow: Sendable, Identifiable, Equatable, Hashable {
     let voteAverage: Double
     /// Keeps a name search in popularity order after later pages arrive.
     let popularity: Double
+    /// Personal score, when this movie has one.
+    var formattedUserScore: String?
+    /// Day that score was chosen.
+    var formattedRatedOn: String?
 
     init(movie: Movie) {
         id = movie.id
@@ -30,6 +34,15 @@ struct CatalogMovieRow: Sendable, Identifiable, Equatable, Hashable {
         voteAverage = movie.voteAverage
         popularity = movie.popularity
         formattedReleaseDate = DisplayDate.day(movie.releaseDate)
+        formattedUserScore = nil
+        formattedRatedOn = nil
+    }
+
+    func withUserScore(_ saved: SavedUserScore?) -> CatalogMovieRow {
+        var copy = self
+        copy.formattedUserScore = saved?.formatted
+        copy.formattedRatedOn = saved?.ratedOn
+        return copy
     }
 
     func asMovie() -> Movie {
@@ -54,6 +67,10 @@ struct CatalogTVRow: Sendable, Identifiable, Equatable, Hashable {
     let firstAirDate: Date?
     /// Keeps a name search in popularity order after later pages arrive.
     let popularity: Double
+    /// Personal score, when this series has one.
+    var formattedUserScore: String?
+    /// Day that score was chosen.
+    var formattedRatedOn: String?
 
     init(series: TVSeriesSummary) {
         id = series.id
@@ -64,6 +81,15 @@ struct CatalogTVRow: Sendable, Identifiable, Equatable, Hashable {
         firstAirDate = series.firstAirDate
         popularity = series.popularity
         formattedFirstAirDate = DisplayDate.day(series.firstAirDate)
+        formattedUserScore = nil
+        formattedRatedOn = nil
+    }
+
+    func withUserScore(_ saved: SavedUserScore?) -> CatalogTVRow {
+        var copy = self
+        copy.formattedUserScore = saved?.formatted
+        copy.formattedRatedOn = saved?.ratedOn
+        return copy
     }
 
     func asSeries() -> FavoriteTVSeries {

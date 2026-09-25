@@ -12,6 +12,7 @@ struct RootTabView: View {
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
     let imageLoader: ImageLoader
     let favoritesListViewModel: FavoritesListViewModel
 
@@ -25,6 +26,7 @@ struct RootTabView: View {
         people: PersonRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         favoritesListViewModel: FavoritesListViewModel
     ) {
@@ -34,13 +36,19 @@ struct RootTabView: View {
         self.people = people
         self.favorites = favorites
         self.favoritesIndex = favoritesIndex
+        self.annotations = annotations
         self.imageLoader = imageLoader
         self.favoritesListViewModel = favoritesListViewModel
         _browseViewModel = State(
-            initialValue: BrowseListViewModel(movies: movies, shows: shows)
+            initialValue: BrowseListViewModel(movies: movies, shows: shows, annotations: annotations)
         )
         _searchViewModel = State(
-            initialValue: SearchViewModel(movies: movies, shows: shows, people: people)
+            initialValue: SearchViewModel(
+                movies: movies,
+                shows: shows,
+                people: people,
+                annotations: annotations
+            )
         )
     }
 
@@ -55,7 +63,8 @@ struct RootTabView: View {
                     shows: shows,
                     people: people,
                     favorites: favorites,
-                    favoritesIndex: favoritesIndex
+                    favoritesIndex: favoritesIndex,
+                    annotations: annotations
                 )
             }
 
@@ -68,7 +77,8 @@ struct RootTabView: View {
                     shows: shows,
                     people: people,
                     favorites: favorites,
-                    favoritesIndex: favoritesIndex
+                    favoritesIndex: favoritesIndex,
+                    annotations: annotations
                 )
             }
 
@@ -79,6 +89,7 @@ struct RootTabView: View {
                     imageLoader: imageLoader,
                     favorites: favorites,
                     favoritesIndex: favoritesIndex,
+                    annotations: annotations,
                     movies: movies,
                     shows: shows,
                     people: people
@@ -97,6 +108,7 @@ private struct BrowseTabRoot: View {
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -115,6 +127,7 @@ private struct BrowseTabRoot: View {
                     people: people,
                     favorites: favorites,
                     favoritesIndex: favoritesIndex,
+                    annotations: annotations,
                     imageLoader: imageLoader,
                     router: router
                 )
@@ -132,6 +145,7 @@ private struct SearchTabRoot: View {
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
     @State private var searchFieldPresented = false
 
     var body: some View {
@@ -152,6 +166,7 @@ private struct SearchTabRoot: View {
                     people: people,
                     favorites: favorites,
                     favoritesIndex: favoritesIndex,
+                    annotations: annotations,
                     imageLoader: imageLoader,
                     router: router
                 )
@@ -166,6 +181,7 @@ private struct FavoritesTabRoot: View {
     let imageLoader: ImageLoader
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
     let movies: MovieRepository
     let shows: TVRepository
     let people: PersonRepository
@@ -186,6 +202,7 @@ private struct FavoritesTabRoot: View {
                     people: people,
                     favorites: favorites,
                     favoritesIndex: favoritesIndex,
+                    annotations: annotations,
                     imageLoader: imageLoader,
                     router: router
                 )

@@ -20,6 +20,12 @@ enum TestImages {
     }
 }
 
+extension AnnotationsRepository {
+    static func empty() -> AnnotationsRepository {
+        AnnotationsRepository(store: InMemoryAnnotationsStore(), logger: SilentLogger())
+    }
+}
+
 struct SilentLogger: AppLogging {
     func debug(_ message: String, category: LogCategory) {}
     func error(_ message: String, category: LogCategory) {}

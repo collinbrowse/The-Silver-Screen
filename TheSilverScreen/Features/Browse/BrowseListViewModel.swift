@@ -24,6 +24,7 @@ final class BrowseListViewModel {
 
     private let movies: MovieRepository
     private let shows: TVRepository
+    private let annotations: AnnotationsRepository
     private let locale: Locale
     private let timeZone: TimeZone
     private let today: @Sendable () -> Date
@@ -42,12 +43,14 @@ final class BrowseListViewModel {
     init(
         movies: MovieRepository,
         shows: TVRepository,
+        annotations: AnnotationsRepository,
         locale: Locale = .current,
         timeZone: TimeZone = .current,
         today: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.movies = movies
         self.shows = shows
+        self.annotations = annotations
         self.locale = locale
         self.timeZone = timeZone
         self.today = today
@@ -145,6 +148,7 @@ final class BrowseListViewModel {
             resetBuffers()
             apply(fresh)
             publish(activity: .none)
+            await stampScores(token: token)
         } catch is CancellationError {
             return
         } catch {
@@ -165,6 +169,7 @@ final class BrowseListViewModel {
             try await fetchNextPages()
             guard token == generation, !Task.isCancelled else { return }
             publish(activity: .none)
+            await stampScores(token: token)
         } catch is CancellationError {
             guard token == generation else { return }
             if case .loaded(let rows, _) = state {
@@ -311,6 +316,22 @@ final class BrowseListViewModel {
         if media == .all {
             merge.consume(sort: sort, moviesHaveMore: movieHasMore, showsHaveMore: showHasMore)
         }
+    }
+
+    /// Reads saved scores onto the rows already on screen. Used when returning from a detail screen.
+    func reloadDisplayedScores() async {
+        await stampScores(token: generation)
+    }
+
+    private func stampScores(token: Int) async {
+        let scores = await annotations.formattedScores()
+        guard token == generation, case .loaded(let rows, let activity) = state else { return }
+        let stamped = rows.map { row in
+            let key: AnnotationKey = row.media == .movie ? .movie(row.mediaID) : .series(row.mediaID)
+            return row.withUserScore(scores[key])
+        }
+        guard stamped != rows else { return }
+        state = .loaded(stamped, activity: activity)
     }
 
     private func publish(activity: LoadActivity) {

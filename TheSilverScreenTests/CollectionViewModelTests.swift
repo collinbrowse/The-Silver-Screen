@@ -14,7 +14,8 @@ final class CollectionViewModelTests: XCTestCase {
             collectionID: 230,
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.collectionGodfather))
-            )
+            ),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -33,7 +34,8 @@ final class CollectionViewModelTests: XCTestCase {
     func test_load_sortsUndatedPartsBeforeOldestRelease() async {
         let viewModel = CollectionViewModel(
             collectionID: 1,
-            movies: MovieRepository.test(client: FakeHTTPClient(stub: .success(Self.unsortedParts)))
+            movies: MovieRepository.test(client: FakeHTTPClient(stub: .success(Self.unsortedParts))),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -47,7 +49,8 @@ final class CollectionViewModelTests: XCTestCase {
     func test_load_whenPosterOverviewAndPartsAreEmpty_setsEmpty() async {
         let viewModel = CollectionViewModel(
             collectionID: 1,
-            movies: MovieRepository.test(client: FakeHTTPClient(stub: .success(Self.emptyCollection)))
+            movies: MovieRepository.test(client: FakeHTTPClient(stub: .success(Self.emptyCollection))),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -60,7 +63,8 @@ final class CollectionViewModelTests: XCTestCase {
             collectionID: 230,
             movies: MovieRepository.test(
                 client: FakeHTTPClient(result: .failure(URLError(.notConnectedToInternet)))
-            )
+            ),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()

@@ -12,6 +12,7 @@ struct AppDependencies {
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
     let imageLoader: ImageLoader
     let router: AppRouter
     let logger: any AppLogging
@@ -43,6 +44,11 @@ struct AppDependencies {
             logger: logger,
             index: favoritesIndex
         )
+        let annotationsStoreURL = try FileAnnotationsStore.applicationSupportURL()
+        let annotations = AnnotationsRepository(
+            store: FileAnnotationsStore(fileURL: annotationsStoreURL),
+            logger: logger
+        )
         let imageLoader = ImageLoader(client: URLSessionHTTPClient.images(), logger: logger)
         let router = AppRouter()
         return AppDependencies(
@@ -51,6 +57,7 @@ struct AppDependencies {
             people: people,
             favorites: favorites,
             favoritesIndex: favoritesIndex,
+            annotations: annotations,
             imageLoader: imageLoader,
             router: router,
             logger: logger

@@ -157,9 +157,19 @@ struct MovieDetailView: View {
             }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
-                accessibilityLabel: content.ratingAccessibilityLabel
+                accessibilityLabel: content.ratingAccessibilityLabel,
+                formattedUserScore: content.formattedUserScore,
+                userScoreAccessibilityLabel: content.userScoreAccessibilityLabel
+            ) { score in
+                Task { await viewModel.saveUserScore(score) }
+            }
+            MediaDescriptionSection(
+                overview: content.detail.overview,
+                note: content.userNote,
+                notedOn: content.formattedNotedOn,
+                onSave: { await viewModel.saveUserNote($0) },
+                onDelete: { await viewModel.deleteUserNote() }
             )
-            overviewSection(content.detail.overview)
             factsCard(content)
         }
         .padding(.horizontal, DesignSpacing.lg)
@@ -523,19 +533,6 @@ struct MovieDetailView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Genres: \(genres.map(\.name).joined(separator: ", "))")
-    }
-
-    private func overviewSection(_ overview: String) -> some View {
-        VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-            Text("Storyline")
-                .font(DesignTypography.section)
-                .foregroundStyle(DesignTheme.textPrimary)
-            Text(overview.isEmpty ? "No description available." : overview)
-                .font(DesignTypography.body)
-                .foregroundStyle(DesignTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private func factsCard(_ content: MovieDetailContent) -> some View {

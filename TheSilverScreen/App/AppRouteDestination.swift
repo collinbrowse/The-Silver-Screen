@@ -12,6 +12,7 @@ struct AppRouteDestination: View {
     let people: PersonRepository
     let favorites: FavoritesRepository
     let favoritesIndex: FavoritesIndex
+    let annotations: AnnotationsRepository
     let imageLoader: ImageLoader
     let router: NavigationRouter
 
@@ -23,6 +24,7 @@ struct AppRouteDestination: View {
                 movies: movies,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
+                annotations: annotations,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -50,6 +52,7 @@ struct AppRouteDestination: View {
                 movies: movies,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
+                annotations: annotations,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -59,6 +62,7 @@ struct AppRouteDestination: View {
                 shows: shows,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
+                annotations: annotations,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -70,6 +74,7 @@ struct AppRouteDestination: View {
                 shows: shows,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
+                annotations: annotations,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -82,6 +87,7 @@ struct AppRouteDestination: View {
                 shows: shows,
                 favorites: favorites,
                 favoritesIndex: favoritesIndex,
+                annotations: annotations,
                 imageLoader: imageLoader,
                 router: router
             )
@@ -100,6 +106,7 @@ struct MovieDetailRouteView: View {
         movies: MovieRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -107,7 +114,8 @@ struct MovieDetailRouteView: View {
             initialValue: MovieDetailViewModel(
                 movieID: movieID,
                 movies: movies,
-                favorites: favorites
+                favorites: favorites,
+                annotations: annotations
             )
         )
         self.favoritesIndex = favoritesIndex
@@ -173,10 +181,17 @@ struct CollectionRouteView: View {
         movies: MovieRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
-        _viewModel = State(initialValue: CollectionViewModel(collectionID: collectionID, movies: movies))
+        _viewModel = State(
+            initialValue: CollectionViewModel(
+                collectionID: collectionID,
+                movies: movies,
+                annotations: annotations
+            )
+        )
         self.imageLoader = imageLoader
         self.favorites = favorites
         self.favoritesIndex = favoritesIndex
@@ -206,10 +221,13 @@ struct TVSeriesRouteView: View {
         shows: TVRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
-        _viewModel = State(initialValue: TVSeriesViewModel(seriesID: seriesID, shows: shows))
+        _viewModel = State(
+            initialValue: TVSeriesViewModel(seriesID: seriesID, shows: shows, annotations: annotations)
+        )
         self.imageLoader = imageLoader
         self.favorites = favorites
         self.favoritesIndex = favoritesIndex
@@ -243,6 +261,7 @@ struct TVSeasonRouteView: View {
         shows: TVRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -251,7 +270,8 @@ struct TVSeasonRouteView: View {
                 seriesID: seriesID,
                 seriesName: seriesName,
                 seasonNumber: seasonNumber,
-                shows: shows
+                shows: shows,
+                annotations: annotations
             )
         )
         self.imageLoader = imageLoader
@@ -293,6 +313,7 @@ struct TVEpisodeRouteView: View {
         shows: TVRepository,
         favorites: FavoritesRepository,
         favoritesIndex: FavoritesIndex,
+        annotations: AnnotationsRepository,
         imageLoader: ImageLoader,
         router: NavigationRouter
     ) {
@@ -301,7 +322,8 @@ struct TVEpisodeRouteView: View {
                 seriesID: seriesID,
                 seasonNumber: seasonNumber,
                 episodeNumber: episodeNumber,
-                shows: shows
+                shows: shows,
+                annotations: annotations
             )
         )
         self.imageLoader = imageLoader

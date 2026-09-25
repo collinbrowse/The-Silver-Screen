@@ -34,9 +34,13 @@ final class FavoritesListViewModel {
     var searchText: String = ""
 
     private let favorites: FavoritesRepository
+    private let annotations: AnnotationsRepository
+    /// Personal scores keyed by `FavoriteRecord.listID`.
+    private(set) var userScores: [String: SavedUserScore] = [:]
 
-    init(favorites: FavoritesRepository) {
+    init(favorites: FavoritesRepository, annotations: AnnotationsRepository) {
         self.favorites = favorites
+        self.annotations = annotations
     }
 
     /// Records visible under the current filter and search. Derived from `state`.
@@ -73,6 +77,7 @@ final class FavoritesListViewModel {
         do {
             let records = try await favorites.favorites()
             apply(records)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -104,6 +109,7 @@ final class FavoritesListViewModel {
             try await favorites.remove(id: record.id, kind: record.kind)
             let records = try await favorites.favorites()
             apply(records)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -132,6 +138,7 @@ final class FavoritesListViewModel {
             try await favorites.remove(toRemove)
             let records = try await favorites.favorites()
             apply(records)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -141,6 +148,27 @@ final class FavoritesListViewModel {
             toggleError = .unknown
             state = .loaded(current, activity: .failed(.unknown))
         }
+    }
+
+    /// Writes saved scores onto the favorites already on screen.
+    func reloadDisplayedScores() async {
+        let scores = await annotations.formattedScores()
+        guard case .loaded(let records, _) = state else {
+            userScores = [:]
+            return
+        }
+        var mapped: [String: SavedUserScore] = [:]
+        for record in records {
+            let key: AnnotationKey? = switch record.kind {
+            case .movie: .movie(record.id)
+            case .tv: .series(record.id)
+            case .person: nil
+            }
+            if let key, let score = scores[key] {
+                mapped[record.listID] = score
+            }
+        }
+        userScores = mapped
     }
 
     private func apply(_ records: [FavoriteRecord]) {

@@ -12,6 +12,11 @@ struct TVEpisodeContent: Sendable, Equatable {
     let formattedAirDate: String
     let formattedRating: String
     let ratingAccessibilityLabel: String
+    let formattedUserScore: String?
+    let userScoreAccessibilityLabel: String
+    let userNote: String?
+    let formattedRatedOn: String?
+    let formattedNotedOn: String?
     let stillPath: String?
     let images: [MovieImage]
     let cast: [TVCredit]
@@ -32,12 +37,20 @@ final class TVEpisodeViewModel {
     private let seasonNumber: Int
     private let episodeNumber: Int
     private let shows: TVRepository
+    private let annotations: AnnotationsRepository
 
-    init(seriesID: Int, seasonNumber: Int, episodeNumber: Int, shows: TVRepository) {
+    init(
+        seriesID: Int,
+        seasonNumber: Int,
+        episodeNumber: Int,
+        shows: TVRepository,
+        annotations: AnnotationsRepository
+    ) {
         self.seriesID = seriesID
         self.seasonNumber = seasonNumber
         self.episodeNumber = episodeNumber
         self.shows = shows
+        self.annotations = annotations
     }
 
     func load() async {
@@ -51,7 +64,11 @@ final class TVEpisodeViewModel {
             async let othersCall = otherEpisodes()
             let episode = try await episodeCall
             let others = try await othersCall
-            state = .loaded(Self.makeContent(episode, otherEpisodes: others))
+            let personal = try await personalDetail()
+            state = .loaded(
+                Self.makeContent(episode, otherEpisodes: others, personal: personal.detail),
+                activity: personal.activity
+            )
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -63,6 +80,80 @@ final class TVEpisodeViewModel {
 
     func retry() async {
         await load()
+    }
+
+    /// Saves a half-point score. A failure keeps the score already on screen.
+    func saveUserScore(_ score: Double) async {
+        guard case .loaded = state else { return }
+        do {
+            let saved = try await annotations.saveScore(
+                score,
+                for: .episode(seriesID: seriesID, seasonNumber: seasonNumber, episodeNumber: episodeNumber)
+            )
+            apply(PersonalDetail(annotation: saved))
+        } catch is CancellationError {
+            return
+        } catch {
+            markPersistenceFailure()
+        }
+    }
+
+    /// Saves a note. Returns false when the write fails so the editor can stay open.
+    func saveUserNote(_ note: String) async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.saveNote(
+                note,
+                for: .episode(seriesID: seriesID, seasonNumber: seasonNumber, episodeNumber: episodeNumber)
+            )
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    /// Removes the note and leaves the score. Returns false when the write fails.
+    func deleteUserNote() async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.deleteNote(
+                for: .episode(seriesID: seriesID, seasonNumber: seasonNumber, episodeNumber: episodeNumber)
+            )
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    private func personalDetail() async throws -> (detail: PersonalDetail, activity: LoadActivity) {
+        do {
+            let record = try await annotations.annotation(
+                for: .episode(seriesID: seriesID, seasonNumber: seasonNumber, episodeNumber: episodeNumber)
+            )
+            return (PersonalDetail(annotation: record), .none)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (.empty, .failed(.persistence))
+        }
+    }
+
+    private func apply(_ personal: PersonalDetail) {
+        guard case .loaded(let content, let activity) = state else { return }
+        state = .loaded(content.withPersonal(personal), activity: AnnotationActivity.afterSuccess(activity))
+    }
+
+    private func markPersistenceFailure() {
+        guard case .loaded(let content, _) = state else { return }
+        state = .loaded(content, activity: .failed(.persistence))
     }
 
     func openImages(initialID: String) {
@@ -95,7 +186,8 @@ final class TVEpisodeViewModel {
 
     private static func makeContent(
         _ episode: TVEpisodeDetail,
-        otherEpisodes: [TVEpisodeSummary]
+        otherEpisodes: [TVEpisodeSummary],
+        personal: PersonalDetail
     ) -> TVEpisodeContent {
         TVEpisodeContent(
             title: episode.title,
@@ -104,6 +196,11 @@ final class TVEpisodeViewModel {
             formattedAirDate: DisplayDate.day(episode.airDate),
             formattedRating: TMDBRating.formatted(episode.voteAverage),
             ratingAccessibilityLabel: TMDBRating.accessibilityLabel(episode.voteAverage),
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
             stillPath: episode.stillPath,
             images: episode.images,
             cast: episode.cast,
@@ -111,6 +208,31 @@ final class TVEpisodeViewModel {
             directorsAndWriters: episode.directorsAndWriters,
             otherEpisodes: otherEpisodes,
             fullscreenImages: nil
+        )
+    }
+}
+
+private extension TVEpisodeContent {
+    func withPersonal(_ personal: PersonalDetail) -> TVEpisodeContent {
+        TVEpisodeContent(
+            title: title,
+            episodeNumberText: episodeNumberText,
+            overview: overview,
+            formattedAirDate: formattedAirDate,
+            formattedRating: formattedRating,
+            ratingAccessibilityLabel: ratingAccessibilityLabel,
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
+            stillPath: stillPath,
+            images: images,
+            cast: cast,
+            guestStars: guestStars,
+            directorsAndWriters: directorsAndWriters,
+            otherEpisodes: otherEpisodes,
+            fullscreenImages: fullscreenImages
         )
     }
 }

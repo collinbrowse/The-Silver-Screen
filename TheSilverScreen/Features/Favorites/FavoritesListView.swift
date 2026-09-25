@@ -142,11 +142,19 @@ struct FavoritesListView: View {
         switch favorite.kind {
         case .movie:
             NavigationLink(value: Route.movieDetail(id: favorite.id)) {
-                FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
+                FavoriteTitleRow(
+                    favorite: favorite,
+                    userScore: viewModel.userScores[favorite.listID]?.formatted,
+                    imageLoader: imageLoader
+                )
             }
         case .tv:
             NavigationLink(value: Route.tvSeries(id: favorite.id)) {
-                FavoriteTitleRow(favorite: favorite, imageLoader: imageLoader)
+                FavoriteTitleRow(
+                    favorite: favorite,
+                    userScore: viewModel.userScores[favorite.listID]?.formatted,
+                    imageLoader: imageLoader
+                )
             }
         case .person:
             NavigationLink(value: Route.person(id: favorite.id)) {
@@ -159,6 +167,8 @@ struct FavoritesListView: View {
 /// Favorites row for a bookmarked movie or TV series: poster, title, genres, and date.
 private struct FavoriteTitleRow: View {
     let favorite: FavoriteRecord
+    /// Personal score under the date. Not a control.
+    var userScore: String? = nil
     let imageLoader: ImageLoader
 
     private let posterWidth: CGFloat = 120
@@ -185,6 +195,12 @@ private struct FavoriteTitleRow: View {
                 Text(Self.releaseDateText(for: favorite.releaseDate))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let userScore {
+                    Text(userScore)
+                        .font(DesignTypography.metadata)
+                        .foregroundStyle(DesignTheme.accent)
+                        .accessibilityLabel("Your rating, \(userScore)")
+                }
             }
             Spacer(minLength: 0)
         }
@@ -198,6 +214,9 @@ private struct FavoriteTitleRow: View {
             parts.append(favorite.genreNames.joined(separator: ", "))
         }
         parts.append(Self.releaseDateText(for: favorite.releaseDate))
+        if let userScore {
+            parts.append(userScore)
+        }
         return parts.joined(separator: ", ")
     }
 

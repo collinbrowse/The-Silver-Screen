@@ -323,6 +323,32 @@ final class BrowseListViewModelTests: XCTestCase {
         XCTAssertEqual(activity, .failed(.offline))
     }
 
+    func test_reloadAndRefresh_stampSavedMovieScore() async throws {
+        let annotations = AnnotationsRepository.empty()
+        let client = FakeHTTPClient(stub: .success(TMDBFixtures.topMoviesPage1))
+        let viewModel = makeViewModel(
+            movies: MovieRepository.test(client: client),
+            shows: TVRepository.test(client: client),
+            annotations: annotations
+        )
+        await viewModel.load()
+        try await annotations.saveScore(7.5, for: .movie(278))
+
+        await viewModel.reloadDisplayedScores()
+
+        guard case .loaded(let rows, _) = viewModel.state else {
+            return XCTFail("Expected rows after returning, got \(viewModel.state)")
+        }
+        XCTAssertEqual(rows.first { $0.mediaID == 278 }?.formattedUserScore, "7.5 / 10")
+
+        await viewModel.refresh()
+
+        guard case .loaded(let refreshed, activity: .none) = viewModel.state else {
+            return XCTFail("Expected rows after refresh, got \(viewModel.state)")
+        }
+        XCTAssertEqual(refreshed.first { $0.mediaID == 278 }?.formattedUserScore, "7.5 / 10")
+    }
+
     private func makeViewModel(
         movieStub: FakeHTTPClient.Stub = .success(TMDBFixtures.topMoviesPage1)
     ) -> BrowseListViewModel {
@@ -333,11 +359,16 @@ final class BrowseListViewModelTests: XCTestCase {
         )
     }
 
-    private func makeViewModel(movies: MovieRepository, shows: TVRepository) -> BrowseListViewModel {
+    private func makeViewModel(
+        movies: MovieRepository,
+        shows: TVRepository,
+        annotations: AnnotationsRepository = .empty()
+    ) -> BrowseListViewModel {
         let day = today
         return BrowseListViewModel(
             movies: movies,
             shows: shows,
+            annotations: annotations,
             locale: locale,
             timeZone: TimeZone(secondsFromGMT: 0)!,
             today: { day }
