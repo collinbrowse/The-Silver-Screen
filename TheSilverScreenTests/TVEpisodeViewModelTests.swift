@@ -35,6 +35,7 @@ final class TVEpisodeViewModelTests: XCTestCase {
         XCTAssertEqual(content.directorsAndWriters.map(\.name), ["Vince Gilligan", "Story Person", "Screen Person"])
         XCTAssertFalse(content.directorsAndWriters.contains { $0.name == "Script Coordinator" })
         XCTAssertFalse(content.images.isEmpty)
+        XCTAssertEqual(content.heroImages.map(\.filePath), ["/pilot.jpg", "/still.jpg"])
         XCTAssertTrue(content.otherEpisodes.isEmpty)
     }
 
@@ -147,5 +148,47 @@ final class TVEpisodeViewModelTests: XCTestCase {
             return XCTFail("Expected loaded with persistence failure, got \(viewModel.state)")
         }
         XCTAssertEqual(content.userNote, "Keep")
+    }
+
+    func test_openImages_includesTheStillWhenTheGalleryOmitsIt() async {
+        let viewModel = TVEpisodeViewModel(
+            seriesID: 1396,
+            seasonNumber: 1,
+            episodeNumber: 1,
+            shows: TVRepository.test(client: FakeHTTPClient(stub: .success(TMDBFixtures.tvEpisodePilot))),
+            annotations: AnnotationsRepository.empty()
+        )
+        await viewModel.load()
+
+        viewModel.openImages(initialID: "/pilot.jpg")
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.fullscreenImages?.images.map(\.filePath), ["/pilot.jpg", "/still.jpg"])
+        XCTAssertEqual(content.fullscreenImages?.initialID, "/pilot.jpg")
+    }
+
+    func test_heroImages_keepsTheGalleryWhenItAlreadyContainsTheStill() async {
+        let payload = Data("""
+        {
+          "id": 10, "name": "Pilot", "episode_number": 1,
+          "still_path": "/pilot.jpg",
+          "images": {"stills": [{"file_path": "/pilot.jpg", "vote_average": 2.0}]}
+        }
+        """.utf8)
+        let viewModel = TVEpisodeViewModel(
+            seriesID: 1396,
+            seasonNumber: 1,
+            episodeNumber: 1,
+            shows: TVRepository.test(client: FakeHTTPClient(stub: .success(payload))),
+            annotations: AnnotationsRepository.empty()
+        )
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.heroImages.map(\.filePath), ["/pilot.jpg"])
     }
 }

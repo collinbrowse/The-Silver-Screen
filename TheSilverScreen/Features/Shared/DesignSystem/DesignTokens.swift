@@ -58,6 +58,8 @@ struct InlineTitleBottomKey: PreferenceKey {
 /// Rubber-banding past the top or bottom does not toggle it.
 struct ScrollingInlineTitle: ViewModifier {
     let title: String
+    /// Movie detail hides this so the backdrop can sit under the status icons.
+    var showsToolbarBackground: Bool = true
     @State private var showsTitle = false
     @State private var titleBottom: CGFloat = 0
 
@@ -65,7 +67,7 @@ struct ScrollingInlineTitle: ViewModifier {
         content
             .navigationTitle(showsTitle && !title.isEmpty ? title : "")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(showsToolbarBackground ? .visible : .hidden, for: .navigationBar)
             .onPreferenceChange(InlineTitleBottomKey.self) { titleBottom = $0 }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 let offset = geometry.contentOffset.y + geometry.contentInsets.top
@@ -85,8 +87,8 @@ struct ScrollingInlineTitle: ViewModifier {
 }
 
 extension View {
-    func scrollingInlineTitle(_ title: String) -> some View {
-        modifier(ScrollingInlineTitle(title: title))
+    func scrollingInlineTitle(_ title: String, showsToolbarBackground: Bool = true) -> some View {
+        modifier(ScrollingInlineTitle(title: title, showsToolbarBackground: showsToolbarBackground))
     }
 
     /// Reports this view's bottom so the bar title waits until it has left the scroll view.

@@ -12,6 +12,8 @@ struct TVSeriesView: View {
     let favoritesIndex: FavoritesIndex
     var router: NavigationRouter?
 
+    @Namespace private var heroTransition
+    @State private var selectedBackdropID: String?
     @State private var playingTrailer: MediaTrailer?
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
@@ -81,6 +83,7 @@ struct TVSeriesView: View {
             ) {
                 viewModel.dismissImages()
             }
+            .navigationTransition(.zoom(sourceID: selection.initialID, in: heroTransition))
         }
     }
 
@@ -100,14 +103,11 @@ struct TVSeriesView: View {
     }
 
     private func seriesScroll(_ content: TVSeriesContent, scrollTo: @escaping (String) -> Void) -> some View {
-        ScrollView {
+        let bleedsToTop = !content.detail.images.isEmpty
+        return ScrollView {
             VStack(alignment: .leading, spacing: DesignSpacing.xl) {
-                header(content)
-                if !content.detail.images.isEmpty {
-                    TVImageCarousel(images: content.detail.images, imageLoader: imageLoader) { image in
-                        viewModel.openImages(initialID: image.id)
-                    }
-                }
+                seriesHero(content)
+                seriesFacts(content)
                 if !content.seasons.isEmpty {
                     seasonsCarousel(content)
                 }
@@ -144,30 +144,47 @@ struct TVSeriesView: View {
                     )
                 }
             }
-            .padding(.vertical, DesignSpacing.lg)
+            .padding(.bottom, DesignSpacing.lg)
             .coordinateSpace(.named("detailScroll"))
         }
-        .scrollingInlineTitle(navigationTitle)
+        .heroStatusBarBleed(enabled: bleedsToTop)
+        .scrollingInlineTitle(navigationTitle, showsToolbarBackground: !bleedsToTop)
         .refreshable {
             await viewModel.refresh()
         }
     }
 
-    private func toggleFavorite(_ detail: TVSeriesDetail) async {
-        _ = try? await favorites.toggle(
-            tv: FavoriteTVSeries(
-                id: detail.id,
-                name: detail.name,
-                posterPath: detail.posterPath,
-                releaseDate: detail.firstAirDate,
-                genreIDs: detail.genres.map(\.id)
-            )
-        )
+    private func seriesHero(_ content: TVSeriesContent) -> some View {
+        DetailHero(
+            title: content.detail.name,
+            posterPath: content.detail.posterPath,
+            images: content.detail.images,
+            selectedImageID: $selectedBackdropID,
+            imageLoader: imageLoader,
+            transitionNamespace: heroTransition,
+            onOpenPoster: { viewModel.openPoster() },
+            onOpenImage: { viewModel.openImages(initialID: $0) },
+            genreNames: content.detail.genres.map(\.name)
+        ) {
+            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                Text("First aired \(content.formattedFirstAirDate)")
+                Text(content.formattedLastAirDate)
+                Text(content.creatorsText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(DesignTypography.metadata)
+            .foregroundStyle(DesignTheme.textSecondary)
+            if !content.detail.trailers.isEmpty {
+                MediaMetadataPills(
+                    trailers: content.detail.trailers,
+                    playTrailer: { playingTrailer = $0 }
+                )
+            }
+        }
     }
 
-    private func header(_ content: TVSeriesContent) -> some View {
+    private func seriesFacts(_ content: TVSeriesContent) -> some View {
         VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            seriesIdentity(content)
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
                 accessibilityLabel: content.ratingAccessibilityLabel,
@@ -187,62 +204,16 @@ struct TVSeriesView: View {
         .padding(.horizontal, DesignSpacing.lg)
     }
 
-    private func seriesIdentity(_ content: TVSeriesContent) -> some View {
-        let posterPath = content.detail.posterPath
-        let hasPoster = posterPath?.isEmpty == false
-        return VStack(alignment: .leading, spacing: DesignSpacing.md) {
-            HStack(alignment: .top, spacing: DesignSpacing.md) {
-                posterThumbnail(path: posterPath)
-                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                    Text(content.detail.name)
-                        .font(DesignTypography.title)
-                        .foregroundStyle(DesignTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .inlineTitleAnchor()
-                    Text("First aired \(content.formattedFirstAirDate)")
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                    Text(content.formattedLastAirDate)
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                    Text(content.creatorsText)
-                        .font(DesignTypography.metadata)
-                        .foregroundStyle(DesignTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityHint(hasPoster ? "Shows the poster full screen" : "")
-            .accessibilityAction(named: "Show poster") {
-                viewModel.openPoster()
-            }
-            if !content.detail.genres.isEmpty || !content.detail.trailers.isEmpty {
-                MediaMetadataPills(
-                    genres: content.detail.genres,
-                    trailers: content.detail.trailers,
-                    playTrailer: { playingTrailer = $0 }
-                )
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func posterThumbnail(path: String?) -> some View {
-        let poster = MoviePosterView(
-            posterPath: path,
-            imageLoader: imageLoader,
-            width: 112
+    private func toggleFavorite(_ detail: TVSeriesDetail) async {
+        _ = try? await favorites.toggle(
+            tv: FavoriteTVSeries(
+                id: detail.id,
+                name: detail.name,
+                posterPath: detail.posterPath,
+                releaseDate: detail.firstAirDate,
+                genreIDs: detail.genres.map(\.id)
+            )
         )
-        if let path, !path.isEmpty {
-            poster
-                .contentShape(RoundedRectangle(cornerRadius: DesignRadius.poster, style: .continuous))
-                .onTapGesture {
-                    viewModel.openPoster()
-                }
-                .accessibilityAddTraits(.isButton)
-        } else {
-            poster
-        }
     }
 
     private func seasonsCarousel(_ content: TVSeriesContent) -> some View {

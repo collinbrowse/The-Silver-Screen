@@ -32,6 +32,7 @@ struct TrailerChip: View {
         Button(action: action) {
             HStack(spacing: DesignSpacing.xs) {
                 Image(systemName: "play.fill")
+                    .font(.caption2)
                     .accessibilityHidden(true)
                 Text(title)
                     .multilineTextAlignment(.leading)
@@ -39,9 +40,8 @@ struct TrailerChip: View {
             }
             .font(DesignTypography.chip)
             .foregroundStyle(DesignTheme.textPrimary)
-            .padding(.horizontal, DesignSpacing.md)
-            .padding(.vertical, DesignSpacing.xs + 2)
-            .frame(minHeight: 44, alignment: .leading)
+            .padding(.horizontal, DesignSpacing.sm)
+            .padding(.vertical, DesignSpacing.xs)
             .background(DesignTheme.surface)
             .clipShape(Capsule())
             .overlay(
