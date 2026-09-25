@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CatalogRowView: View {
     let title: String
-    var genreNames: [String] = []
+    let subtitle: String
     let metadata: String
     /// Personal score shown under the date. Not a control.
     var userScore: String? = nil
@@ -35,8 +35,11 @@ struct CatalogRowView: View {
                     .font(DesignTypography.section)
                     .foregroundStyle(DesignTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                if !genreNames.isEmpty {
-                    GenreChipRow(names: genreNames, announces: false)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(DesignTypography.metadata)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if !metadata.isEmpty {
                     Text(metadata)
@@ -59,7 +62,7 @@ struct CatalogRowView: View {
     }
 
     private var accessibilityLabel: String {
-        [title, genreNames.joined(separator: ", "), metadata, userScore ?? ""]
+        [title, subtitle, metadata, userScore ?? ""]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
     }

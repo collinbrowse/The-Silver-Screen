@@ -2,16 +2,14 @@
 //  MediaMetadataPills.swift
 //  TheSilverScreen
 //
-//  Genre pills shared by every title that shows genres, plus trailer play pills.
+//  Genre pills on detail screens, plus trailer play pills.
 //
 
 import SwiftUI
 
-/// Wrapping genre pills, matching movie detail.
+/// Wrapping genre pills on a detail screen.
 struct GenreChipRow: View {
     let names: [String]
-    /// Speaks the genre list. Rows that already include genres in their label turn this off.
-    var announces: Bool = true
 
     var body: some View {
         FlowLayout(spacing: DesignSpacing.sm) {
@@ -21,8 +19,7 @@ struct GenreChipRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(announces ? "Genres: \(names.joined(separator: ", "))" : "")
-        .accessibilityHidden(!announces)
+        .accessibilityLabel("Genres: \(names.joined(separator: ", "))")
     }
 }
 

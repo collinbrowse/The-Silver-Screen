@@ -188,7 +188,9 @@ private struct FavoriteTitleRow: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
                 if !favorite.genreNames.isEmpty {
-                    GenreChipRow(names: favorite.genreNames, announces: false)
+                    Text(favorite.genreNames.joined(separator: ", "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
                 Text(Self.releaseDateText(for: favorite.releaseDate))
                     .font(.caption)

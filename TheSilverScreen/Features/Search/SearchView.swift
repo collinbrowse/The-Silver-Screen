@@ -120,7 +120,7 @@ struct SearchView: View {
                     } label: {
                         CatalogRowView(
                             title: row.title,
-                            genreNames: row.genreNames,
+                            subtitle: row.genreNames.joined(separator: ", "),
                             metadata: row.formattedReleaseDate,
                             userScore: row.formattedUserScore,
                             imagePath: row.posterPath,
@@ -141,7 +141,7 @@ struct SearchView: View {
                     } label: {
                         CatalogRowView(
                             title: row.name,
-                            genreNames: row.genreNames,
+                            subtitle: row.genreNames.joined(separator: ", "),
                             metadata: row.formattedFirstAirDate,
                             userScore: row.formattedUserScore,
                             imagePath: row.posterPath,
@@ -162,6 +162,7 @@ struct SearchView: View {
                     } label: {
                         CatalogRowView(
                             title: row.name,
+                            subtitle: "",
                             metadata: row.knownForDepartment ?? "",
                             imagePath: row.profilePath,
                             imageKind: .profile,

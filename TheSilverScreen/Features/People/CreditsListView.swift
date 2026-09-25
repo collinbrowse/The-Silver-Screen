@@ -113,7 +113,10 @@ private struct CreditsListRow: View {
                     .foregroundStyle(DesignTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if !item.genreNames.isEmpty {
-                    GenreChipRow(names: item.genreNames, announces: false)
+                    Text(item.genreNames.joined(separator: ", "))
+                        .font(DesignTypography.chip)
+                        .foregroundStyle(DesignTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(item.formattedReleaseDate)
                     .font(DesignTypography.chip)
