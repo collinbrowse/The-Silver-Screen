@@ -12,6 +12,7 @@ struct TVSeasonView: View {
     let favoritesIndex: FavoritesIndex
     var router: NavigationRouter?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
     let seriesID: Int
     let seasonNumber: Int
 
@@ -75,7 +76,7 @@ struct TVSeasonView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -143,7 +144,11 @@ struct TVSeasonView: View {
                 .font(DesignTypography.metadata)
                 .foregroundStyle(DesignTheme.textSecondary)
             if !content.trailers.isEmpty {
-                MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
+                MediaMetadataPills(
+                    trailers: content.trailers,
+                    loadingTrailerID: loadingTrailerID,
+                    playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
+                )
             }
         }
     }

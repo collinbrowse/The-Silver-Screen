@@ -15,6 +15,7 @@ struct TVSeriesView: View {
     @Namespace private var heroTransition
     @State private var selectedBackdropID: String?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
 
     private var fullscreenBinding: Binding<FullscreenImages?> {
         Binding(
@@ -73,7 +74,7 @@ struct TVSeriesView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -177,7 +178,8 @@ struct TVSeriesView: View {
             if !content.detail.trailers.isEmpty {
                 MediaMetadataPills(
                     trailers: content.detail.trailers,
-                    playTrailer: { playingTrailer = $0 }
+                    loadingTrailerID: loadingTrailerID,
+                    playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
                 )
             }
         }

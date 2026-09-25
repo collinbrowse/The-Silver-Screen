@@ -15,6 +15,7 @@ struct TVEpisodeView: View {
     let seasonNumber: Int
     var router: NavigationRouter?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
 
     @Namespace private var heroTransition
     @State private var selectedBackdropID: String?
@@ -84,7 +85,7 @@ struct TVEpisodeView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: fullscreenBinding) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -163,7 +164,11 @@ struct TVEpisodeView: View {
                     .font(DesignTypography.metadata.weight(.semibold))
                 Text(content.formattedAirDate)
                 if !content.trailers.isEmpty {
-                    MediaMetadataPills(trailers: content.trailers, playTrailer: { playingTrailer = $0 })
+                    MediaMetadataPills(
+                        trailers: content.trailers,
+                        loadingTrailerID: loadingTrailerID,
+                        playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
+                    )
                 }
             }
             .font(DesignTypography.metadata)

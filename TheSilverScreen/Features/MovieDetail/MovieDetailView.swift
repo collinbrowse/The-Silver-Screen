@@ -16,6 +16,7 @@ struct MovieDetailView: View {
     @Namespace private var heroTransition
     @State private var selectedBackdropID: String?
     @State private var playingTrailer: MediaTrailer?
+    @State private var loadingTrailerID: String?
 
     private let portraitCardWidth: CGFloat = 140
 
@@ -73,7 +74,7 @@ struct MovieDetailView: View {
                 await viewModel.load()
             }
         }
-        .trailerPlayer($playingTrailer)
+        .trailerPlayer($playingTrailer, loadingID: $loadingTrailerID)
         .fullScreenCover(item: showsToolbarFavorite ? fullscreenBinding : .constant(nil)) { selection in
             FullscreenImageViewer(
                 images: selection.images,
@@ -125,7 +126,8 @@ struct MovieDetailView: View {
                     if !content.detail.trailers.isEmpty {
                         MediaMetadataPills(
                             trailers: content.detail.trailers,
-                            playTrailer: { playingTrailer = $0 }
+                            loadingTrailerID: loadingTrailerID,
+                            playTrailer: { presentTrailer($0, loadingID: $loadingTrailerID, selection: $playingTrailer) }
                         )
                     }
                 }

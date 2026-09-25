@@ -36,10 +36,30 @@ struct TrailerPlayerView: View {
 
 extension View {
     /// Presents the YouTube player for the trailer the user chose.
-    func trailerPlayer(_ selection: Binding<MediaTrailer?>) -> some View {
-        sheet(item: selection) { trailer in
+    /// Dismissing the sheet clears `loadingID` so the pill's spinner returns to a play icon.
+    func trailerPlayer(_ selection: Binding<MediaTrailer?>, loadingID: Binding<String?>) -> some View {
+        sheet(item: selection, onDismiss: {
+            loadingID.wrappedValue = nil
+        }) { trailer in
             TrailerPlayerView(trailer: trailer)
         }
+    }
+}
+
+/// Shows a spinner on the tapped pill first, then presents the player so the web view loads after that icon change.
+@MainActor
+func presentTrailer(
+    _ trailer: MediaTrailer,
+    loadingID: Binding<String?>,
+    selection: Binding<MediaTrailer?>
+) {
+    guard loadingID.wrappedValue == nil else { return }
+    loadingID.wrappedValue = trailer.id
+    Task { @MainActor in
+        // Let the pill redraw as a spinner before the sheet creates the web view.
+        try? await Task.sleep(for: .milliseconds(100))
+        guard loadingID.wrappedValue == trailer.id else { return }
+        selection.wrappedValue = trailer
     }
 }
 

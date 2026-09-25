@@ -23,17 +23,26 @@ struct GenreChipRow: View {
     }
 }
 
-/// Play control in the genre-pill shape. The triangle is the play icon.
+/// Play control in the genre-pill shape. The triangle becomes a spinner while that trailer is opening.
 struct TrailerChip: View {
     let title: String
+    var isLoading = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: DesignSpacing.xs) {
-                Image(systemName: "play.fill")
-                    .font(.caption2)
-                    .accessibilityHidden(true)
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(DesignTheme.accent)
+                        .frame(width: 14, height: 14)
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.caption2)
+                        .accessibilityHidden(true)
+                }
                 Text(title)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -50,7 +59,8 @@ struct TrailerChip: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Play \(title)")
+        .disabled(isLoading)
+        .accessibilityLabel(isLoading ? "Loading \(title)" : "Play \(title)")
     }
 }
 
@@ -58,6 +68,8 @@ struct TrailerChip: View {
 struct MediaMetadataPills: View {
     var genres: [MovieGenre] = []
     var trailers: [MediaTrailer] = []
+    /// YouTube id of the pill that should show a spinner. Nil means every pill shows play.
+    var loadingTrailerID: String? = nil
     var playTrailer: (MediaTrailer) -> Void = { _ in }
 
     var body: some View {
@@ -68,7 +80,7 @@ struct MediaMetadataPills: View {
             if !trailers.isEmpty {
                 FlowLayout(spacing: DesignSpacing.sm) {
                     ForEach(trailers) { trailer in
-                        TrailerChip(title: trailer.title) {
+                        TrailerChip(title: trailer.title, isLoading: loadingTrailerID == trailer.id) {
                             playTrailer(trailer)
                         }
                     }
