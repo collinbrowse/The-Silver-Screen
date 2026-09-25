@@ -21,10 +21,12 @@ final class CollectionViewModel {
 
     private let collectionID: Int
     private let movies: MovieRepository
+    private let annotations: AnnotationsRepository
 
-    init(collectionID: Int, movies: MovieRepository) {
+    init(collectionID: Int, movies: MovieRepository, annotations: AnnotationsRepository) {
         self.collectionID = collectionID
         self.movies = movies
+        self.annotations = annotations
     }
 
     func load() async {
@@ -49,6 +51,7 @@ final class CollectionViewModel {
                 parts: parts
             )
             state = .loaded(content)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -60,6 +63,24 @@ final class CollectionViewModel {
 
     func retry() async {
         await load()
+    }
+
+    /// Writes saved scores onto the parts already on screen.
+    func reloadDisplayedScores() async {
+        guard case .loaded(let content, let activity) = state else { return }
+        let scores = await annotations.formattedScores()
+        let parts = content.parts.map { $0.withUserScore(scores[.movie($0.id)]) }
+        guard parts != content.parts else { return }
+        state = .loaded(
+            CollectionContent(
+                id: content.id,
+                name: content.name,
+                overview: content.overview,
+                posterPath: content.posterPath,
+                parts: parts
+            ),
+            activity: activity
+        )
     }
 
     /// Missing release dates sort ahead of every dated part. Dated parts go oldest first.

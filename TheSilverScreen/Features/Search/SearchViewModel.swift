@@ -35,6 +35,17 @@ enum SearchListing: Sendable, Equatable {
         case .people(let rows): rows.isEmpty
         }
     }
+
+    func applying(_ scores: [AnnotationKey: SavedUserScore]) -> SearchListing {
+        switch self {
+        case .movies(let rows):
+            .movies(rows.map { $0.withUserScore(scores[.movie($0.id)]) })
+        case .tv(let rows):
+            .tv(rows.map { $0.withUserScore(scores[.series($0.id)]) })
+        case .people:
+            self
+        }
+    }
 }
 
 @Observable
@@ -53,6 +64,7 @@ final class SearchViewModel {
     private let movies: MovieRepository
     private let shows: TVRepository
     private let people: PersonRepository
+    private let annotations: AnnotationsRepository
     private let sleeper: any Sleeper
     private let locale: Locale
 
@@ -69,12 +81,14 @@ final class SearchViewModel {
         movies: MovieRepository,
         shows: TVRepository,
         people: PersonRepository,
+        annotations: AnnotationsRepository,
         sleeper: any Sleeper = TaskSleeper(),
         locale: Locale = .current
     ) {
         self.movies = movies
         self.shows = shows
         self.people = people
+        self.annotations = annotations
         self.sleeper = sleeper
         self.locale = locale
     }
@@ -183,6 +197,15 @@ final class SearchViewModel {
         await showCachedOrFetch(scope: scope, query: activeKey, keepingVisible: true)
     }
 
+    /// Writes saved scores onto the rows already on screen, including after returning from detail.
+    func reloadDisplayedScores() async {
+        guard case .loaded(let listing, let activity) = state else { return }
+        let scores = await annotations.formattedScores()
+        let stamped = listing.applying(scores)
+        guard stamped != listing else { return }
+        state = .loaded(stamped, activity: activity)
+    }
+
     func noteFavoriteSaveFailed() {
         guard case .loaded(let listing, _) = state else { return }
         state = .loaded(listing, activity: .failed(.persistence))
@@ -213,6 +236,7 @@ final class SearchViewModel {
             caches[scope]?[key] = bucket
             hasMore = bucket.hasMore
             state = bucket.listing.isEmpty ? .empty : .loaded(bucket.listing)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             if token == requestGeneration, let cached = caches[scope]?[key] {
                 state = cached.listing.isEmpty ? .empty : .loaded(cached.listing)
@@ -258,6 +282,7 @@ final class SearchViewModel {
             committedQuery = query
             hasMore = cached.hasMore
             state = cached.listing.isEmpty ? .empty : .loaded(cached.listing)
+            await reloadDisplayedScores()
             return
         }
 
@@ -300,6 +325,7 @@ final class SearchViewModel {
             committedQuery = query
             hasMore = bucket.hasMore
             state = bucket.listing.isEmpty ? .empty : .loaded(bucket.listing)
+            await reloadDisplayedScores()
         } catch is CancellationError {
             return
         } catch {

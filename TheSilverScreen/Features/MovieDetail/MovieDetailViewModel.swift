@@ -49,6 +49,11 @@ struct MovieDetailContent: Sendable, Equatable {
     let detail: MovieDetail
     let formattedRating: String
     let ratingAccessibilityLabel: String
+    let formattedUserScore: String?
+    let userScoreAccessibilityLabel: String
+    let userNote: String?
+    let formattedRatedOn: String?
+    let formattedNotedOn: String?
     let formattedBudget: String
     let budgetAccessibilityLabel: String
     let formattedRevenue: String
@@ -97,11 +102,18 @@ final class MovieDetailViewModel {
     private let movieID: Int
     private let movies: MovieRepository
     private let favorites: FavoritesRepository
+    private let annotations: AnnotationsRepository
 
-    init(movieID: Int, movies: MovieRepository, favorites: FavoritesRepository) {
+    init(
+        movieID: Int,
+        movies: MovieRepository,
+        favorites: FavoritesRepository,
+        annotations: AnnotationsRepository
+    ) {
         self.movieID = movieID
         self.movies = movies
         self.favorites = favorites
+        self.annotations = annotations
     }
 
     func load() async {
@@ -118,12 +130,15 @@ final class MovieDetailViewModel {
                 movieID: movieID,
                 movies: movies
             )
+            async let personalSection = personalDetail()
+            let personal = try await personalSection
             let content = Self.makeContent(
                 detail: detail,
                 collection: await collectionSection,
-                reviews: await reviewsSection
+                reviews: await reviewsSection,
+                personal: personal.detail
             )
-            state = .loaded(content)
+            state = .loaded(content, activity: personal.activity)
             // Keep a persisted favorite's snapshot from going stale against fresh TMDB data.
             // No-op unless this movie is already favorited; failures here don't affect the screen.
             let refreshed = detail.asMovie()
@@ -139,6 +154,70 @@ final class MovieDetailViewModel {
 
     func retry() async {
         await load()
+    }
+
+    /// Saves a half-point score. A failure keeps the score already on screen.
+    func saveUserScore(_ score: Double) async {
+        guard case .loaded = state else { return }
+        do {
+            let saved = try await annotations.saveScore(score, for: .movie(movieID))
+            apply(PersonalDetail(annotation: saved))
+        } catch is CancellationError {
+            return
+        } catch {
+            markPersistenceFailure()
+        }
+    }
+
+    /// Saves a note. Returns false when the write fails so the editor can stay open.
+    func saveUserNote(_ note: String) async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.saveNote(note, for: .movie(movieID))
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    /// Removes the note and leaves the score. Returns false when the write fails.
+    func deleteUserNote() async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.deleteNote(for: .movie(movieID))
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    private func personalDetail() async throws -> (detail: PersonalDetail, activity: LoadActivity) {
+        do {
+            let record = try await annotations.annotation(for: .movie(movieID))
+            return (PersonalDetail(annotation: record), .none)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (.empty, .failed(.persistence))
+        }
+    }
+
+    private func apply(_ personal: PersonalDetail) {
+        guard case .loaded(let content, let activity) = state else { return }
+        state = .loaded(content.withPersonal(personal), activity: AnnotationActivity.afterSuccess(activity))
+    }
+
+    private func markPersistenceFailure() {
+        guard case .loaded(let content, _) = state else { return }
+        state = .loaded(content, activity: .failed(.persistence))
     }
 
     func toggleFavorite() async {
@@ -285,7 +364,8 @@ final class MovieDetailViewModel {
     static func makeContent(
         detail: MovieDetail,
         collection: MovieDetailContent.CollectionSection? = nil,
-        reviews: MovieDetailContent.ReviewsSection? = nil
+        reviews: MovieDetailContent.ReviewsSection? = nil,
+        personal: PersonalDetail = .empty
     ) -> MovieDetailContent {
         let budget = formatCurrency(detail.budget)
         let revenue = formatCurrency(detail.revenue)
@@ -314,6 +394,11 @@ final class MovieDetailViewModel {
             detail: detail,
             formattedRating: TMDBRating.formatted(detail.voteAverage),
             ratingAccessibilityLabel: TMDBRating.accessibilityLabel(detail.voteAverage),
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
             formattedBudget: budget.display,
             budgetAccessibilityLabel: budget.accessibility,
             formattedRevenue: revenue.display,
@@ -476,6 +561,11 @@ private extension MovieDetailContent {
             detail: detail,
             formattedRating: formattedRating,
             ratingAccessibilityLabel: ratingAccessibilityLabel,
+            formattedUserScore: formattedUserScore,
+            userScoreAccessibilityLabel: userScoreAccessibilityLabel,
+            userNote: userNote,
+            formattedRatedOn: formattedRatedOn,
+            formattedNotedOn: formattedNotedOn,
             formattedBudget: formattedBudget,
             budgetAccessibilityLabel: budgetAccessibilityLabel,
             formattedRevenue: formattedRevenue,
@@ -488,6 +578,31 @@ private extension MovieDetailContent {
             collection: collection ?? self.collection,
             reviews: reviews ?? self.reviews,
             fullscreenImages: fullscreenImages ?? self.fullscreenImages
+        )
+    }
+
+    func withPersonal(_ personal: PersonalDetail) -> MovieDetailContent {
+        MovieDetailContent(
+            detail: detail,
+            formattedRating: formattedRating,
+            ratingAccessibilityLabel: ratingAccessibilityLabel,
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
+            formattedBudget: formattedBudget,
+            budgetAccessibilityLabel: budgetAccessibilityLabel,
+            formattedRevenue: formattedRevenue,
+            revenueAccessibilityLabel: revenueAccessibilityLabel,
+            formattedReleaseDate: formattedReleaseDate,
+            images: images,
+            cast: cast,
+            crew: crew,
+            similar: similar,
+            collection: collection,
+            reviews: reviews,
+            fullscreenImages: fullscreenImages
         )
     }
 

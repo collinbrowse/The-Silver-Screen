@@ -36,6 +36,11 @@ struct TVSeriesContent: Sendable, Equatable {
     let creatorsText: String
     let formattedRating: String
     let ratingAccessibilityLabel: String
+    let formattedUserScore: String?
+    let userScoreAccessibilityLabel: String
+    let userNote: String?
+    let formattedRatedOn: String?
+    let formattedNotedOn: String?
     let seasons: [SeasonRow]
     let recommendations: [RecommendationRow]
     let reviews: ReviewsSection?
@@ -50,10 +55,12 @@ final class TVSeriesViewModel {
 
     private let seriesID: Int
     private let shows: TVRepository
+    private let annotations: AnnotationsRepository
 
-    init(seriesID: Int, shows: TVRepository) {
+    init(seriesID: Int, shows: TVRepository, annotations: AnnotationsRepository) {
         self.seriesID = seriesID
         self.shows = shows
+        self.annotations = annotations
     }
 
     func load() async {
@@ -61,7 +68,11 @@ final class TVSeriesViewModel {
         do {
             let detail = try await shows.series(id: seriesID)
             let reviews = await Self.loadReviews(seriesID: seriesID, shows: shows)
-            state = .loaded(Self.makeContent(detail: detail, reviews: reviews))
+            let personal = try await personalDetail()
+            state = .loaded(
+                Self.makeContent(detail: detail, reviews: reviews, personal: personal.detail),
+                activity: personal.activity
+            )
         } catch is CancellationError {
             return
         } catch let error as AppError {
@@ -75,6 +86,82 @@ final class TVSeriesViewModel {
         await load()
     }
 
+    /// Saves a half-point score. A failure keeps the score already on screen.
+    func saveUserScore(_ score: Double) async {
+        guard case .loaded = state else { return }
+        do {
+            let saved = try await annotations.saveScore(score, for: .series(seriesID))
+            apply(PersonalDetail(annotation: saved))
+        } catch is CancellationError {
+            return
+        } catch {
+            markPersistenceFailure()
+        }
+    }
+
+    /// Saves a note. Returns false when the write fails so the editor can stay open.
+    func saveUserNote(_ note: String) async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.saveNote(note, for: .series(seriesID))
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    /// Removes the note and leaves the score. Returns false when the write fails.
+    func deleteUserNote() async -> Bool {
+        guard case .loaded = state else { return false }
+        do {
+            let saved = try await annotations.deleteNote(for: .series(seriesID))
+            apply(PersonalDetail(annotation: saved))
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            markPersistenceFailure()
+            return false
+        }
+    }
+
+    private func personalDetail() async throws -> (detail: PersonalDetail, activity: LoadActivity) {
+        do {
+            let record = try await annotations.annotation(for: .series(seriesID))
+            return (PersonalDetail(annotation: record), .none)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (.empty, .failed(.persistence))
+        }
+    }
+
+    /// Refresh keeps the note and score already on screen when the annotations file cannot be read.
+    private func personalKeeping(_ current: TVSeriesContent) async throws -> (detail: PersonalDetail, activity: LoadActivity) {
+        do {
+            let record = try await annotations.annotation(for: .series(seriesID))
+            return (PersonalDetail(annotation: record), .none)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return (current.personal, .failed(.persistence))
+        }
+    }
+
+    private func apply(_ personal: PersonalDetail) {
+        guard case .loaded(let content, let activity) = state else { return }
+        state = .loaded(content.withPersonal(personal), activity: AnnotationActivity.afterSuccess(activity))
+    }
+
+    private func markPersistenceFailure() {
+        guard case .loaded(let content, _) = state else { return }
+        state = .loaded(content, activity: .failed(.persistence))
+    }
+
     /// Pull to refresh. The series already on screen stays up if the request fails.
     func refresh() async {
         guard case .loaded(let current, _) = state else {
@@ -85,7 +172,11 @@ final class TVSeriesViewModel {
         do {
             let detail = try await shows.series(id: seriesID)
             let reviews = await Self.loadReviews(seriesID: seriesID, shows: shows)
-            state = .loaded(Self.makeContent(detail: detail, reviews: reviews))
+            let personal = try await personalKeeping(current)
+            state = .loaded(
+                Self.makeContent(detail: detail, reviews: reviews, personal: personal.detail),
+                activity: personal.activity
+            )
         } catch is CancellationError {
             state = .loaded(current, activity: .none)
         } catch let error as AppError {
@@ -218,7 +309,8 @@ final class TVSeriesViewModel {
 
     private static func makeContent(
         detail: TVSeriesDetail,
-        reviews: TVSeriesContent.ReviewsSection?
+        reviews: TVSeriesContent.ReviewsSection?,
+        personal: PersonalDetail
     ) -> TVSeriesContent {
         let creators = detail.creators.isEmpty ? "Creator unknown" : detail.creators.joined(separator: ", ")
         let lastAirDate = detail.lastAirDate.map { "Last Air Date: \(DisplayDate.day($0))" } ?? "Last Air Date: Unknown"
@@ -243,6 +335,11 @@ final class TVSeriesViewModel {
             creatorsText: creators,
             formattedRating: TMDBRating.formatted(detail.voteAverage),
             ratingAccessibilityLabel: TMDBRating.accessibilityLabel(detail.voteAverage),
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
             seasons: seasons,
             recommendations: recommendations,
             reviews: reviewsSection,
@@ -256,6 +353,36 @@ final class TVSeriesViewModel {
 }
 
 private extension TVSeriesContent {
+    var personal: PersonalDetail {
+        PersonalDetail(
+            formattedUserScore: formattedUserScore,
+            userScoreAccessibilityLabel: userScoreAccessibilityLabel,
+            userNote: userNote,
+            formattedRatedOn: formattedRatedOn,
+            formattedNotedOn: formattedNotedOn
+        )
+    }
+
+    func withPersonal(_ personal: PersonalDetail) -> TVSeriesContent {
+        TVSeriesContent(
+            detail: detail,
+            formattedFirstAirDate: formattedFirstAirDate,
+            formattedLastAirDate: formattedLastAirDate,
+            creatorsText: creatorsText,
+            formattedRating: formattedRating,
+            ratingAccessibilityLabel: ratingAccessibilityLabel,
+            formattedUserScore: personal.formattedUserScore,
+            userScoreAccessibilityLabel: personal.userScoreAccessibilityLabel,
+            userNote: personal.userNote,
+            formattedRatedOn: personal.formattedRatedOn,
+            formattedNotedOn: personal.formattedNotedOn,
+            seasons: seasons,
+            recommendations: recommendations,
+            reviews: reviews,
+            fullscreenImages: fullscreenImages
+        )
+    }
+
     func replacing(reviews: ReviewsSection?) -> TVSeriesContent {
         TVSeriesContent(
             detail: detail,
@@ -264,6 +391,11 @@ private extension TVSeriesContent {
             creatorsText: creatorsText,
             formattedRating: formattedRating,
             ratingAccessibilityLabel: ratingAccessibilityLabel,
+            formattedUserScore: formattedUserScore,
+            userScoreAccessibilityLabel: userScoreAccessibilityLabel,
+            userNote: userNote,
+            formattedRatedOn: formattedRatedOn,
+            formattedNotedOn: formattedNotedOn,
             seasons: seasons,
             recommendations: recommendations,
             reviews: reviews,

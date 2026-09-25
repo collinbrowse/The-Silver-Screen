@@ -37,6 +37,12 @@ struct BrowseListView: View {
                 await viewModel.load()
             }
         }
+        .onAppear {
+            Task { await viewModel.reloadDisplayedScores() }
+        }
+        .onChange(of: router?.path.count ?? 0) { _, _ in
+            Task { await viewModel.reloadDisplayedScores() }
+        }
         .onChange(of: viewModel.selectionToken) { _, _ in
             scrolledID = nil
         }
@@ -127,6 +133,7 @@ struct BrowseListView: View {
                             title: row.title,
                             subtitle: row.genreLine,
                             metadata: row.formattedDate,
+                            userScore: row.formattedUserScore,
                             imagePath: row.posterPath,
                             imageKind: .poster,
                             placeholderSystemImage: row.media == .movie ? "film" : "tv",

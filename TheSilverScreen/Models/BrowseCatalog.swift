@@ -349,6 +349,10 @@ struct BrowseRow: Sendable, Equatable, Identifiable {
     let date: Date?
     let voteAverage: Double
     let genreIDs: [Int]
+    /// Personal score, when this title has one. Nil until the list reads annotations.
+    var formattedUserScore: String?
+    /// Day that score was chosen.
+    var formattedRatedOn: String?
 
     var id: String { identity }
 
@@ -372,6 +376,15 @@ struct BrowseRow: Sendable, Equatable, Identifiable {
         date = candidate.date
         voteAverage = candidate.voteAverage
         genreIDs = candidate.genreIDs
+        formattedUserScore = nil
+        formattedRatedOn = nil
+    }
+
+    func withUserScore(_ saved: SavedUserScore?) -> BrowseRow {
+        var copy = self
+        copy.formattedUserScore = saved?.formatted
+        copy.formattedRatedOn = saved?.ratedOn
+        return copy
     }
 
     func asMovie() -> Movie {

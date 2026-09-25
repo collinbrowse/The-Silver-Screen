@@ -42,8 +42,11 @@ struct TVSeasonView: View {
                     message: "This season could not be shown.",
                     systemImage: "tv"
                 )
-            case .loaded(let content, _):
+            case .loaded(let content, let activity):
                 loaded(content)
+                    .overlay(alignment: .top) {
+                        LoadActivityBanner(activity: activity)
+                    }
             case .failed(let error):
                 ErrorStateView(error: error) {
                     await viewModel.retry()
@@ -146,14 +149,19 @@ struct TVSeasonView: View {
             }
             TMDBRatingCard(
                 formattedRating: content.formattedRating,
-                accessibilityLabel: content.ratingAccessibilityLabel
-            )
-            if !content.overview.isEmpty {
-                Text(content.overview)
-                    .font(DesignTypography.body)
-                    .foregroundStyle(DesignTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                accessibilityLabel: content.ratingAccessibilityLabel,
+                formattedUserScore: content.formattedUserScore,
+                userScoreAccessibilityLabel: content.userScoreAccessibilityLabel
+            ) { score in
+                Task { await viewModel.saveUserScore(score) }
             }
+            MediaDescriptionSection(
+                overview: content.overview,
+                note: content.userNote,
+                notedOn: content.formattedNotedOn,
+                onSave: { await viewModel.saveUserNote($0) },
+                onDelete: { await viewModel.deleteUserNote() }
+            )
         }
         .padding(.horizontal, DesignSpacing.lg)
     }

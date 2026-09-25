@@ -59,7 +59,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 238,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -80,7 +81,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 238,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -102,7 +104,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -120,7 +123,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -145,7 +149,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -169,7 +174,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: client),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -256,7 +262,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         let viewModel = MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: switchable),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -280,7 +287,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: favorites
+            favorites: favorites,
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -308,7 +316,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: favorites
+            favorites: favorites,
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -338,7 +347,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: favorites
+            favorites: favorites,
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -395,7 +405,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: favorites
+            favorites: favorites,
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -419,7 +430,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: FavoritesRepository(store: store, logger: SilentLogger(), index: index)
+            favorites: FavoritesRepository(store: store, logger: SilentLogger(), index: index),
+            annotations: AnnotationsRepository.empty()
         )
         await viewModel.load()
 
@@ -445,7 +457,8 @@ final class MovieDetailViewModelTests: XCTestCase {
             movies: MovieRepository.test(
                 client: FakeHTTPClient(stub: .success(TMDBFixtures.movieDetailShawshank))
             ),
-            favorites: favorites
+            favorites: favorites,
+            annotations: AnnotationsRepository.empty()
         )
         let personViewModel = PersonDetailViewModel(
             personID: 1922,
@@ -467,6 +480,76 @@ final class MovieDetailViewModelTests: XCTestCase {
         }
     }
 
+    func test_load_withSavedScoreAndNote_showsThemAndDefaultsToNotes() async throws {
+        let store = InMemoryAnnotationsStore()
+        let annotations = AnnotationsRepository(store: store, logger: SilentLogger())
+        _ = try await annotations.saveScore(7.5, for: .movie(278))
+        _ = try await annotations.saveNote("A favorite", for: .movie(278))
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: DetailStubHTTPClient(detail: .success(TMDBFixtures.movieDetailShawshank))),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: annotations
+        )
+
+        await viewModel.load()
+
+        guard case .loaded(let content, activity: .none) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.formattedUserScore, "7.5 / 10")
+        XCTAssertEqual(content.userNote, "A favorite")
+        XCTAssertTrue(PersonalDetail(
+            formattedUserScore: content.formattedUserScore,
+            userScoreAccessibilityLabel: content.userScoreAccessibilityLabel,
+            userNote: content.userNote,
+            formattedRatedOn: content.formattedRatedOn,
+            formattedNotedOn: content.formattedNotedOn
+        ).showsNotesFirst)
+    }
+
+    func test_load_withoutNote_staysOnDescriptionEvenWhenOverviewIsEmpty() async {
+        let viewModel = makeViewModel(stub: .success(TMDBFixtures.movieDetailSparse))
+
+        await viewModel.load()
+
+        guard case .loaded(let content, _) = viewModel.state else {
+            return XCTFail("Expected loaded, got \(viewModel.state)")
+        }
+        XCTAssertNil(content.userNote)
+        XCTAssertNil(content.formattedUserScore)
+        XCTAssertEqual(content.detail.overview, "")
+        XCTAssertFalse(PersonalDetail(
+            formattedUserScore: nil,
+            userScoreAccessibilityLabel: content.userScoreAccessibilityLabel,
+            userNote: content.userNote,
+            formattedRatedOn: content.formattedRatedOn,
+            formattedNotedOn: content.formattedNotedOn
+        ).showsNotesFirst)
+    }
+
+    func test_saveUserScore_whenPersistenceFails_keepsPreviousScore() async throws {
+        let store = InMemoryAnnotationsStore()
+        let annotations = AnnotationsRepository(store: store, logger: SilentLogger())
+        _ = try await annotations.saveScore(7.5, for: .movie(278))
+        let viewModel = MovieDetailViewModel(
+            movieID: 278,
+            movies: MovieRepository.test(client: DetailStubHTTPClient(detail: .success(TMDBFixtures.movieDetailShawshank))),
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: annotations
+        )
+        await viewModel.load()
+        await store.setSaveError(CocoaError(.fileWriteUnknown))
+
+        await viewModel.saveUserScore(9)
+
+        guard case .loaded(let content, activity: .failed(let error)) = viewModel.state else {
+            return XCTFail("Expected loaded with failed activity, got \(viewModel.state)")
+        }
+        XCTAssertEqual(content.formattedUserScore, "7.5 / 10")
+        XCTAssertEqual(error, .persistence)
+    }
+
     func test_formatCurrency_zero_isNotAvailable() {
         let formatted = MovieDetailViewModel.formatCurrency(0)
         XCTAssertEqual(formatted.display, "Not available")
@@ -478,7 +561,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: DetailStubHTTPClient(detail: stub)),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
     }
 
@@ -486,7 +570,8 @@ final class MovieDetailViewModelTests: XCTestCase {
         MovieDetailViewModel(
             movieID: 278,
             movies: MovieRepository.test(client: FakeHTTPClient(result: result)),
-            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger())
+            favorites: FavoritesRepository(store: InMemoryFavoritesStore(), logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
     }
 }

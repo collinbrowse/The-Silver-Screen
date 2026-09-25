@@ -12,7 +12,8 @@ final class FavoritesListViewModelTests: XCTestCase {
     func test_load_whenEmpty_setsEmptyState() async {
         let store = InMemoryFavoritesStore()
         let viewModel = FavoritesListViewModel(
-            favorites: FavoritesRepository(store: store, logger: SilentLogger())
+            favorites: FavoritesRepository(store: store, logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -31,7 +32,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 2, title: "Newer", genreIDs: [28]),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
 
         await viewModel.load()
 
@@ -46,7 +47,8 @@ final class FavoritesListViewModelTests: XCTestCase {
         let store = InMemoryFavoritesStore()
         await store.setLoadError(CocoaError(.fileReadUnknown))
         let viewModel = FavoritesListViewModel(
-            favorites: FavoritesRepository(store: store, logger: SilentLogger())
+            favorites: FavoritesRepository(store: store, logger: SilentLogger()),
+            annotations: AnnotationsRepository.empty()
         )
 
         await viewModel.load()
@@ -65,7 +67,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 2, title: "Remove", genreIDs: [28]),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         guard case .loaded(let before, _) = viewModel.state else {
@@ -90,7 +92,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 9, title: "Only", genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-01-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         guard case .loaded(let before, _) = viewModel.state else {
@@ -113,7 +115,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 2, title: "Remove", genreIDs: [28]),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         await viewModel.removeFavorites(at: IndexSet(integer: 0))
@@ -130,7 +132,7 @@ final class FavoritesListViewModelTests: XCTestCase {
         _ = try await repository.toggle(movie: TestMovies.make(id: 1, title: "A", genreIDs: [18]), favoritedAt: TestMovies.date("2024-01-01"))
         _ = try await repository.toggle(movie: TestMovies.make(id: 2, title: "B", genreIDs: [18]), favoritedAt: TestMovies.date("2024-02-01"))
         _ = try await repository.toggle(movie: TestMovies.make(id: 3, title: "C", genreIDs: [18]), favoritedAt: TestMovies.date("2024-03-01"))
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         // Displayed newest-first: [3, 2, 1] — remove the first and last.
@@ -159,7 +161,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             ),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
 
         await viewModel.load()
 
@@ -186,7 +188,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             ),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         guard case .loaded(let before, _) = viewModel.state else {
@@ -220,7 +222,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         viewModel.filter = .all
@@ -247,7 +249,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 2, title: "Breaking Point", genreIDs: [28]),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .tvSeries
         viewModel.searchText = "breaking"
@@ -266,7 +268,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             tv: FavoriteTVSeries(id: 2, name: "Series", posterPath: nil, releaseDate: nil, genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .tvSeries
 
@@ -287,7 +289,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-01-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         viewModel.filter = .people
@@ -309,7 +311,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .people
 
@@ -330,7 +332,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 1, title: "Keep", genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-01-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         guard case .loaded(let loaded, activity: .none) = viewModel.state else {
             return XCTFail("Expected loaded after first load, got \(viewModel.state)")
@@ -357,7 +359,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-01-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .movies
 
@@ -377,7 +379,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Tom Cruise", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
 
         viewModel.searchText = "reservoir"
@@ -398,7 +400,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Léon", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .movies
         viewModel.searchText = "Léon"
@@ -417,7 +419,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Léon", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .people
         viewModel.searchText = "Léon"
@@ -436,7 +438,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             person: FavoritePerson(id: 2, name: "Person", profilePath: nil, knownForDepartment: "Acting"),
             favoritedAt: TestMovies.date("2024-06-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.filter = .people
         viewModel.searchText = "zzz"
@@ -453,7 +455,7 @@ final class FavoritesListViewModelTests: XCTestCase {
             movie: TestMovies.make(id: 1, title: "Movie", genreIDs: [18]),
             favoritedAt: TestMovies.date("2024-01-01")
         )
-        let viewModel = FavoritesListViewModel(favorites: repository)
+        let viewModel = FavoritesListViewModel(favorites: repository, annotations: AnnotationsRepository.empty())
         await viewModel.load()
         viewModel.searchText = "Movie"
 

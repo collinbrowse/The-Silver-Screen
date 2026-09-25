@@ -9,6 +9,30 @@ import XCTest
 @MainActor
 final class SearchViewModelTests: XCTestCase {
 
+    func test_reloadAndRefresh_stampSavedMovieScore() async throws {
+        let annotations = AnnotationsRepository.empty()
+        let viewModel = makeViewModel(
+            routes: ["movie/popular": .success(TMDBFixtures.topMoviesPage1)],
+            annotations: annotations
+        )
+        await viewModel.load()
+        try await annotations.saveScore(8, for: .movie(278))
+
+        await viewModel.reloadDisplayedScores()
+
+        guard case .loaded(.movies(let rows), _) = viewModel.state else {
+            return XCTFail("Expected rows after returning, got \(viewModel.state)")
+        }
+        XCTAssertEqual(rows.first { $0.id == 278 }?.formattedUserScore, "8.0 / 10")
+
+        await viewModel.refresh()
+
+        guard case .loaded(.movies(let refreshed), activity: .none) = viewModel.state else {
+            return XCTFail("Expected rows after refresh, got \(viewModel.state)")
+        }
+        XCTAssertEqual(refreshed.first { $0.id == 278 }?.formattedUserScore, "8.0 / 10")
+    }
+
     func test_load_showsPopularMovies() async {
         let viewModel = makeViewModel(
             routes: ["movie/popular": .success(TMDBFixtures.topMoviesPage1)]
@@ -100,6 +124,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
 
@@ -121,6 +146,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
         await viewModel.load()
@@ -145,6 +171,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
         await viewModel.load()
@@ -171,6 +198,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
         await viewModel.load()
@@ -196,6 +224,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
         await viewModel.load()
@@ -282,6 +311,7 @@ final class SearchViewModelTests: XCTestCase {
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: AnnotationsRepository.empty(),
             sleeper: NoopSleeper()
         )
         viewModel.query = "Horror"
@@ -312,12 +342,16 @@ final class SearchViewModelTests: XCTestCase {
         return URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
     }
 
-    private func makeViewModel(routes: [String: FakeHTTPClient.Stub]) -> SearchViewModel {
+    private func makeViewModel(
+        routes: [String: FakeHTTPClient.Stub],
+        annotations: AnnotationsRepository = .empty()
+    ) -> SearchViewModel {
         let client = RoutingHTTPClient(routes: routes)
         return SearchViewModel(
             movies: MovieRepository.test(client: client),
             shows: TVRepository.test(client: client),
             people: PersonRepository.test(client: client),
+            annotations: annotations,
             sleeper: NoopSleeper()
         )
     }
